@@ -6,10 +6,5 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "e2e": "pytest e2e"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
   }
 }
