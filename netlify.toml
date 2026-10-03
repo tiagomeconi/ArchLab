@@ -1,5 +1,5 @@
 [build]
-  command = "pnpm install && pnpm --filter @archlab/web build"
+  command = "pnpm install --frozen-lockfile --config.strictDepBuilds=false && pnpm --filter @archlab/web build"
   publish = "apps/web/dist"
 
 [build.environment]

@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --frozen-lockfile --config.strictDepBuilds=false",
   "buildCommand": "pnpm --filter @archlab/web build",
   "outputDirectory": "apps/web/dist",
   "rewrites": [{ "source": "/((?!assets/|shots/|.*\\..*).*)", "destination": "/index.html" }]
