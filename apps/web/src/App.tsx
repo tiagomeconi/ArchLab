@@ -385,7 +385,7 @@ function Lab() {
   // a barra superior quebra em duas linhas em telas médias: a legenda de protocolos desce junto, em vez de ficar por baixo dela
   useEffect(() => {
     const bar = document.querySelector<HTMLElement>(".topbar"); if (!bar) return;
-    const set = () => document.documentElement.style.setProperty("--topbar-bottom", `${Math.round(bar.getBoundingClientRect().bottom)}px`);
+    const set = () => document.documentElement.style.setProperty("--topbar-bottom", `${bar.offsetTop + bar.offsetHeight}px`);
     set(); const ro = new ResizeObserver(set); ro.observe(bar); window.addEventListener("resize", set);
     return () => { ro.disconnect(); window.removeEventListener("resize", set); };
   }, []);

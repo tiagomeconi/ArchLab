@@ -398,3 +398,17 @@ def test_painel_de_requisitos_mostra_o_logo_do_caso(page):
     logo = page.locator(".brief-logo svg[role=img]")
     assert logo.count() == 1 and logo.get_attribute("aria-label") == "Spotify"
     box = logo.bounding_box(); assert box["width"] >= 20 and box["height"] >= 20
+
+
+def test_barra_superior_nao_cobre_os_paineis_e_o_menu_de_exportar_e_clicavel(make_page):
+    # 1440 px: a barra superior quebra em duas linhas; os painéis laterais precisam começar abaixo dela
+    pg = make_page(width=1440, height=900)
+    open_case(pg, "Netflix"); pg.wait_for_timeout(900)  # espera as animações de entrada dos painéis
+    topo = pg.evaluate("document.querySelector('.topbar').getBoundingClientRect().bottom")
+    for sel in (".brief", ".sidebar"):
+        y = pg.evaluate("(s)=>document.querySelector(s).getBoundingClientRect().top", sel)
+        assert y >= topo - 1, f"{sel} começa em {y}, dentro da barra superior (que termina em {topo})"
+    pg.get_by_role("button", name="Exportar").click()
+    pg.get_by_role("menuitem", name="Desenho (.json)").hover()   # falha se outro elemento cobrir o item
+    with pg.expect_download():
+        pg.get_by_role("menuitem", name="Desenho (.json)").click()
