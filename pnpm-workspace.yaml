@@ -2,8 +2,10 @@ packages:
   - "apps/*"
   - "packages/*"
 
-# pnpm 11+ bloqueia scripts de instalação de dependências até serem aprovados.
-# O esbuild (usado pelo Vite) precisa do dele; nada mais deve interromper a instalação.
-allowBuilds:
+# Scripts de instalação de dependências precisam de aprovação. O esbuild (usado pelo Vite) precisa do dele.
+# Duas chaves, uma por geração do pnpm: a hospedagem pode usar uma versão diferente da do packageManager.
+allowBuilds:            # pnpm 11+
   esbuild: true
+onlyBuiltDependencies:  # pnpm 9 e 10
+  - esbuild
 strictDepBuilds: false
