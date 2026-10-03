@@ -27,7 +27,7 @@ Configuração igual nos três:
 
 Reescrita de rotas já está pronta: `vercel.json` (Vercel) e `apps/web/public/_redirects` (Netlify e Cloudflare Pages).
 
-**Vercel:** *Add New → Project → importar o repositório* → conferir os campos acima → Deploy. Domínio próprio em *Settings → Domains*.
+**Vercel:** *Add New → Project → importar o repositório*. A Vercel detecta duas aplicações (`apps/web` e `e2e`): clique em **Import single project** na linha **web** (Vite, `apps/web`). Confirme Framework = Vite, Root Directory = `apps/web`, Output = `dist` e deixe ligada a opção *Include source files outside of the Root Directory* (o app usa o pacote `packages/domain`). A reescrita de rotas vem de `apps/web/vercel.json`. Deploy. Domínio próprio em *Settings → Domains*.
 
 **Netlify:** *Add new site → Import from Git* → mesmos campos (o `netlify.toml` já aponta o build).
 
