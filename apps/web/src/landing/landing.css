@@ -1,0 +1,146 @@
+/* Tailwind v4 só para a landing: sem preflight (não afeta o app) e escaneando apenas esta pasta. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@source "./";
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* Tokens do sistema (definidos em styles.css) expostos como utilitários: bg-bg, text-text-2, border-line, text-accent… */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface-solid);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-ok: var(--ok);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --color-track: var(--track);
+  --color-c-origin: var(--c-origin);
+  --color-c-network: var(--c-network);
+  --color-c-compute: var(--c-compute);
+  --color-c-data: var(--c-data);
+  --color-c-messaging: var(--c-messaging);
+  --color-c-support: var(--c-support);
+  --font-sans: var(--sans);
+  --font-mono: var(--mono);
+  --animate-marquee: marquee var(--duration) infinite linear;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  --animate-shine: shine var(--duration) infinite linear;
+  --animate-meteor: meteor 5s linear infinite;
+  --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
+  --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
+  --animate-shiny-text: shiny-text 8s infinite;
+  --animate-ripple: ripple var(--duration, 2s) ease calc(var(--i, 0) * 0.2s) infinite;
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-orbit: orbit calc(var(--duration) * 1s) linear infinite;
+  --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+}
+
+@keyframes ripple { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(0.9); } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100% - var(--gap))); }
+}
+
+@keyframes marquee-vertical {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(-100% - var(--gap))); }
+}
+
+@keyframes shine {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  to { background-position: 0% 0%; }
+}
+
+@keyframes meteor {
+  0% { transform: rotate(var(--angle)) translateX(0); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: rotate(var(--angle)) translateX(-500px); opacity: 0; }
+}
+
+@keyframes shimmer-slide {
+  to { transform: translate(calc(100cqw - 100%), 0); }
+}
+
+@keyframes spin-around {
+  0% { transform: translateZ(0) rotate(0); }
+  15%, 35% { transform: translateZ(0) rotate(90deg); }
+  65%, 85% { transform: translateZ(0) rotate(270deg); }
+  100% { transform: translateZ(0) rotate(360deg); }
+}
+
+@keyframes shiny-text {
+  0%, 90%, 100% { background-position: calc(-100% - var(--shiny-width)) 0; }
+  30%, 60% { background-position: calc(100% + var(--shiny-width)) 0; }
+}
+
+@keyframes ripple {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(0.9); }
+}
+
+/* Fundo e pequenos ajustes específicos da página */
+.lp { isolation: isolate; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--text); background: var(--bg); overflow-x: clip; }
+.lp ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.lp-grid { background-image: linear-gradient(to right, var(--grid-line) 1px, transparent 1px), linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px); background-size: 56px 56px; }
+.lp { --grid-line: color-mix(in srgb, var(--text) 5%, transparent); }
+.lp-fade-y { mask-image: linear-gradient(to bottom, black 55%, transparent); -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent); }
+.lp-fade-x { mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent); }
+.logo-inv svg { transition: filter .2s; }
+[data-theme="dark"] .logo-inv svg { filter: brightness(0) invert(1); }
+.lp .msr { font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; }
+.lp-noise::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .035; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+@media (prefers-reduced-motion: reduce) { .lp *, .lp *::before, .lp *::after { animation: none !important; } }
+
+/* Reset mínimo escopado à landing (não há preflight do Tailwind). Na camada base para que utilitários vençam. */
+@layer base {
+  .lp a { color: inherit; text-decoration: none; }
+  .lp button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  .lp h1, .lp h2, .lp h3, .lp p, .lp ul, .lp ol, .lp li, .lp figure { margin: 0; padding: 0; }
+  .lp h1, .lp h2, .lp h3 { font-size: inherit; font-weight: inherit; }
+  .lp ul, .lp ol { list-style: none; }
+  .lp img { display: block; max-width: 100%; height: auto; }
+  .lp { --foreground: var(--text); }
+}
+
+/* Apple-like: números tabulares em fonte sans (sem monoespaçada), títulos densos e rótulos em caixa normal */
+.lp { letter-spacing: -0.011em; font-optical-sizing: auto; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+.lp .font-mono { font-family: var(--font-sans); font-variant-numeric: tabular-nums; letter-spacing: -0.005em; }
+.lp kbd { font-family: var(--font-sans); }
+
+/* iPhone: fluxo de pontos e aviso do roteiro */
+@keyframes mlab-dot { 0% { transform: translate(-50%, -6px); opacity: 0; } 20%, 80% { opacity: 1; } 100% { transform: translate(-50%, 22px); opacity: 0; } }
+.mlab-dot { animation: mlab-dot 1.3s linear infinite; }
+@keyframes mlab-banner { from { opacity: 0; transform: translateY(-8px) scale(.97); } to { opacity: 1; transform: none; } }
+.mlab-banner { animation: mlab-banner .5s cubic-bezier(.22,.8,.3,1) both; }
+
+@keyframes orbit {
+  0% { transform: rotate(calc(var(--angle) * 1deg)) translateY(calc(var(--radius) * 1px)) rotate(calc(var(--angle) * -1deg)); }
+  100% { transform: rotate(calc(var(--angle) * 1deg + 360deg)) translateY(calc(var(--radius) * 1px)) rotate(calc((var(--angle) * -1deg) - 360deg)); }
+}
+
+@keyframes cycle-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* âncoras: espaço para o cabeçalho fixo e rolagem suave */
+html:has(.lp) { scroll-behavior: smooth; }
+.lp section[id] { scroll-margin-top: 5.5rem; }
+@media (prefers-reduced-motion: reduce) { html:has(.lp) { scroll-behavior: auto; } }
+
+.lp-fade-both { -webkit-mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent); mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent); }
+@media (prefers-reduced-motion: reduce) { .lp [class*="animate-"] { animation: none !important; } }
+
+/* Prévia do modo livre na tela de escolha */
+@keyframes st-pop { 0% { opacity: 0; transform: scale(.6); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes st-draw { from { stroke-dashoffset: 120; } to { stroke-dashoffset: 0; } }
+.st-pop { animation: st-pop .45s var(--ease) both; }
+.st-draw { animation: st-draw .6s var(--ease) both; }

@@ -1,0 +1,33 @@
+# dependências e build
+node_modules/
+dist/
+*.tsbuildinfo
+
+# ambiente e segredos
+.env
+.env.*
+!.env.example
+
+# documentos internos (ficam só na máquina local)
+docs-internal/
+
+# ferramentas locais
+.claude/
+.pytest_cache/
+__pycache__/
+*.pyc
+.venv/
+
+# editor / sistema
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# logs e temporários
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.vite/
+coverage/

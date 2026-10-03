@@ -1,0 +1,448 @@
+{
+  "schemaVersion": "1.0.0",
+  "nodes": [
+    {
+      "id": "client",
+      "type": "client",
+      "componentVersion": "1.0.0",
+      "name": "client",
+      "properties": {
+        "profileId": "source-v1",
+        "replicas": 1,
+        "placements": [
+          {
+            "region": "region-a",
+            "zone": "zone-a",
+            "count": 1
+          }
+        ],
+        "policy": {
+          "tls": true,
+          "authRequired": false,
+          "durable": false,
+          "idempotent": true,
+          "metrics": true,
+          "logs": true,
+          "traces": true,
+          "alerts": true,
+          "consistency": "not-applicable"
+        }
+      }
+    },
+    {
+      "id": "lb",
+      "type": "load-balancer",
+      "componentVersion": "1.0.0",
+      "name": "lb",
+      "properties": {
+        "profileId": "lb-standard-v1",
+        "replicas": 1,
+        "placements": [
+          {
+            "region": "region-a",
+            "zone": "zone-a",
+            "count": 1
+          }
+        ],
+        "policy": {
+          "tls": true,
+          "authRequired": false,
+          "durable": false,
+          "idempotent": true,
+          "metrics": true,
+          "logs": true,
+          "traces": true,
+          "alerts": true,
+          "consistency": "not-applicable"
+        }
+      }
+    },
+    {
+      "id": "app",
+      "type": "backend",
+      "componentVersion": "1.0.0",
+      "name": "app",
+      "properties": {
+        "profileId": "compute-standard-v1",
+        "replicas": 3,
+        "placements": [
+          {
+            "region": "region-a",
+            "zone": "zone-a",
+            "count": 1
+          },
+          {
+            "region": "region-a",
+            "zone": "zone-b",
+            "count": 2
+          }
+        ],
+        "policy": {
+          "tls": true,
+          "authRequired": false,
+          "durable": false,
+          "idempotent": true,
+          "metrics": true,
+          "logs": true,
+          "traces": true,
+          "alerts": true,
+          "consistency": "not-applicable"
+        }
+      }
+    },
+    {
+      "id": "cache",
+      "type": "redis",
+      "componentVersion": "1.0.0",
+      "name": "cache",
+      "properties": {
+        "profileId": "cache-standard-v1",
+        "replicas": 1,
+        "placements": [
+          {
+            "region": "region-a",
+            "zone": "zone-a",
+            "count": 1
+          }
+        ],
+        "policy": {
+          "tls": true,
+          "authRequired": false,
+          "durable": false,
+          "idempotent": true,
+          "metrics": true,
+          "logs": true,
+          "traces": true,
+          "alerts": true,
+          "consistency": "not-applicable"
+        },
+        "cache": {
+          "hitRate": 0.9,
+          "invalidation": "ttl",
+          "ttlSec": 60,
+          "failureMode": "bypass",
+          "workingSetMiB": 256,
+          "coalescing": false,
+          "warmupSec": 0
+        }
+      }
+    },
+    {
+      "id": "db",
+      "type": "sql-database",
+      "componentVersion": "1.0.0",
+      "name": "db",
+      "properties": {
+        "profileId": "sql-standard-v1",
+        "replicas": 1,
+        "placements": [
+          {
+            "region": "region-a",
+            "zone": "zone-a",
+            "count": 1
+          }
+        ],
+        "policy": {
+          "tls": true,
+          "authRequired": true,
+          "durable": true,
+          "idempotent": true,
+          "metrics": true,
+          "logs": true,
+          "traces": true,
+          "alerts": true,
+          "consistency": "strong"
+        },
+        "storage": {
+          "recordBytes": 500,
+          "initialRecords": 1000000,
+          "retentionDays": 365,
+          "replicationFactor": 1,
+          "indexOverheadFactor": 1.3
+        },
+        "replication": {
+          "mode": "none",
+          "role": "primary",
+          "lagMs": 0,
+          "failoverEnabled": false,
+          "failoverDelaySec": 0
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "client-lb",
+      "source": "client",
+      "sourcePort": "out",
+      "target": "lb",
+      "targetPort": "in",
+      "configuration": {
+        "mode": "sync",
+        "protocol": "https",
+        "required": true,
+        "timeoutMs": 500,
+        "networkLatencyMs": 1,
+        "maxAttempts": 1,
+        "backoffMs": 0,
+        "retryable": false,
+        "tls": true
+      }
+    },
+    {
+      "id": "lb-app",
+      "source": "lb",
+      "sourcePort": "out",
+      "target": "app",
+      "targetPort": "in",
+      "configuration": {
+        "mode": "sync",
+        "protocol": "https",
+        "required": true,
+        "timeoutMs": 500,
+        "networkLatencyMs": 1,
+        "maxAttempts": 1,
+        "backoffMs": 0,
+        "retryable": false,
+        "tls": true
+      }
+    },
+    {
+      "id": "app-cache",
+      "source": "app",
+      "sourcePort": "out",
+      "target": "cache",
+      "targetPort": "in",
+      "configuration": {
+        "mode": "sync",
+        "protocol": "redis",
+        "required": false,
+        "timeoutMs": 5,
+        "networkLatencyMs": 1,
+        "maxAttempts": 1,
+        "backoffMs": 0,
+        "retryable": false,
+        "tls": true
+      }
+    },
+    {
+      "id": "app-db",
+      "source": "app",
+      "sourcePort": "out",
+      "target": "db",
+      "targetPort": "in",
+      "configuration": {
+        "mode": "sync",
+        "protocol": "sql",
+        "required": true,
+        "timeoutMs": 500,
+        "networkLatencyMs": 1,
+        "maxAttempts": 1,
+        "backoffMs": 0,
+        "retryable": false,
+        "tls": true
+      }
+    }
+  ],
+  "metadata": {
+    "title": "Links curtos — experimento cache-aside",
+    "challengeId": "ch-url",
+    "challengeVersion": "1.0.0",
+    "createdAt": "2026-10-03T01:00:00Z",
+    "locale": "pt-BR",
+    "decisions": [
+      {
+        "id": "decision-cache",
+        "title": "Cache-aside com TTL",
+        "rationale": "Leituras toleram 60 segundos stale. Bypass em falha mantém serviço até o limite do banco. Ramo miss é coordenado pela aplicação.",
+        "nodeIds": [
+          "cache",
+          "db"
+        ],
+        "requirementIds": [
+          "NFR-URL-1"
+        ]
+      }
+    ],
+    "requirementEvidence": [
+      {
+        "requirementId": "FR-URL-2",
+        "kind": "flow",
+        "refId": "flow-redirect",
+        "explanation": "Lookup com miss seguido de leitura durável.",
+        "selfDeclared": false
+      }
+    ]
+  },
+  "traffic": {
+    "workloads": [
+      {
+        "id": "wl-redirect",
+        "operationId": "redirect",
+        "source": "external",
+        "averageRps": 1000,
+        "peakRps": 5000,
+        "payloadBytes": 500,
+        "concurrentConnections": 10000,
+        "deadlineMs": 500,
+        "mutable": false,
+        "manual": false
+      }
+    ],
+    "flows": [
+      {
+        "id": "flow-redirect",
+        "workloadId": "wl-redirect",
+        "ackStepId": "s-cache",
+        "steps": [
+          {
+            "id": "s-client",
+            "nodeId": "client",
+            "ordinal": 0,
+            "operationClass": "compute",
+            "visitsPerRequest": 1,
+            "branchShare": 1,
+            "condition": "always",
+            "join": "serial",
+            "required": true
+          },
+          {
+            "id": "s-lb",
+            "nodeId": "lb",
+            "ordinal": 0,
+            "operationClass": "compute",
+            "visitsPerRequest": 1,
+            "branchShare": 1,
+            "condition": "always",
+            "join": "serial",
+            "required": true,
+            "parentStepId": "s-client",
+            "edgeId": "client-lb"
+          },
+          {
+            "id": "s-app",
+            "nodeId": "app",
+            "ordinal": 0,
+            "operationClass": "compute",
+            "visitsPerRequest": 1,
+            "branchShare": 1,
+            "condition": "always",
+            "join": "serial",
+            "required": true,
+            "parentStepId": "s-lb",
+            "edgeId": "lb-app"
+          },
+          {
+            "id": "s-cache",
+            "nodeId": "cache",
+            "ordinal": 0,
+            "operationClass": "read",
+            "visitsPerRequest": 1,
+            "branchShare": 1,
+            "condition": "always",
+            "join": "alternative",
+            "required": false,
+            "parentStepId": "s-app",
+            "edgeId": "app-cache"
+          },
+          {
+            "id": "s-db",
+            "nodeId": "db",
+            "ordinal": 0,
+            "operationClass": "read",
+            "visitsPerRequest": 1,
+            "branchShare": 0.1,
+            "condition": "cache-miss",
+            "join": "serial",
+            "required": true,
+            "parentStepId": "s-app",
+            "edgeId": "app-db",
+            "conditionStepId": "s-cache"
+          }
+        ]
+      }
+    ]
+  },
+  "dependencies": [
+    {
+      "id": "dep-lb",
+      "edgeId": "client-lb",
+      "operationId": "redirect",
+      "semantics": "required"
+    },
+    {
+      "id": "dep-app",
+      "edgeId": "lb-app",
+      "operationId": "redirect",
+      "semantics": "required"
+    },
+    {
+      "id": "dep-cache",
+      "edgeId": "app-cache",
+      "operationId": "redirect",
+      "semantics": "degradable"
+    },
+    {
+      "id": "dep-db",
+      "edgeId": "app-db",
+      "operationId": "redirect",
+      "semantics": "required"
+    }
+  ],
+  "configuration": {
+    "catalogVersion": "1.0.0",
+    "rulesetVersion": "1.0.0",
+    "engineVersion": "1.0.0",
+    "seed": 42,
+    "durationSec": 300,
+    "tickSec": 1,
+    "loadMode": "peak",
+    "events": [
+      {
+        "id": "ev-cache-fail",
+        "type": "redis-unavailable",
+        "targetKind": "node",
+        "targetId": "cache",
+        "startSec": 60,
+        "durationSec": 30,
+        "magnitude": 1,
+        "recoverySec": 0
+      }
+    ]
+  },
+  "layout": {
+    "positions": [
+      {
+        "nodeId": "client",
+        "x": 0,
+        "y": 150
+      },
+      {
+        "nodeId": "lb",
+        "x": 200,
+        "y": 150
+      },
+      {
+        "nodeId": "app",
+        "x": 400,
+        "y": 150
+      },
+      {
+        "nodeId": "cache",
+        "x": 650,
+        "y": 0
+      },
+      {
+        "nodeId": "db",
+        "x": 650,
+        "y": 300
+      }
+    ],
+    "groups": [],
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "zoom": 1
+    }
+  }
+}

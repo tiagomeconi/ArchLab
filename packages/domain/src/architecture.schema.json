@@ -1,0 +1,1173 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/node"
+      },
+      "maxItems": 100
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/edge"
+      },
+      "maxItems": 200
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "challengeId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "challengeVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "locale": {
+          "type": "string",
+          "enum": [
+            "pt-BR",
+            "en"
+          ]
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/decision"
+          },
+          "maxItems": 100
+        },
+        "requirementEvidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          },
+          "maxItems": 200
+        }
+      },
+      "required": [
+        "title",
+        "challengeId",
+        "challengeVersion",
+        "createdAt",
+        "locale",
+        "decisions",
+        "requirementEvidence"
+      ]
+    },
+    "traffic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workloads": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/workload"
+          },
+          "maxItems": 20
+        },
+        "flows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/flow"
+          },
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "workloads",
+        "flows"
+      ]
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dependency"
+      },
+      "maxItems": 200
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "catalogVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "rulesetVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "engineVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "durationSec": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600
+        },
+        "tickSec": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 60
+        },
+        "loadMode": {
+          "type": "string",
+          "enum": [
+            "average",
+            "peak"
+          ]
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/event"
+          },
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "catalogVersion",
+        "rulesetVersion",
+        "engineVersion",
+        "seed",
+        "durationSec",
+        "tickSec",
+        "loadMode",
+        "events"
+      ]
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "positions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/position"
+          },
+          "maxItems": 100
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/group"
+          },
+          "maxItems": 100
+        },
+        "viewport": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "zoom": {
+              "type": "number",
+              "minimum": 0.25,
+              "maximum": 2
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "zoom"
+          ]
+        }
+      },
+      "required": [
+        "positions",
+        "groups",
+        "viewport"
+      ]
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "nodes",
+    "edges",
+    "metadata",
+    "traffic",
+    "dependencies",
+    "configuration",
+    "layout"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:archlab:architecture:1.0.0",
+  "$defs": {
+    "placement": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "region": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "zone": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "region",
+        "zone",
+        "count"
+      ]
+    },
+    "override": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "capacityPerInstance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "compute": {
+              "type": "number",
+              "minimum": 0
+            },
+            "read": {
+              "type": "number",
+              "minimum": 0
+            },
+            "write": {
+              "type": "number",
+              "minimum": 0
+            },
+            "message": {
+              "type": "number",
+              "minimum": 0
+            },
+            "job": {
+              "type": "number",
+              "minimum": 0
+            },
+            "lookup": {
+              "type": "number",
+              "minimum": 0
+            },
+            "transfer": {
+              "type": "number",
+              "minimum": 0
+            },
+            "resolve": {
+              "type": "number",
+              "minimum": 0
+            },
+            "connection": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": []
+        },
+        "baseLatencyMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "baseP95Ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maxQueuePenaltyMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "memoryMiB": {
+          "type": "number",
+          "minimum": 0
+        },
+        "bandwidthBytesPerSec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "connectionCapacity": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": []
+    },
+    "cache": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hitRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "invalidation": {
+          "type": "string",
+          "enum": [
+            "ttl",
+            "event",
+            "versioned",
+            "none",
+            "immutable"
+          ]
+        },
+        "ttlSec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "failureMode": {
+          "type": "string",
+          "enum": [
+            "bypass",
+            "fail-closed"
+          ]
+        },
+        "workingSetMiB": {
+          "type": "number",
+          "minimum": 0
+        },
+        "coalescing": {
+          "type": "boolean"
+        },
+        "warmupSec": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "hitRate",
+        "invalidation",
+        "failureMode"
+      ]
+    },
+    "queue": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "durable": {
+          "type": "boolean"
+        },
+        "maxDepth": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ttlSec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "overflow": {
+          "type": "string",
+          "enum": [
+            "reject",
+            "drop-oldest",
+            "drop-newest"
+          ]
+        },
+        "dlq": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "durable",
+        "overflow"
+      ]
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recordBytes": {
+          "type": "number",
+          "minimum": 0
+        },
+        "initialRecords": {
+          "type": "number",
+          "minimum": 0
+        },
+        "retentionDays": {
+          "type": "number",
+          "minimum": 0
+        },
+        "replicationFactor": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "indexOverheadFactor": {
+          "type": "number",
+          "minimum": 1
+        }
+      },
+      "required": []
+    },
+    "replication": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "sync",
+            "async"
+          ]
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "replica",
+            "multi-writer"
+          ]
+        },
+        "lagMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "failoverEnabled": {
+          "type": "boolean"
+        },
+        "failoverDelaySec": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "mode",
+        "role",
+        "failoverEnabled"
+      ]
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tls": {
+          "type": "boolean"
+        },
+        "authRequired": {
+          "type": "boolean"
+        },
+        "durable": {
+          "type": "boolean"
+        },
+        "idempotent": {
+          "type": "boolean"
+        },
+        "metrics": {
+          "type": "boolean"
+        },
+        "logs": {
+          "type": "boolean"
+        },
+        "traces": {
+          "type": "boolean"
+        },
+        "alerts": {
+          "type": "boolean"
+        },
+        "consistency": {
+          "type": "string",
+          "enum": [
+            "strong",
+            "eventual",
+            "not-applicable"
+          ]
+        },
+        "staleToleranceMs": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": []
+    },
+    "nodeProperties": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profileId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "placements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/placement"
+          },
+          "maxItems": 20
+        },
+        "overrides": {
+          "$ref": "#/$defs/override"
+        },
+        "cache": {
+          "$ref": "#/$defs/cache"
+        },
+        "queue": {
+          "$ref": "#/$defs/queue"
+        },
+        "storage": {
+          "$ref": "#/$defs/storage"
+        },
+        "replication": {
+          "$ref": "#/$defs/replication"
+        },
+        "policy": {
+          "$ref": "#/$defs/policy"
+        }
+      },
+      "required": [
+        "profileId",
+        "replicas",
+        "placements",
+        "policy"
+      ]
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "client",
+            "web-app",
+            "mobile-app",
+            "api-gateway",
+            "load-balancer",
+            "backend",
+            "microservice",
+            "database",
+            "sql-database",
+            "nosql-database",
+            "redis",
+            "kafka",
+            "queue",
+            "worker",
+            "cdn",
+            "object-storage",
+            "search-engine",
+            "websocket",
+            "dns",
+            "authentication-service",
+            "notification-service",
+            "iot-device",
+            "external-system",
+            "iot-gateway",
+            "mqtt-broker",
+            "iot-platform",
+            "edge-compute",
+            "waf",
+            "service-mesh",
+            "rate-limiter",
+            "container",
+            "kubernetes",
+            "serverless",
+            "vm",
+            "scheduler",
+            "workflow-engine",
+            "stream-processor",
+            "batch-processor",
+            "ml-service",
+            "timeseries-db",
+            "graph-db",
+            "vector-db",
+            "data-warehouse",
+            "event-bus",
+            "secrets-manager",
+            "service-discovery",
+            "observability",
+            "payment-gateway",
+            "third-party-api"
+          ]
+        },
+        "componentVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "properties": {
+          "$ref": "#/$defs/nodeProperties"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "componentVersion",
+        "name",
+        "properties"
+      ]
+    },
+    "edgeConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "sync",
+            "async"
+          ]
+        },
+        "protocol": {
+          "type": "string",
+          "enum": [
+            "https",
+            "tcp",
+            "sql",
+            "redis",
+            "kafka",
+            "amqp",
+            "websocket",
+            "dns",
+            "internal",
+            "http",
+            "grpc",
+            "graphql",
+            "mqtt",
+            "coap",
+            "sse",
+            "opcua",
+            "modbus",
+            "lorawan",
+            "ble",
+            "smtp"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "timeoutMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "networkLatencyMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maxAttempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "backoffMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "tls": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "mode",
+        "protocol",
+        "required",
+        "timeoutMs",
+        "networkLatencyMs",
+        "maxAttempts",
+        "backoffMs",
+        "retryable",
+        "tls"
+      ]
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "sourcePort": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "targetPort": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "configuration": {
+          "$ref": "#/$defs/edgeConfig"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "sourcePort",
+        "target",
+        "targetPort",
+        "configuration"
+      ]
+    },
+    "workload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "operationId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "external",
+            "queue"
+          ]
+        },
+        "queueSourceNodeId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "averageRps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "peakRps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "payloadBytes": {
+          "type": "number",
+          "minimum": 0
+        },
+        "concurrentConnections": {
+          "type": "number",
+          "minimum": 0
+        },
+        "deadlineMs": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "mutable": {
+          "type": "boolean"
+        },
+        "manual": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "operationId",
+        "source",
+        "averageRps",
+        "peakRps",
+        "payloadBytes",
+        "deadlineMs",
+        "mutable",
+        "manual"
+      ]
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "nodeId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "parentStepId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "edgeId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operationClass": {
+          "type": "string",
+          "enum": [
+            "compute",
+            "read",
+            "write",
+            "message",
+            "job",
+            "lookup",
+            "transfer",
+            "resolve",
+            "connection"
+          ]
+        },
+        "visitsPerRequest": {
+          "type": "number",
+          "minimum": 0
+        },
+        "branchShare": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "condition": {
+          "type": "string",
+          "enum": [
+            "always",
+            "cache-hit",
+            "cache-miss"
+          ]
+        },
+        "join": {
+          "type": "string",
+          "enum": [
+            "serial",
+            "parallel-all",
+            "alternative"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "conditionStepId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        }
+      },
+      "required": [
+        "id",
+        "nodeId",
+        "ordinal",
+        "operationClass",
+        "visitsPerRequest",
+        "branchShare",
+        "condition",
+        "join",
+        "required"
+      ]
+    },
+    "flow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "workloadId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "ackStepId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          },
+          "maxItems": 200
+        }
+      },
+      "required": [
+        "id",
+        "workloadId",
+        "ackStepId",
+        "steps"
+      ]
+    },
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "edgeId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "operationId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "semantics": {
+          "type": "string",
+          "enum": [
+            "required",
+            "optional",
+            "degradable"
+          ]
+        },
+        "fallbackFlowId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        }
+      },
+      "required": [
+        "id",
+        "edgeId",
+        "operationId",
+        "semantics"
+      ]
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "rationale": {
+          "type": "string",
+          "maxLength": 10000
+        },
+        "nodeIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+          },
+          "maxItems": 100
+        },
+        "requirementIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "rationale",
+        "nodeIds",
+        "requirementIds"
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requirementId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "flow",
+            "policy",
+            "manual"
+          ]
+        },
+        "refId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "explanation": {
+          "type": "string",
+          "maxLength": 10000
+        },
+        "selfDeclared": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "requirementId",
+        "kind",
+        "refId",
+        "explanation",
+        "selfDeclared"
+      ]
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "traffic-10x",
+            "traffic-100x",
+            "database-latency",
+            "database-unavailable",
+            "redis-unavailable",
+            "queue-backlog",
+            "network-latency",
+            "service-unavailable",
+            "region-failure",
+            "high-cpu",
+            "memory-pressure",
+            "traffic-spike"
+          ]
+        },
+        "targetKind": {
+          "type": "string",
+          "enum": [
+            "global",
+            "node",
+            "edge",
+            "region",
+            "workload",
+            "instance"
+          ]
+        },
+        "targetId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "startSec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "durationSec": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "magnitude": {
+          "type": "number",
+          "minimum": 0
+        },
+        "recoverySec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "backlogAgeSec": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "targetKind",
+        "targetId",
+        "startSec",
+        "durationSec",
+        "magnitude",
+        "recoverySec"
+      ]
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "nodeIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "nodeIds"
+      ]
+    },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "groupId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,119}$"
+        }
+      },
+      "required": [
+        "nodeId",
+        "x",
+        "y"
+      ]
+    }
+  }
+}
