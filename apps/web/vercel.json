@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "pnpm install --frozen-lockfile --config.strictDepBuilds=false",
-  "rewrites": [{ "source": "/((?!assets/|shots/|.*\\..*).*)", "destination": "/index.html" }]
+  "installCommand": "npx --yes pnpm@12.8.1 install --frozen-lockfile --config.strictDepBuilds=false",
+  "rewrites": [
+    {
+      "source": "/((?!assets/|shots/|.*\\..*).*)",
+      "destination": "/index.html"
+    }
+  ]
 }
