@@ -104,3 +104,17 @@ def test_observacao_do_componente_e_anotacoes_gerais_persistem(page):
     page.locator(".react-flow__node").first.click()
     page.locator(".tabs button").nth(2).click()
     assert "schema flexível" in page.get_by_label("Observações").input_value()
+
+
+def test_botao_de_anotacoes_nao_fica_atras_do_painel_nem_do_ver_requisitos(page):
+    def caixa(sel): return page.evaluate("(s)=>{const e=document.querySelector(s); if(!e) return null; const r=e.getBoundingClientRect(); return [r.x,r.y,r.right,r.bottom]}", sel)
+    def sobrepoe(a, b): return a and b and a[0] < b[2] and a[2] > b[0] and a[1] < b[3] and a[3] > b[1]
+    from helpers import open_case
+    open_case(page, "Netflix")
+    lapis = caixa(".notes-btn"); painel = caixa(".brief")
+    assert lapis and painel and not sobrepoe(lapis, painel), (lapis, painel)       # painel aberto
+    page.get_by_label("Recolher enunciado").click(); page.wait_for_timeout(500)
+    lapis, ver = caixa(".notes-btn"), caixa(".brief-open-btn")
+    assert lapis and ver and not sobrepoe(lapis, ver), (lapis, ver)               # painel fechado
+    page.get_by_role("button", name="Anotações do desenho").click()                # e continua clicável
+    assert page.get_by_role("dialog", name="Anotações do desenho").count() == 1
