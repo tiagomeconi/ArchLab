@@ -102,3 +102,53 @@ describe("modo caos (efeitos)", () => {
     near(r.loads.get("app")!.utilization, 5000 / (9000 * 0.5));
   });
 });
+
+describe("critérios de aceite da spec (§ AC)", () => {
+  it("AC-07: mais réplicas só no compute não dão capacidade ao banco", () => {
+    const d = structuredClone(doc);
+    d.nodes.find((n: any) => n.id === "app").properties.replicas = 10;
+    const l = computeDemand(d, { rps: 5000, inactiveNodeIds: ["cache"] });
+    near(l.get("app")!.utilization, 5000 / 30000); // 10 réplicas × 3.000/s
+    near(l.get("db")!.utilization, 2.5);
+    near(l.get("db")!.capacity, 2000);
+  });
+  it("AC-08: queda de todas as instâncias de um domínio zera sua capacidade e não afeta os demais nós", () => {
+    const r = solveDemand(doc, { rps: 1000, inactiveNodeIds: ["app"] });
+    near(r.loads.get("app")!.admitted, 0);
+    near(r.flows.get("flow-redirect")!.completed, 0);
+    near(r.loads.get("lb")!.utilization, 1000 / 20000);
+  });
+  it("AC-09: λ=100/s, μ=150/s e backlog 1.000 drenam em 20 s", () => {
+    const d = withNodes([node("q", "queue", "queue-standard-v1"), node("w", "worker", "worker-standard-v1")],
+      [edge("app-q", "app", "q"), edge("q-w", "q", "w")], [
+      { id: "flow-q", workloadId: "wl-redirect", ackStepId: "q-q", steps: [step("q-c", "client"), step("q-lb", "lb", "q-c", "client-lb"),
+        step("q-app", "app", "q-lb", "lb-app"), step("q-q", "q", "q-app", "app-q", { operationClass: "message" })] },
+    ]);
+    d.nodes.find((n: any) => n.id === "w").properties.replicas = 0.3; // μ = 150/s (0,3 × 500)
+    d.nodes.find((n: any) => n.id === "q").properties.queue = { backlog: 1000 };
+    const q = computeDemand(d, { rps: 100, weights: { "flow-redirect": 0, "flow-q": 1 } }).get("q")!.queue!;
+    near(q.enqueued, 100); near(q.consumerCapacity, 150); near(q.drainSeconds, 20);
+  });
+  it("AC-09: sem folga de consumo, o backlog não drena; sem backlog, drena em 0 s", () => {
+    const d = withNodes([node("q", "queue", "queue-standard-v1"), node("w", "worker", "worker-standard-v1")],
+      [edge("app-q", "app", "q"), edge("q-w", "q", "w")], [
+      { id: "flow-q", workloadId: "wl-redirect", ackStepId: "q-q", steps: [step("q-c", "client"), step("q-lb", "lb", "q-c", "client-lb"),
+        step("q-app", "app", "q-lb", "lb-app"), step("q-q", "q", "q-app", "app-q", { operationClass: "message" })] },
+    ]);
+    const run = () => computeDemand(d, { rps: 800, weights: { "flow-redirect": 0, "flow-q": 1 } }).get("q")!.queue!;
+    near(run().drainSeconds, 0);
+    d.nodes.find((n: any) => n.id === "q").properties.queue = { backlog: 500 };
+    expect(run().drainSeconds).toBeNull(); // consome 500/s para 800/s de entrada
+  });
+  it("AC-10: permutar nós, arestas e fluxos não muda os resultados", () => {
+    const shuffled = structuredClone(doc);
+    shuffled.nodes.reverse(); shuffled.edges.reverse(); shuffled.traffic.flows.reverse();
+    shuffled.traffic.flows.forEach((f: any) => f.steps.reverse());
+    for (const opts of [{ rps: 5000 }, { rps: 5000, inactiveNodeIds: ["cache"] }]) {
+      const a = solveDemand(doc, opts), b = solveDemand(shuffled, opts);
+      for (const [id, l] of a.loads) expect(b.loads.get(id)).toEqual(l);
+      for (const [id, f] of a.flows) expect(b.flows.get(id)).toEqual(f);
+      expect(JSON.stringify(solveDemand(doc, opts).flows.get("flow-redirect"))).toBe(JSON.stringify(a.flows.get("flow-redirect")));
+    }
+  });
+});

@@ -85,6 +85,10 @@ export interface QueueStats {
   enqueued: number; consumed: number; consumers: number; consumerCapacity: number;
   /** mensagens/s acumuladas (enqueued − consumed) */
   backlogGrowthPerSec: number;
+  /** mensagens já acumuladas (propriedades.queue.backlog), 0 se ausente */
+  backlog: number;
+  /** segundos para esvaziar o backlog com a folga atual (consumo − entrada); null se não há folga e há backlog, 0 se não há backlog */
+  drainSeconds: number | null;
 }
 export interface NodeLoad {
   offered: number; admitted: number; capacity: number | null;
@@ -230,7 +234,10 @@ export function solveDemand(doc: any, opts: DemandOptions): DemandResult {
         capSum += (p?.capacity[cls] ?? 0) * replicasOf(cid) * capFactor(cid);
       }
       const consumed = Math.min(enq, capSum);
-      queueStats.set(qid, { enqueued: enq, consumed, consumers: consumers.length, consumerCapacity: capSum, backlogGrowthPerSec: enq - consumed });
+      const backlog = Math.max(0, Number(nodes.get(qid)?.properties?.queue?.backlog ?? 0)) || 0;
+      const slack = capSum - enq;
+      queueStats.set(qid, { enqueued: enq, consumed, consumers: consumers.length, consumerCapacity: capSum, backlogGrowthPerSec: enq - consumed,
+        backlog, drainSeconds: backlog === 0 ? 0 : slack > 1e-9 ? backlog / slack : null });
       for (const cid of consumers) {
         const cls = profileOf(cid)?.consumerClass ?? "compute";
         add(cid, cls, enq / consumers.length, Math.min(enq, capSum) / consumers.length);

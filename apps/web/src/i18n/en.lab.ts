@@ -244,6 +244,7 @@ export const lab: Record<string, string> = {
   "Latência p95 ≤ {ms} ms": "p95 latency ≤ {ms} ms",
   "Sem fluxo de leitura com carga.": "No read flow with load.",
   "p95 proxy atual: {ms} ms.": "Current proxy p95: {ms} ms.",
+  "Só {pct}% das leituras conclui no prazo; a latência de quem sobrevive não basta.": "Only {pct}% of reads complete in time; the latency of the survivors is not enough.",
   "Taxa de acerto do cache ≥ {pct}%": "Cache hit rate ≥ {pct}%",
   "Defina a taxa em Propriedades do cache.": "Set the rate in the cache's Properties.",
   "Taxa atual: {pct}%.": "Current rate: {pct}%.",

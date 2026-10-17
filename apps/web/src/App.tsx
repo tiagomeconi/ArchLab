@@ -705,14 +705,16 @@ function Lab() {
     h.past.push(h.last); h.last = next; restore(next); say("Refeito");
   };
 
-  const readP95 = useMemo(() => {
-    let p: number | null = null;
+  const { readP95, readSuccess } = useMemo(() => {
+    let p: number | null = null, offered = 0, completed = 0;
     for (const f of flows) {
       if (f.steps.some((s) => s.operationClass === "write")) continue;
       const st = result.flows.get(f.id);
-      if (st && st.offered > 0 && st.p95Ms !== null && (p === null || st.p95Ms > p)) p = st.p95Ms;
+      if (!st || st.offered <= 0) continue;
+      offered += st.offered; completed += st.completed;
+      if (st.p95Ms !== null && (p === null || st.p95Ms > p)) p = st.p95Ms;
     }
-    return p;
+    return { readP95: p, readSuccess: offered > 0 ? completed / offered : null };
   }, [flows, result]);
 
   // ── requisitos, solução de referência, guia e progresso (só no canvas em branco com sessão) ──
@@ -720,7 +722,7 @@ function Lab() {
   const [viewingRef, setViewingRef] = useState(false);
   const [backupAt, setBackupAt] = useState(0);
   const [stagesDone, setStagesDone] = useState(0);
-  const design = useMemo(() => ({ nodes: docNodes, flows, loads, p95Ms: readP95 }), [docNodes, flows, loads, readP95]);
+  const design = useMemo(() => ({ nodes: docNodes, flows, loads, p95Ms: readP95, readSuccess }), [docNodes, flows, loads, readP95, readSuccess]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const checks = useMemo(() => (blank && session ? evaluate(session, design) : []), [blank, session, design, lang]);
   // eslint-disable-next-line react-hooks/exhaustive-deps

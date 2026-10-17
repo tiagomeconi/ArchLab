@@ -5,7 +5,7 @@ import { t } from "./i18n";
 export type Status = "meets" | "partial" | "fails" | "unknown" | "manual";
 
 /** Estado do desenho que as verificações automáticas leem. */
-export interface Design { nodes: any[]; flows: any[]; loads: Map<string, NodeLoad>; p95Ms: number | null }
+export interface Design { nodes: any[]; flows: any[]; loads: Map<string, NodeLoad>; p95Ms: number | null; /** fração das leituras concluída no prazo (0–1); null = sem dado */ readSuccess?: number | null }
 
 export interface Check { id: string; label: string; detail: string; status: Status }
 
@@ -28,9 +28,14 @@ export function evaluate(session: Session, d: Design): Check[] {
     status: !flowNodes.length ? "unknown" : single.length ? "fails" : "meets" });
 
   const target = session.checks?.p95Ms;
-  if (target) out.push({ id: "p95", label: t("Latência p95 ≤ {ms} ms", { ms: target }),
-    detail: d.p95Ms === null ? t("Sem fluxo de leitura com carga.") : t("p95 proxy atual: {ms} ms.", { ms: Math.round(d.p95Ms) }),
-    status: d.p95Ms === null ? "unknown" : d.p95Ms <= target ? "meets" : "fails" });
+  if (target) { // a latência dos que sobrevivem não aprova o requisito se boa parte das leituras falha (AC-19)
+    const lowSuccess = d.readSuccess !== null && d.readSuccess !== undefined && d.readSuccess < 0.99;
+    out.push({ id: "p95", label: t("Latência p95 ≤ {ms} ms", { ms: target }),
+      detail: d.p95Ms === null ? t("Sem fluxo de leitura com carga.")
+        : lowSuccess ? t("Só {pct}% das leituras conclui no prazo; a latência de quem sobrevive não basta.", { pct: Math.round((d.readSuccess ?? 0) * 100) })
+        : t("p95 proxy atual: {ms} ms.", { ms: Math.round(d.p95Ms) }),
+      status: d.p95Ms === null ? "unknown" : lowSuccess || d.p95Ms > target ? "fails" : "meets" });
+  }
 
   for (const need of session.checks?.needs ?? []) {
     const has = d.nodes.some((n) => need.any.includes(n.type));
