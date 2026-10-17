@@ -97,6 +97,7 @@
 .lp-fade-x { mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent); }
 .logo-inv svg { transition: filter .2s; }
 [data-theme="dark"] .logo-inv svg { filter: brightness(0) invert(1); }
+[data-theme="dark"] .logo-inv-soft svg { filter: invert(1); }
 .lp .msr { font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; }
 .lp-noise::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .035; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }

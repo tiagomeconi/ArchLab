@@ -4,6 +4,19 @@ import { protoOf } from "./protocols";
 import { t } from "./i18n";
 import type { Rating, Tier } from "./rating";
 
+/** `ctx.filter` não existe em Safari antigo; nele os logos escuros são recoloridos pixel a pixel num canvas auxiliar. */
+const CTX_FILTER = typeof document !== "undefined" && "filter" in document.createElement("canvas").getContext("2d")!;
+const LABEL_US = Array.from({ length: 33 }, (_, i) => 0.1 + i * 0.025).sort((a, b) => Math.abs(a - 0.5) - Math.abs(b - 0.5));
+const tintCache = new Map<string, HTMLCanvasElement>();
+function tintedLogo(img: CanvasImageSource, mode: "silhouette" | "invert", id: string, w: number, h: number): HTMLCanvasElement {
+  const key = `${id}:${mode}:${w}x${h}`; const hit = tintCache.get(key); if (hit) return hit;
+  const c = document.createElement("canvas"); c.width = Math.max(1, w); c.height = Math.max(1, h);
+  const g = c.getContext("2d")!; g.drawImage(img, 0, 0, c.width, c.height);
+  const d = g.getImageData(0, 0, c.width, c.height), px = d.data;
+  for (let i = 0; i < px.length; i += 4) { if (mode === "silhouette") px[i] = px[i + 1] = px[i + 2] = 255; else { px[i] = 255 - px[i]!; px[i + 1] = 255 - px[i + 1]!; px[i + 2] = 255 - px[i + 2]!; } }
+  g.putImageData(d, 0, 0); tintCache.set(key, c); return c;
+}
+
 /** Entrada do relatório: tudo o que aparece na imagem vem daqui, sem ler o DOM. */
 export interface ReportNode {
   id: string; x: number; y: number; w: number; h: number; name: string; type: string; icon: string; cat: string; replicas: number;
@@ -220,6 +233,7 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
     const nodeRects = r.nodes.map((n) => ({ x: PX(n.x) - 4, y: PY(n.y) - 4, w: n.w * WF * s + 8, h: n.h * s + 8 }));
     const placed: { x: number; y: number; w: number; h: number }[] = [];
     const hit = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    const overlap = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
     const kk = Math.max(0.9, Math.min(1.1, s + 0.1));
     for (const L of labels) {
       ctx.font = `700 ${12 * kk}px ${SANS}`; const nw = ctx.measureText(protoOf(L.e.protocol).name).width;
@@ -228,13 +242,22 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
       let found: [number, number] | null = null;
       for (const compact of [false, true]) { // sem espaço para "HTTPS sync", usa só o nome do protocolo (o modo continua no traço da linha)
         const lw = 12 * kk + nw + (compact ? 0 : 8 * kk + mw) + 12 * kk, lh2 = 24 * kk + (withFlow ? 26 * kk : 0);
-        for (const u of [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74, 0.18, 0.82]) {
+        for (const u of LABEL_US) {
           const [qx, qy] = bez(L.pts, u); const box = { x: qx - lw / 2, y: qy - 14 * kk, w: lw, h: lh2 };
           if (!nodeRects.some((n) => hit(n, box)) && !placed.some((p) => hit(p, box))) { found = [qx, qy]; L.compact = compact; placed.push(box); break; }
         }
         if (found) break;
       }
-      if (!found) { found = bez(L.pts, 0.5); L.compact = true; placed.push({ x: found[0] - 40, y: found[1] - 14 * kk, w: 80, h: 24 * kk }); }
+      if (!found) { // nenhum ponto livre: escolhe o da curva que menos cobre os cards, em vez de cair no meio
+        const lw = 24 * kk + nw, lh2 = 24 * kk; let best = Infinity;
+        for (const u of LABEL_US) {
+          const [qx, qy] = bez(L.pts, u); const box = { x: qx - lw / 2, y: qy - 14 * kk, w: lw, h: lh2 };
+          const cost = nodeRects.reduce((a, n) => a + overlap(n, box), 0) * 3 + placed.reduce((a, p) => a + overlap(p, box), 0);
+          if (cost < best) { best = cost; found = [qx, qy]; }
+        }
+        found = found ?? bez(L.pts, 0.5); L.compact = true;
+        placed.push({ x: found[0] - lw / 2, y: found[1] - 14 * kk, w: lw, h: lh2 });
+      }
       L.x = found[0]; L.y = found[1];
     }
 
@@ -254,10 +277,12 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
       ctx.fillStyle = C.text; ctx.font = `700 15px ${SANS}`; ctx.fillText(fit(ctx, n.name, w - 62 - 12 - pw - (pw ? 6 : 0)), 62, 32);
       ctx.fillStyle = C.dim; ctx.font = `500 11.5px ${SANS}`; ctx.fillText(fit(ctx, n.providerName ?? n.type, w - 62 - 12 - pw - (pw ? 6 : 0)), 62, 48);
       if (prov && n.providerId) {
-        if (INVERT_ON_DARK.has(n.providerId)) ctx.filter = "brightness(0) invert(1)"; // logos de traço escuro viram silhueta clara
-        else if (SOFT_INVERT_ON_DARK.has(n.providerId)) ctx.filter = "invert(1)";
+        const mode = INVERT_ON_DARK.has(n.providerId) ? "silhouette" : SOFT_INVERT_ON_DARK.has(n.providerId) ? "invert" : null; // traço escuro vira silhueta clara
         const lg = LOGOS[n.providerId]!; const ar = lg.w / lg.h; const dw = Math.min(pw, bx.h * ar), dh = dw / ar; // cabe na caixa sem deformar
-        ctx.drawImage(prov, w - 12 - pw + (pw - dw) / 2, 16 + (bx.h - dh) / 2, dw, dh); ctx.filter = "none";
+        const dx = w - 12 - pw + (pw - dw) / 2, dy = 16 + (bx.h - dh) / 2;
+        if (!mode) ctx.drawImage(prov, dx, dy, dw, dh);
+        else if (CTX_FILTER) { ctx.filter = mode === "silhouette" ? "brightness(0) invert(1)" : "invert(1)"; ctx.drawImage(prov, dx, dy, dw, dh); ctx.filter = "none"; }
+        else ctx.drawImage(tintedLogo(prov, mode, n.providerId, Math.ceil(dw * s * 2), Math.ceil(dh * s * 2)), dx, dy, dw, dh); // Safari antigo: sem ctx.filter
       }
       let cy = 66;
       if (n.hasLoad) {

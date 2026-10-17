@@ -18,7 +18,7 @@ export function ProviderLogo({ id, name, size = 32, className = "" }: { id: stri
   const logo = LOGOS[id];
   if (!logo) return null;
   return (
-    <span className={`inline-grid shrink-0 place-items-center ${INVERT_ON_DARK.has(id) ? "logo-inv" : ""} ${className}`} style={{ width: size, height: size }}>
+    <span className={`inline-grid shrink-0 place-items-center ${INVERT_ON_DARK.has(id) ? "logo-inv" : SOFT_INVERT_ON_DARK.has(id) ? "logo-inv-soft" : ""} ${className}`} style={{ width: size, height: size }}>
       <svg viewBox={`0 0 ${logo.w} ${logo.h}`} width={size} height={size} role="img" aria-label={name} preserveAspectRatio="xMidYMid meet" style={{ overflow: "visible" }}
         dangerouslySetInnerHTML={{ __html: logo.body }} />
     </span>
