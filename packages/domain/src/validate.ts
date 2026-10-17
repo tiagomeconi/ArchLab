@@ -1,10 +1,6 @@
-import Ajv2020 from "ajv/dist/2020.js";
-import schema from "./architecture.schema.json";
+import validateSchema from "./validate.generated.js"; // schema pré-compilado (npm run gen:validator): sem new Function, compatível com CSP sem unsafe-eval
 
 export interface Diagnostic { code: string; path: string; message: string }
-
-const ajv = new Ajv2020({ allErrors: true, strict: false });
-const validateSchema = ajv.compile(schema);
 
 /** Validação estrutural (JSON Schema) + integridade semântica mínima (spec §7.2). */
 export function validateArchitecture(doc: unknown): Diagnostic[] {
