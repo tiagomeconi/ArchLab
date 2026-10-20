@@ -200,7 +200,7 @@ def test_ligar_no_canvas_aparece_sozinho_no_fluxo(page):
         page.mouse.move(c["x"] + c["width"] / 2 + dx, c["y"] + 20 + dy, steps=8); page.mouse.up()
     page.wait_for_timeout(400)
     def ligar(i, j):
-        a, b = ns.nth(i).locator(".react-flow__handle.source").bounding_box(), ns.nth(j).locator(".react-flow__handle.target").bounding_box()
+        a, b = ns.nth(i).locator(".react-flow__handle[data-handleid=\"right\"]").bounding_box(), ns.nth(j).locator(".react-flow__handle[data-handleid=\"left\"]").bounding_box()
         page.mouse.move(a["x"] + a["width"] / 2, a["y"] + a["height"] / 2); page.mouse.down()
         page.mouse.move(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2, steps=12); page.mouse.up()
         page.wait_for_timeout(300)
@@ -513,3 +513,59 @@ def test_dois_desenhos_livres_ficam_separados(page):
     page.get_by_role("heading", name="Primeiro").wait_for(); page.get_by_role("heading", name="Segundo").wait_for()
     page.get_by_role("button", name="Novo desenho").click(); page.wait_for_selector(".react-flow")
     assert "d=" in page.url and nodes(page) == 0
+
+
+def _arrasta_handle(page, a, lado_a, b, lado_b):
+    ha = a.locator(f'.react-flow__handle[data-handleid="{lado_a}"]').bounding_box()
+    hb = b.locator(f'.react-flow__handle[data-handleid="{lado_b}"]').bounding_box()
+    page.mouse.move(ha["x"] + ha["width"] / 2, ha["y"] + ha["height"] / 2); page.mouse.down()
+    page.mouse.move(hb["x"] + hb["width"] / 2, hb["y"] + hb["height"] / 2, steps=12); page.mouse.up()
+    page.wait_for_timeout(300)
+    if page.locator("dialog[open]").count(): page.get_by_role("button", name="Conectar").click(); page.wait_for_timeout(300)
+
+
+def test_blocos_conectam_por_cima_e_por_baixo_e_a_seta_mostra_o_sentido(page):
+    page.goto(page.base + "/app?blank=1"); page.wait_for_selector(".react-flow")
+    add_component(page, "Cliente"); add_component(page, "Backend")
+    page.wait_for_timeout(400)
+    ns = page.locator(".react-flow__node")
+    assert ns.nth(0).locator(".react-flow__handle").count() == 4  # cima, baixo, esquerda e direita
+    # põe o Backend embaixo do Cliente e liga baixo → cima
+    c0, c1 = ns.nth(0).bounding_box(), ns.nth(1).bounding_box()
+    page.mouse.move(c1["x"] + c1["width"] / 2, c1["y"] + 20); page.mouse.down()
+    page.mouse.move(c0["x"] + c0["width"] / 2, c0["y"] + c0["height"] + 160, steps=8); page.mouse.up()
+    page.wait_for_timeout(400)
+    _arrasta_handle(page, ns.nth(0), "bottom", ns.nth(1), "top")
+    assert page.locator(".react-flow__edge").count() == 1
+    assert page.locator('.react-flow__edge [marker-end^="url(#arr-"]').count() == 1  # seta na ponta de destino
+    assert page.locator('.react-flow__edge [marker-start]').count() == 0
+    # dois sentidos: ganha seta também na origem
+    page.locator(".edge-label").first.hover(); page.wait_for_timeout(500)  # o botão abre com uma animação
+    page.get_by_role("button", name=re.compile("Marcar como dois sentidos")).click()
+    page.wait_for_timeout(300)
+    assert page.locator('.react-flow__edge [marker-start^="url(#arr-"]').count() == 1
+
+
+def test_agrupar_blocos_em_moldura_que_leva_o_conteudo_junto(page):
+    page.goto(page.base + "/app?blank=1"); page.wait_for_selector(".react-flow")
+    add_component(page, "Cliente"); add_component(page, "Backend")
+    page.wait_for_timeout(400)
+    page.locator(".react-flow__pane").click(position={"x": 300, "y": 300})
+    page.keyboard.press("Control+a"); page.keyboard.press("g"); page.wait_for_timeout(500)
+    g = page.locator(".react-flow__node-group")
+    assert g.count() == 1
+    nome = g.locator(".group-name"); assert nome.input_value().startswith("Grupo")
+    nome.fill("Cluster QA"); nome.press("Enter"); page.wait_for_timeout(200)
+    assert g.locator(".group-name").input_value() == "Cluster QA"
+    # arrastar pelo título leva os blocos de dentro junto
+    antes = page.locator(".react-flow__node-arch").first.bounding_box(); g0 = g.bounding_box()
+    h = g.locator(".group-head").bounding_box()
+    page.mouse.move(h["x"] + 12, h["y"] + h["height"] / 2); page.mouse.down()
+    page.mouse.move(h["x"] + 12 + 90, h["y"] + h["height"] / 2 + 60, steps=8); page.mouse.up(); page.wait_for_timeout(300)
+    depois = page.locator(".react-flow__node-arch").first.bounding_box()
+    g1 = g.bounding_box()
+    assert depois["x"] - antes["x"] > 50 and depois["y"] - antes["y"] > 30  # saiu do lugar
+    assert abs((depois["x"] - antes["x"]) - (g1["x"] - g0["x"])) < 2 and abs((depois["y"] - antes["y"]) - (g1["y"] - g0["y"])) < 2, (antes, depois, g0, g1)
+    # remover o grupo mantém os blocos
+    g.locator("button.del").click(); page.wait_for_timeout(300)
+    assert page.locator(".react-flow__node-group").count() == 0 and nodes(page) == 2

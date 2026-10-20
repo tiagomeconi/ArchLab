@@ -1,6 +1,6 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  applyNodeChanges, Background, Panel, BackgroundVariant, BaseEdge, ControlButton, Controls, EdgeLabelRenderer, getBezierPath, Handle, MiniMap,
+  applyNodeChanges, Background, Panel, BackgroundVariant, BaseEdge, ConnectionMode, ControlButton, Controls, EdgeLabelRenderer, getBezierPath, Handle, MiniMap,
   NodeResizeControl, Position, ReactFlow, ReactFlowProvider, ResizeControlVariant, useReactFlow,
   type Connection, type ConnectionLineComponentProps, type Edge, type EdgeChange, type EdgeProps, type Node, type NodeChange, type NodeProps,
 } from "@xyflow/react";
@@ -16,6 +16,8 @@ import { FlowsPanel } from "./FlowsPanel";
 import { NotesPad } from "./Notes";
 import { ExportMenu } from "./ExportMenu";
 import { renderReport } from "./report";
+import { GroupNode, GROUP_MIN, cleanGroups, type GroupData, type GroupDoc } from "./GroupNode";
+import { portFromHandle, sideOf, SIDES, type Side } from "./ports";
 import { Brief } from "./Brief";
 import { ChaosDialog } from "./ChaosDialog";
 import { ShortcutsDialog } from "./ShortcutsDialog";
@@ -54,7 +56,7 @@ interface NodeData extends Record<string, unknown> {
   /** ajusta o número de réplicas direto no card (injetado em shownNodes) */
   onReplicas?: (id: string, n: number) => void;
 }
-interface EdgeData extends Record<string, unknown> { fault?: boolean; animate?: boolean; label: string; protocol: string; mode: string; flow: number; hot: boolean; unused: boolean; dim?: boolean; onEdit: () => void }
+interface EdgeData extends Record<string, unknown> { fault?: boolean; animate?: boolean; label: string; protocol: string; mode: string; flow: number; hot: boolean; unused: boolean; dim?: boolean; both?: boolean; onBoth?: () => void; onEdit: () => void }
 interface DocEdge {
   id: string; source: string; sourcePort: string; target: string; targetPort: string;
   configuration: { mode: string; protocol: string; [k: string]: unknown };
@@ -136,6 +138,8 @@ const Num = ({ value, suffix = "" }: { value: number; suffix?: string }) => (
   <span className="num">{fmt(useTween(value))}{suffix}</span>
 );
 
+/** Cada bloco aceita conexão pelos quatro lados; quem começa o arrasto é a origem (a seta aponta para onde terminar). */
+const HANDLE_POS: Record<Side, Position> = { top: Position.Top, right: Position.Right, bottom: Position.Bottom, left: Position.Left };
 function ArchNode({ id, data, selected }: NodeProps<Node<NodeData>>) {
   const { load } = data;
   const util = load?.utilization ?? null;
@@ -146,7 +150,6 @@ function ArchNode({ id, data, selected }: NodeProps<Node<NodeData>>) {
       {data.chaos && <span className="chaos-tag" title={t("Falha injetada neste componente")}><Icon name="local_fire_department" size={14} /></span>}
       <NodeResizeControl position="right" variant={ResizeControlVariant.Line} resizeDirection="horizontal"
         minWidth={176} maxWidth={520} className="resize-edge" aria-label={t("Redimensionar horizontalmente")} />
-      <Handle type="target" position={Position.Left} />
       <div className="node-head">
         <span className="icon"><Icon name={ICONS[data.type] ?? "dns"} size={20} /></span>
         <div className="node-title"><div className="name">{data.name}</div><div className="type">{provider ? provider.name : data.type}</div></div>
@@ -175,7 +178,7 @@ function ArchNode({ id, data, selected }: NodeProps<Node<NodeData>>) {
           <button aria-label={t("Mais uma réplica")} title={t("Mais uma réplica")} disabled={data.replicas >= MAX_REPLICAS} onClick={() => data.onReplicas?.(id, data.replicas + 1)}><Icon name="add" size={14} /></button>
         </span>
       </div>
-      <Handle type="source" position={Position.Right} />
+      {SIDES.map((sd) => <Handle key={sd} id={sd} type="source" position={HANDLE_POS[sd]} />)}
     </div>
   );
 }
@@ -192,10 +195,17 @@ function FlowEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targ
   const dots = carrying ? Math.min(5, 1 + Math.floor(level)) : 0;
   const dur = Math.max(3.2, 8 - level * 0.9); // devagar: dá para acompanhar a requisição de um nó ao outro
   const color = hot ? "var(--danger)" : proto.color;
+  const both = !!data?.both;
+  const stroke = selected ? "var(--accent)" : unused ? "var(--border-strong)" : `color-mix(in srgb, ${proto.color} 55%, var(--border-strong))`;
   return (
     <>
-      <BaseEdge id={id} path={path} interactionWidth={24}
-        style={{ opacity: data?.dim ? 0.2 : 1, stroke: selected ? "var(--accent)" : unused ? "var(--border-strong)" : `color-mix(in srgb, ${proto.color} 55%, var(--border-strong))`, strokeWidth: selected ? 3 : 2, strokeDasharray: unused ? "6 6" : async ? "2 7" : undefined, strokeLinecap: "round" }} />
+      <defs>
+        <marker id={`arr-${id}`} viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+          <path d="M1.5 1.5 L10.5 6 L1.5 10.5 Z" style={{ fill: stroke, stroke, strokeWidth: 1.4, strokeLinejoin: "round" }} />
+        </marker>
+      </defs>
+      <BaseEdge id={id} path={path} interactionWidth={24} markerEnd={`url(#arr-${id})`} markerStart={both ? `url(#arr-${id})` : undefined}
+        style={{ opacity: data?.dim ? 0.2 : 1, stroke, strokeWidth: selected ? 3 : 2, strokeDasharray: unused ? "6 6" : async ? "2 7" : undefined, strokeLinecap: "round" }} />
       {carrying && (
         <g className="edge-traffic" style={{ opacity: data?.dim ? 0.2 : 1, ["--c" as string]: color, ["--speed" as string]: `${dur * 0.55}s` }}>
           <path d={path} fill="none" className="traffic-glow" />
@@ -218,6 +228,10 @@ function FlowEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targ
             <span className="edge-extra"><Icon name="edit" size={13} /></span>
           </button>
           <span className="edge-extra">
+            <button className={`cut both${both ? " on" : ""}`} title={both ? t("Voltar para um sentido só") : t("Marcar como dois sentidos")} aria-pressed={both}
+              aria-label={`${both ? t("Voltar para um sentido só") : t("Marcar como dois sentidos")} ${proto.name}`} onClick={() => data?.onBoth?.()}>
+              <Icon name="swap_horiz" size={15} />
+            </button>
             <button className="cut" title={t("Cortar conexão")} aria-label={`${t("Cortar conexão")} ${proto.name}`}
               onClick={() => deleteElements({ edges: [{ id }] })}>
               <Icon name="content_cut" size={14} />
@@ -236,7 +250,8 @@ function ConnectionLine({ fromX, fromY, toX, toY, fromPosition, toPosition }: Co
     : [`M${fromX},${fromY} L${toX},${toY}`];
   return <path d={d} fill="none" className="react-flow__connection-path" />;
 }
-const nodeTypes = { arch: ArchNode };
+const GROUP_COLORS_CYCLE = ["sky", "green", "amber", "violet", "rose", "slate"];
+const nodeTypes = { arch: ArchNode, group: GroupNode };
 const edgeTypes = { flow: FlowEdge };
 
 function ConnectDialog({ source, target, options, current, onPick, onCancel }: {
@@ -413,8 +428,11 @@ function Lab() {
     return () => { ro.disconnect(); window.removeEventListener("resize", set); };
   }, []);
   const [edgeSel, setEdgeSel] = useState<Set<string>>(new Set());
+  const [groups, setGroups] = useState<GroupDoc[]>([]);
+  const [groupSel, setGroupSel] = useState<Set<string>>(new Set());
+  const [groupBusy, setGroupBusy] = useState(false);
   const [flowSel, setFlowSel] = useState<string | null>(blank ? null : "flow-redirect");
-  const [pending, setPending] = useState<{ source: string; target: string; options: ConnectionOption[]; editId?: string; current?: { protocol: string; mode: string } } | null>(null);
+  const [pending, setPending] = useState<{ source: string; target: string; sp?: Side; tp?: Side; options: ConnectionOption[]; editId?: string; current?: { protocol: string; mode: string } } | null>(null);
   const [nodes, setNodes] = useState<Node<NodeData>[]>(() =>
     (blank ? [] : original.nodes).map((n: any) => {
       const pos = original.layout.positions.find((p: any) => p.nodeId === n.id) ?? { x: 0, y: 0 };
@@ -535,6 +553,15 @@ function Lab() {
     const h = healthOf(load, down.has(n.id) || !!chaosRes.effects.nodes?.[n.id]?.unavailable, profileById.get(n.id) ?? "unresolved", SIDE_TYPES.has(String(n.data.type)));
     return { ...n, data: { ...n.data, load, ...h, chaos: chaosRes.faultNodes.has(n.id), dim: (!!activeFlow && !flowNodeIds.has(n.id)) || (!!protoFocus && !protoNodes.has(n.id)), onReplicas: setReplicas } };
   });
+  const groupNodes: Node<GroupData>[] = groups.map((g) => ({
+    id: g.id, type: "group", position: { x: g.x, y: g.y }, width: g.w, height: g.h, zIndex: -1, dragHandle: ".group-head", selected: groupSel.has(g.id),
+    data: {
+      name: g.name, color: g.color,
+      onRename: (id, name) => setGroups((gs) => gs.map((x) => (x.id === id ? { ...x, name } : x))),
+      onColor: (id, color) => setGroups((gs) => gs.map((x) => (x.id === id ? { ...x, color } : x))),
+      onDelete: (id) => { setGroups((gs) => gs.filter((x) => x.id !== id)); setGroupSel((s) => { const n = new Set(s); n.delete(id); return n; }); },
+    },
+  }));
   const typeOf = (id: string) => nodes.find((n) => n.id === id)?.data.type as string;
   const protoLegend = useMemo(() => {
     const c = new Map<string, number>(); for (const e of docEdges) c.set(String(e.configuration.protocol), (c.get(String(e.configuration.protocol)) ?? 0) + 1);
@@ -545,10 +572,12 @@ function Lab() {
     const unused = !usedEdges.has(e.id);
     const flow = unused || down.has(e.target) ? 0 : tl?.offered ?? 0;
     return {
-      id: e.id, source: e.source, target: e.target, type: "flow", deletable: true, selected: edgeSel.has(e.id),
+      id: e.id, source: e.source, target: e.target, sourceHandle: sideOf(e.sourcePort, "source"), targetHandle: sideOf(e.targetPort, "target"), type: "flow", deletable: true, selected: edgeSel.has(e.id),
       data: {
         fault: chaosRes.faultEdges.has(e.id), animate: run.status === "running", label: `${e.configuration.protocol} · ${e.configuration.mode}`, protocol: String(e.configuration.protocol), mode: String(e.configuration.mode), flow, hot: (tl?.utilization ?? 0) > 1, unused,
         dim: (!!activeFlow && !flowEdgeIds.has(e.id)) || (!!protoFocus && String(e.configuration.protocol) !== protoFocus),
+        both: !!e.configuration.bidirectional,
+        onBoth: () => setDocEdges((es) => es.map((x) => x.id !== e.id ? x : { ...x, configuration: { ...x.configuration, bidirectional: !x.configuration.bidirectional } })),
         onEdit: () => {
           const options = connectionOptions(typeOf(e.source), typeOf(e.target));
           const cur = { protocol: e.configuration.protocol, mode: e.configuration.mode };
@@ -564,7 +593,38 @@ function Lab() {
     };
   });
 
-  const onNodesChange = useCallback((changes: NodeChange<Node<NodeData>>[]) => {
+  const groupsRef = useRef<GroupDoc[]>([]); groupsRef.current = groups;
+  /** Mudanças vindas do React Flow para os grupos: arrastar (leva junto os blocos de dentro), redimensionar, selecionar e remover. */
+  const applyGroupChanges = useCallback((changes: NodeChange<Node<any>>[]) => {
+    for (const c of changes) {
+      const g = groupsRef.current.find((x) => "id" in c && x.id === c.id); if (!g) continue;
+      if (c.type === "select") setGroupSel((s) => { const n = new Set(s); if (c.selected) n.add(c.id); else n.delete(c.id); return n; });
+      else if (c.type === "remove") { setGroups((gs) => gs.filter((x) => x.id !== c.id)); setGroupSel((s) => { const n = new Set(s); n.delete(c.id); return n; }); }
+      else if (c.type === "position" && c.position) {
+        const dx = c.position.x - g.x, dy = c.position.y - g.y;
+        setGroupBusy(!!c.dragging);
+        if (c.dragging && (dx || dy)) {
+          // quem está dentro do grupo (pelo centro do bloco) anda junto
+          setNodes((ns) => ns.map((n) => {
+            const cx = n.position.x + (n.width ?? 240) / 2, cy = n.position.y + (n.measured?.height ?? 96) / 2;
+            return cx >= g.x && cx <= g.x + g.w && cy >= g.y && cy <= g.y + g.h ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } } : n;
+          }));
+        }
+        setGroups((gs) => gs.map((x) => (x.id === g.id ? { ...x, x: c.position!.x, y: c.position!.y } : x)));
+      } else if (c.type === "dimensions" && c.dimensions && (c.resizing !== undefined || c.setAttributes)) {
+        setGroupBusy(!!c.resizing);
+        const w = Math.max(GROUP_MIN.w, c.dimensions.width), h = Math.max(GROUP_MIN.h, c.dimensions.height);
+        setGroups((gs) => gs.map((x) => (x.id === g.id ? { ...x, w, h } : x)));
+      }
+    }
+  }, []);
+  const onNodesChange = useCallback((all: NodeChange<Node<any>>[]) => {
+    // grupos têm estado próprio: separa o que é deles
+    const gids = new Set(groupsRef.current.map((g) => g.id));
+    const gch = all.filter((c) => "id" in c && gids.has(c.id));
+    const changes = all.filter((c) => !("id" in c && gids.has(c.id))) as NodeChange<Node<NodeData>>[];
+    if (gch.length) applyGroupChanges(gch);
+    if (!changes.length) return;
     setNodes((ns) => applyNodeChanges(changes, ns));
     for (const c of changes) {
       if (c.type === "select" && c.selected) { setSelected(c.id); setTab((t) => (t === "flows" ? t : "props")); }
@@ -594,7 +654,7 @@ function Lab() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [docEdges, nodes.length]);
   const onConnect = useCallback((c: Connection) => {
-    setPending({ source: c.source, target: c.target, options: connectionOptions(typeOf(c.source), typeOf(c.target)) });
+    setPending({ source: c.source, target: c.target, sp: portFromHandle(c.sourceHandle, "source"), tp: portFromHandle(c.targetHandle, "target"), options: connectionOptions(typeOf(c.source), typeOf(c.target)) });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes.length]);
   const confirmConnection = (o: ConnectionOption) => {
@@ -609,7 +669,7 @@ function Lab() {
     let id = `${pending.source}-${pending.target}`;
     while (docEdges.some((e) => e.id === id)) id += "-2";
     setDocEdges((es) => [...es, {
-      id, source: pending.source, sourcePort: "out", target: pending.target, targetPort: "in",
+      id, source: pending.source, sourcePort: pending.sp ?? "right", target: pending.target, targetPort: pending.tp ?? "left",
       configuration: { mode: o.mode, protocol: o.protocol, required: true, timeoutMs: o.timeoutMs,
         networkLatencyMs: o.networkLatencyMs, maxAttempts: 1, backoffMs: 0, retryable: false, tls: o.tls },
     }]);
@@ -692,10 +752,11 @@ function Lab() {
     n: nodes.map((n) => ({ id: n.id, x: Math.round(n.position.x), y: Math.round(n.position.y), w: n.width,
       d: { name: n.data.name, type: n.data.type, replicas: n.data.replicas, providerId: n.data.providerId, hitRate: n.data.hitRate, note: n.data.note || undefined } })),
     e: docEdges, f: flows, w: workloads, m: meta, g: notes || undefined,
+    r: groups.length ? groups.map((g) => ({ ...g, x: Math.round(g.x), y: Math.round(g.y), w: Math.round(g.w), h: Math.round(g.h) })) : undefined,
   });
   const key = snap();
   if (!hist.current.last) hist.current.last = key;
-  const busy = nodes.some((n) => n.dragging || (n as any).resizing);
+  const busy = groupBusy || nodes.some((n) => n.dragging || (n as any).resizing);
   useEffect(() => {
     const h = hist.current;
     if (h.applying) { h.applying = false; h.last = key; return; }
@@ -713,7 +774,7 @@ function Lab() {
     hist.current.applying = true;
     setNodes(s.n.map((n: any) => ({ id: n.id, type: "arch", position: { x: n.x, y: n.y }, width: n.w, data: { ...n.d, health: "idle" } })));
     synced.current = structSig(s.n.map((n: any) => ({ id: n.id, type: n.d.type, hit: n.d.hitRate })), s.e);
-    setDocEdges(s.e); setFlows(s.f); setWorkloads(s.w); setMeta(s.m); setNotes(typeof s.g === "string" ? s.g : "");
+    setDocEdges(s.e); setFlows(s.f); setWorkloads(s.w); setMeta(s.m); setNotes(typeof s.g === "string" ? s.g : ""); setGroups(cleanGroups(s.r)); setGroupSel(new Set());
     setSelected(null); setEdgeSel(new Set());
   };
   const undo = () => {
@@ -841,7 +902,8 @@ function Lab() {
             icon: ICONS[d.type] ?? "dns", cat: CATEGORY_OF.get(d.type) ?? "compute", replicas: d.replicas, providerId: d.providerId, providerName: prov?.name,
             util: d.load?.utilization ?? null, offered: d.load?.offered, health: d.health, status: t(d.badge ?? HEALTH_LABEL[d.health]), hasLoad: !!d.load };
         }),
-        edges: edges.map((e) => ({ source: e.source, target: e.target, protocol: String(e.data?.protocol), mode: String(e.data?.mode), flow: e.data?.flow ?? 0, hot: !!e.data?.hot, unused: !!e.data?.unused })),
+        groups: groups.map((g) => ({ name: g.name, color: g.color, x: g.x, y: g.y, w: g.w, h: g.h })),
+        edges: edges.map((e) => ({ source: e.source, target: e.target, protocol: String(e.data?.protocol), mode: String(e.data?.mode), flow: e.data?.flow ?? 0, hot: !!e.data?.hot, unused: !!e.data?.unused, sp: sideOf(e.sourceHandle, "source"), tp: sideOf(e.targetHandle, "target"), both: !!e.data?.both })),
       });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
       a.download = `archlab-relatorio-${title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "desenho"}.png`;
@@ -936,7 +998,24 @@ function Lab() {
     setSelected(fresh.length === 1 ? fresh[0]!.id : null); setEdgeSel(new Set());
     say(`Colado (${fresh.length})`);
   };
-  const clearSelection = () => { setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n))); setEdgeSel(new Set()); setSelected(null); };
+  /** Agrupa os blocos selecionados numa moldura; sem seleção, cria um grupo vazio no centro da tela. */
+  const addGroup = () => {
+    const picked = nodes.filter((n) => n.selected);
+    let x: number, y: number, w: number, h: number;
+    if (picked.length) {
+      const x0 = Math.min(...picked.map((n) => n.position.x)), y0 = Math.min(...picked.map((n) => n.position.y));
+      const x1 = Math.max(...picked.map((n) => n.position.x + (n.width ?? 240))), y1 = Math.max(...picked.map((n) => n.position.y + (n.measured?.height ?? 96)));
+      x = x0 - 36; y = y0 - 64; w = x1 - x0 + 72; h = y1 - y0 + 100;
+    } else {
+      const c = screenToFlowPosition({ x: window.innerWidth * 0.4, y: window.innerHeight * 0.5 });
+      w = 520; h = 360; x = c.x - w / 2; y = c.y - h / 2;
+    }
+    let i = groups.length + 1; while (groups.some((g) => g.id === `grp-${i}`)) i++;
+    const id = `grp-${i}`;
+    setGroups((gs) => [...gs, { id, name: `${t("Grupo")} ${i}`, color: GROUP_COLORS_CYCLE[(i - 1) % GROUP_COLORS_CYCLE.length]!, x, y, w: Math.max(GROUP_MIN.w, w), h: Math.max(GROUP_MIN.h, h) }]);
+    setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n))); setSelected(null); setGroupSel(new Set([id]));
+  };
+  const clearSelection = () => { setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n))); setEdgeSel(new Set()); setSelected(null); setGroupSel(new Set()); };
   const nudge = (dx: number, dy: number) => setNodes((ns) => ns.map((n) => (n.selected ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } } : n)));
   /** Organiza o diagrama: calcula as posições (autolayout.ts) e anima os cards até lá; vira um único passo no desfazer. */
   const alignAnim = useRef(0);
@@ -986,6 +1065,7 @@ function Lab() {
     else if (k === "arrowdown") { e.preventDefault(); nudge(0, step); }
     else if (k === "f") doFit();
     else if (k === "l") autoAlign();
+    else if (k === "g") addGroup();
     else if (k === "m") setMapOpen((v) => !v);
     else if (k === "b") setBriefOpen((v) => !v);
     else if (e.key === "?" || (e.key === "/" && e.shiftKey)) setHelpOpen(true);
@@ -1060,15 +1140,16 @@ function Lab() {
       </header>
 
       <ReactFlow
-        data-tour="canvas" nodes={shownNodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
+        data-tour="canvas" nodes={[...groupNodes, ...shownNodes] as Node[]} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} isValidConnection={isValidConnection}
-        deleteKeyCode={["Backspace", "Delete"]} connectionRadius={36} connectionLineComponent={ConnectionLine}
+        deleteKeyCode={["Backspace", "Delete"]} connectionMode={ConnectionMode.Loose} connectionRadius={36} connectionLineComponent={ConnectionLine}
         fitView={!blank} defaultViewport={{ x: 0, y: 0, zoom: 1 }} fitViewOptions={{ padding: { top: "110px", bottom: "60px", left: "420px", right: "400px" } }} minZoom={0.25} maxZoom={2}
-        onPaneClick={() => setSelected(null)} onDrop={onDrop}
+        onPaneClick={() => { setSelected(null); setGroupSel(new Set()); }} onDrop={onDrop}
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
       >
         <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} color="var(--dot)" />
         <Controls showInteractive={false}>
+          <ControlButton onClick={addGroup} title={t("Agrupar blocos (G)")} aria-label={t("Agrupar blocos")}><Icon name="workspaces" size={16} /></ControlButton>
           <ControlButton onClick={autoAlign} title={t("Organizar automaticamente (L)")} aria-label={t("Organizar automaticamente")}><Icon name="auto_fix_high" size={16} /></ControlButton>
         </Controls>
         <Panel position="top-left" className="notes-panel"><NotesPad value={notes} onChange={setNotes} /></Panel>
@@ -1194,7 +1275,7 @@ function Lab() {
             {down.has(sel.id) && <div className="alert"><Icon name="flash_off" size={18} />{" "}{t("Componente fora do ar neste cenário. Tudo que depende dele reage no canvas.")}</div>}
 
             {selHealth.health === "idle" && SIDE_TYPES.has(sel.type) && (
-              <div className="hintbox"><Icon name="info" size={18} /><span>{t("Componente de apoio: telemetria, segredos e descoberta ficam fora dos fluxos de requisição, então não recebem carga na simulação.")}</span></div>
+              <div className="hintbox"><Icon name="info" size={18} /><span>{t("Componente de apoio: telemetria, segredos, descoberta e DNS ficam fora dos fluxos de requisição, então não recebem carga na simulação.")}</span></div>
             )}
             {selHealth.health === "idle" && !SIDE_TYPES.has(sel.type) && (
               <div className="hintbox"><Icon name="route" size={18} />

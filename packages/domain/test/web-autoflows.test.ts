@@ -65,3 +65,12 @@ describe("desenho de referência refeito a partir das conexões", () => {
     expect(paths).toEqual([]);
   });
 });
+
+describe("DNS é consulta lateral", () => {
+  it("o cliente que consulta o DNS e acessa o WAF mantém um único fluxo, sem dividir a carga com o DNS", () => {
+    const nodes = [node("c", "client"), node("dns", "dns"), node("waf", "waf")];
+    const built = buildAutoFlows("c", nodes, [edge("c", "dns"), edge("c", "waf")]);
+    expect(built).toHaveLength(1);
+    expect(built[0]!.flow.steps.map((s) => s.nodeId)).toEqual(["c", "waf"]);
+  });
+});

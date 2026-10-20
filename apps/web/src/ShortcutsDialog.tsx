@@ -24,6 +24,7 @@ const GROUPS: { title: string; items: [string[], string][] }[] = [
   { title: "Navegação", items: [
     [["F"], "Enquadra o diagrama na tela"],
     [["L"], "Organiza o diagrama automaticamente"],
+    [["G"], "Agrupa os blocos selecionados"],
     [["Espaço", "arrastar"], "Move o canvas"],
     [["/"], "Busca na paleta de componentes"],
     [["B"], "Mostra ou esconde o enunciado"],

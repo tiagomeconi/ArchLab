@@ -1,5 +1,14 @@
 /** Laboratório: painéis, enunciado, falhas, paleta, provedores. */
 export const lab: Record<string, string> = {
+  "Grupo": "Group",
+  "Nome do grupo": "Group name",
+  "Remover grupo (os blocos ficam)": "Remove group (blocks stay)",
+  "Agrupar blocos (G)": "Group blocks (G)",
+  "Agrupar blocos": "Group blocks",
+  "Agrupa os blocos selecionados": "Groups the selected blocks",
+  "Azul": "Blue", "Verde": "Green", "Âmbar": "Amber", "Rosa": "Pink", "Violeta": "Violet", "Cinza": "Gray",
+  "Marcar como dois sentidos": "Mark as two-way",
+  "Voltar para um sentido só": "Back to one-way",
   "Falha injetada neste componente": "Failure injected into this component",
   "Redimensionar horizontalmente": "Resize horizontally",
   "utilização desconhecida": "unknown utilization",

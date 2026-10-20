@@ -26,7 +26,9 @@ export interface ReportNode {
   /** utilização 0–1+ (null = desconhecida) e carga oferecida em req/s; ausentes quando o nó não recebe carga */
   util?: number | null; offered?: number; health: string; status: string; hasLoad: boolean; backlog?: number;
 }
-export interface ReportEdge { source: string; target: string; protocol: string; mode: string; flow: number; hot: boolean; unused: boolean }
+import type { Side } from "./ports";
+export interface ReportEdge { source: string; target: string; protocol: string; mode: string; flow: number; hot: boolean; unused: boolean; sp?: Side; tp?: Side; both?: boolean }
+export interface ReportGroup { name: string; color: string; x: number; y: number; w: number; h: number }
 export interface ReportInput {
   title: string;
   summary?: string;
@@ -39,6 +41,7 @@ export interface ReportInput {
   met: number;
   total: number;
   nodes: ReportNode[];
+  groups?: ReportGroup[];
   edges: ReportEdge[];
 }
 
@@ -106,6 +109,17 @@ const bez = (p: number[], u: number): [number, number] => {
 };
 /** Mesma curva do React Flow (getBezierPath, curvatura 0,25): ida suave, volta em laço largo. */
 const off = (d: number) => (d >= 0 ? 0.5 * d : 0.25 * 25 * Math.sqrt(-d));
+/** Ponto de controle do bezier a partir do lado do bloco (idêntico ao getBezierPath do React Flow). */
+const ctrl = (side: Side, x1: number, y1: number, x2: number, y2: number): [number, number] =>
+  side === "left" ? [x1 - off(x1 - x2), y1] : side === "right" ? [x1 + off(x2 - x1), y1] : side === "top" ? [x1, y1 - off(y1 - y2)] : [x1, y1 + off(y2 - y1)];
+const anchor = (n: { x: number; y: number; w: number; h: number }, side: Side): [number, number] =>
+  side === "left" ? [n.x, n.y + n.h / 2] : side === "right" ? [n.x + n.w, n.y + n.h / 2] : side === "top" ? [n.x + n.w / 2, n.y] : [n.x + n.w / 2, n.y + n.h];
+/** Ponta de seta em (x,y) apontando na direção (dx,dy). */
+function arrowHead(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, size: number, color: string) {
+  const l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - ux * size - uy * size * 0.5, y - uy * size + ux * size * 0.5); ctx.lineTo(x - ux * size + uy * size * 0.5, y - uy * size - ux * size * 0.5); ctx.closePath();
+  ctx.fillStyle = color; ctx.fill();
+}
 
 /**
  * Desenha o relatório como um "print" do laboratório: coluna lateral compacta (caso, nota, requisitos) e o mapa em destaque,
@@ -125,8 +139,9 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
 
   // ── geometria ──
   const PAD = 48, SIDE = 440, GAP = 32;
-  const minX = Math.min(...r.nodes.map((n) => n.x)), maxX = Math.max(...r.nodes.map((n) => n.x + n.w));
-  const minY = Math.min(...r.nodes.map((n) => n.y)), maxY = Math.max(...r.nodes.map((n) => n.y + n.h));
+  const gs = r.groups ?? [];
+  const minX = Math.min(...r.nodes.map((n) => n.x), ...gs.map((g) => g.x)), maxX = Math.max(...r.nodes.map((n) => n.x + n.w), ...gs.map((g) => g.x + g.w));
+  const minY = Math.min(...r.nodes.map((n) => n.y), ...gs.map((g) => g.y)), maxY = Math.max(...r.nodes.map((n) => n.y + n.h), ...gs.map((g) => g.y + g.h));
   const bw = Math.max(1, maxX - minX), bh = Math.max(1, maxY - minY);
   // desenhos largos ganham uma imagem mais larga: os cards mantêm o tamanho do laboratório e sobra espaço para o protocolo de cada conexão
   const W = Math.max(2400, Math.min(3400, Math.round(bw * 1.0 + PAD * 2 + SIDE + GAP + 56 * 2 + 160)));
@@ -268,21 +283,36 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
     const byId = new Map(r.nodes.map((n) => [n.id, n]));
     const s = sN;
 
+    // grupos: molduras atrás de tudo, com o nome no canto
+    const GCOL: Record<string, string> = { sky: "#38bdf8", green: "#34d399", amber: "#fbbf24", rose: "#fb7185", violet: "#a78bfa", slate: "#94a3b8" };
+    for (const g of gs) {
+      const gx = PX(g.x), gy = PY(g.y), gw = PX(g.x + g.w) - gx, gh = PY(g.y + g.h) - gy, col = GCOL[g.color] ?? GCOL.sky!;
+      rr(ctx, gx, gy, gw, gh, 22 * s); ctx.fillStyle = `${col}14`; ctx.fill();
+      ctx.setLineDash([10, 8]); ctx.strokeStyle = `${col}99`; ctx.lineWidth = Math.max(1.6, 2.2 * s); ctx.stroke(); ctx.setLineDash([]);
+      ctx.font = `700 ${Math.max(13, 15 * s)}px ${SANS}`; ctx.fillStyle = col; ctx.textBaseline = "alphabetic";
+      ctx.fillText(fit(ctx, g.name, Math.max(60, gw - 32)), gx + 16, gy + Math.max(22, 26 * s));
+    }
+
     // conexões: linha, partículas de tráfego; o rótulo de protocolo é posicionado depois, fora dos cards
     const labels: { x: number; y: number; e: ReportEdge; pts: number[]; compact?: boolean }[] = [];
     for (const e of r.edges) {
       const a = byId.get(e.source), b = byId.get(e.target); if (!a || !b) continue;
-      const sx = PX(a.x) + a.w * WF * s, sy = PY(a.y) + (a.h * s) / 2, tx2 = PX(b.x), ty = PY(b.y) + (b.h * s) / 2;
-      const c1 = sx + off(sx - tx2), c2 = tx2 - off(tx2 - sx);
-      const pts = [sx, sy, c1, sy, c2, ty, tx2, ty];
+      const ra = { x: PX(a.x), y: PY(a.y), w: a.w * WF * s, h: a.h * s }, rb = { x: PX(b.x), y: PY(b.y), w: b.w * WF * s, h: b.h * s };
+      const sp = e.sp ?? "right", tp = e.tp ?? "left";
+      const [sx, sy] = anchor(ra, sp), [tx2, ty] = anchor(rb, tp);
+      const [c1x, c1y] = ctrl(sp, sx, sy, tx2, ty), [c2x, c2y] = ctrl(tp, tx2, ty, sx, sy);
+      const pts = [sx, sy, c1x, c1y, c2x, c2y, tx2, ty];
       const col = protoOf(e.protocol).color;
-      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.bezierCurveTo(pts[2]!, pts[3]!, pts[4]!, pts[5]!, tx2, ty);
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.bezierCurveTo(c1x, c1y, c2x, c2y, tx2, ty);
       ctx.strokeStyle = e.unused ? "#3a4c78" : `${col}b0`; ctx.lineWidth = Math.max(1.6, 2.2 * s); ctx.lineCap = "round";
       ctx.setLineDash(e.unused ? [6, 6] : e.mode === "async" ? [2, 7] : []); ctx.stroke(); ctx.setLineDash([]);
       if (e.flow > 0) { // partículas: o tráfego "parado" no instante do print, espaçado ao longo da conexão
         for (const u of [0.12, 0.3, 0.48, 0.66, 0.84]) { const [qx, qy] = bez(pts, u); ctx.beginPath(); ctx.arc(qx, qy, Math.max(2.4, 3.4 * s), 0, Math.PI * 2); ctx.fillStyle = e.hot ? "#f87171" : col; ctx.fill(); }
       }
-      ctx.beginPath(); ctx.arc(tx2, ty, Math.max(2.5, 3.4 * s), 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+      const ah = Math.max(8, 11 * s), acol = e.unused ? "#3a4c78" : col;
+      const endDir = tx2 === c2x && ty === c2y ? [tx2 - sx, ty - sy] : [tx2 - c2x, ty - c2y], startDir = sx === c1x && sy === c1y ? [sx - tx2, sy - ty] : [sx - c1x, sy - c1y];
+      arrowHead(ctx, tx2, ty, endDir[0]!, endDir[1]!, ah, acol);
+      if (e.both) arrowHead(ctx, sx, sy, startDir[0]!, startDir[1]!, ah, acol);
       labels.push({ x: 0, y: 0, e, pts });
     }
     // posição dos rótulos: tenta o meio da conexão e, se cair sobre um card ou outro rótulo, procura outro ponto da mesma curva

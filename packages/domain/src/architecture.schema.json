@@ -703,6 +703,9 @@
         },
         "tls": {
           "type": "boolean"
+        },
+        "bidirectional": {
+          "type": "boolean"
         }
       },
       "required": [

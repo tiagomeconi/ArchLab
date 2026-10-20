@@ -204,5 +204,5 @@ export const components: Record<string, string> = {
   "Qual tecnologia faz o papel de {nome}?": "Which technology plays the role of {nome}?",
   "Sem nota": "No score",
   "{met} de {total} requisitos": "{met} of {total} requirements",
-  "Componente de apoio: telemetria, segredos e descoberta ficam fora dos fluxos de requisição, então não recebem carga na simulação.": "Support component: telemetry, secrets and discovery stay out of request flows, so they receive no load in the simulation.",
+  "Componente de apoio: telemetria, segredos, descoberta e DNS ficam fora dos fluxos de requisição, então não recebem carga na simulação.": "Support component: telemetry, secrets, discovery and DNS stay out of request flows, so they receive no load in the simulation.",
 };

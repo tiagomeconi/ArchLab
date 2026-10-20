@@ -14,7 +14,7 @@ def _arruma(page, n, y=-150, passo=300, x0=-500):
 
 def _ligar(page, i, j, opcao=None):
     ns = page.locator(".react-flow__node")
-    a, b = ns.nth(i).locator(".react-flow__handle.source").bounding_box(), ns.nth(j).locator(".react-flow__handle.target").bounding_box()
+    a, b = ns.nth(i).locator(".react-flow__handle[data-handleid=\"right\"]").bounding_box(), ns.nth(j).locator(".react-flow__handle[data-handleid=\"left\"]").bounding_box()
     page.mouse.move(a["x"] + a["width"] / 2, a["y"] + a["height"] / 2); page.mouse.down()
     page.mouse.move(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2, steps=12); page.mouse.up()
     page.wait_for_timeout(300)
