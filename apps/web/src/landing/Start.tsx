@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
 import "./landing.css";
 import { CASES, COMPANY_CASES, sessionFor, type CaseGroup, type StudyCase } from "../cases";
 import { leagueOf } from "../leagues";
@@ -281,8 +281,10 @@ function Free() {
   );
 }
 
+const PathsPage = lazy(() => import("./Paths").then((m) => ({ default: m.Paths })));
 export function Start({ path }: { path: string }) {
   useLang();
+  if (path.startsWith("/start/trilhas")) return <Suspense fallback={null}><PathsPage /></Suspense>;
   if (path.startsWith("/start/estudo")) return <Study />;
   if (path.startsWith("/start/livre")) return <Free />;
   return <Study />;

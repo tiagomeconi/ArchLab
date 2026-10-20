@@ -163,3 +163,12 @@ def test_aviso_de_conta_excluida_aparece_na_landing_e_some_ao_fechar(page):
     page.get_by_role("button", name="Fechar").click()
     assert page.get_by_text("Sua conta e todos os seus dados foram excluídos.").count() == 0
     assert "conta=excluida" not in page.url
+
+
+def test_trilhas_de_estudo_listam_os_temas_e_abrem_o_primeiro_caso(page):
+    page.goto(page.base + "/start/trilhas"); page.get_by_role("heading", name="Trilhas de estudo").wait_for()
+    assert page.locator("section[aria-label]").count() >= 6
+    sec = page.get_by_role("region", name="Fundamentos")
+    assert "0/5" in sec.inner_text()
+    sec.get_by_role("button", name="Começar a trilha").click()
+    page.wait_for_selector(".react-flow")
