@@ -1,6 +1,6 @@
 import fixture from "../../../fixtures/url-shortener-baseline.json";
 import { connectionOptions, DEFAULT_PROFILE_BY_TYPE, solveDemand } from "@archlab/domain";
-import { addStep, createFlow, type Flow, type FlowMeta, type Step } from "./flowOps";
+import { buildAutoFlows, type Flow, type FlowMeta } from "./flowOps";
 import type { Checks, Load } from "./session";
 import { t } from "./i18n";
 
@@ -72,41 +72,13 @@ export function buildReference(checks: Checks, load: Load): Snapshot {
   if (cdn && obj) link(cdn, obj);
 
   // ── fluxos ──
-  const flows: Flow[] = []; const workloads: any[] = []; const meta: Record<string, FlowMeta> = {};
+  // derivados das conexões pela MESMA regra que vale para quem desenha (buildAutoFlows): a referência é só um desenho,
+  // então o mesmo grafo recebe a mesma carga e a mesma nota, seja a referência ou o que a pessoa montou
   const hit = 0.9;
-  const newFlow = (name: string, weight: number) => { const { flow, workload } = createFlow(flows, "client"); flows.push(flow); workloads.push(workload); meta[flow.id] = { name, weight }; return flow; };
-  const edgeOf = (a: string, b: string) => edges.find((e) => e.source === a && e.target === b)?.id as string;
-  /** encadeia `path` a partir do passo raiz; `cacheAt` marca o lookup de cache cujo miss segue para o próximo nó. */
-  const chain = (flow: Flow, path: string[], classes: Record<string, string>, ack?: string): Flow => {
-    let f = flow; let parent: Step = f.steps[0]!; let prevId = "client"; let cacheStep: Step | null = null; let cacheParent: Step | null = null;
-    for (const id of path) {
-      const isCache = id === cache && path.includes(db);
-      const step = (): Step => f.steps[f.steps.length - 1]!;
-      if (cacheStep && cacheParent) {
-        f = addStep(f, { parent: cacheParent, nodeId: id, edgeId: edgeOf(prevId === cache ? app : prevId, id), operationClass: classes[id] ?? "read", visits: 1, missOf: cacheStep, missShare: 1 - hit });
-        parent = step(); cacheStep = null; prevId = id; continue;
-      }
-      f = addStep(f, { parent, nodeId: id, edgeId: edgeOf(prevId, id), operationClass: classes[id] ?? "compute", visits: 1, isCacheLookup: isCache });
-      if (isCache) { cacheStep = step(); cacheParent = parent; prevId = id; continue; }
-      parent = step(); prevId = id;
-    }
-    if (ack) { const s = f.steps.find((x) => x.nodeId === ack); if (s) f = { ...f, ackStepId: s.id }; }
-    return f;
-  };
-  const front = [cdn, ...entryChain].filter(Boolean) as string[];
-  const compute = (extra: Record<string, string> = {}) => ({ client: "compute", cdn: "read", lb: "compute", gw: "compute", app: "compute", ...extra });
-
-  const replace = (flow: Flow) => { const i = flows.findIndex((f) => f.id === flow.id); flows[i] = flow; };
-  replace(chain(newFlow(t("Leitura"), 1), [...front.filter((x) => x !== cdn), app, ...(cache ? [cache] : []), db], compute({ cache: "read", [db]: "read" })));
-  replace(chain(newFlow(t("Escrita"), 0.6), [...front.filter((x) => x !== cdn), app, db], compute({ [db]: "write" })));
-  // o consumo da fila/log é calculado pelo próprio motor a partir da aresta fila → worker; o fluxo só publica
-  if (streamId) replace(chain(newFlow(t("Eventos"), 0.25), [...front.filter((x) => x !== cdn), app, streamId], compute({ [streamId]: "message" })));
-  if (worker && !streamId) replace(chain(newFlow(t("Processamento"), 0.5), [...front.filter((x) => x !== cdn), app, worker, db], compute({ worker: "compute", [db]: "write" })));
-  if (both) replace(chain(newFlow(t("Transações"), 0.2), [...front.filter((x) => x !== cdn), app, sqlId!], compute({ [sqlId!]: "write" })));
-  if (notify) replace(chain(newFlow(t("Notificações"), 0.3), [...front.filter((x) => x !== cdn), app, notify], compute({ notify: "compute" })));
-  if (search) replace(chain(newFlow(t("Busca"), 0.5), [...front.filter((x) => x !== cdn), app, search], compute({ search: "read" })));
-  if (obj) replace(chain(newFlow(t("Mídia"), 0.5), cdn ? [cdn, obj] : [...front, app, obj], compute({ cdn: "read", obj: "read" })));
-  if (ws) replace(chain(newFlow(t("Tempo real"), 0.5), [ws, app], compute({ ws: "compute" })));
+  const auto = buildAutoFlows("client", nodes.map((n) => ({ id: n.id, type: n.type, name: n.name })), edges.map((e) => ({ id: e.id, source: e.source, target: e.target })), hit);
+  const flows: Flow[] = auto.map((a) => a.flow);
+  const workloads: any[] = auto.map((a) => a.workload);
+  const meta: Record<string, FlowMeta> = Object.fromEntries(auto.map((a) => [a.flow.id, { name: t(a.name), weight: a.weight }]));
 
   // ── layout em colunas ──
   const cols = new Map<number, N[]>(); for (const n of nodes) cols.set(n.col, [...(cols.get(n.col) ?? []), n]);

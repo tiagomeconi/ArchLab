@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { errorOf, lossErrors, rate, tierOf, WEIGHTS, type RateInput } from "../../../apps/web/src/rating";
 import { buildReference, docOf, weightsOf, type Snapshot } from "../../../apps/web/src/reference";
 import { evaluate } from "../../../apps/web/src/requirements";
+import { buildAutoFlows } from "../../../apps/web/src/flowOps";
 import { CASES, COMPANY_CASES, checksOf, loadOf } from "../../../apps/web/src/cases";
 import { solveDemand } from "../src";
 
@@ -64,5 +65,22 @@ describe("overall do desenho", () => {
     const r = rateSnapshot(buildReference(checksOf(id)!, loadOf(id)!), id, (s) => { const app = s.n.find((n) => n.id === "app")!; app.d.replicas = 1; });
     const res = r.attrs.find((a) => a.id === "res")!;
     expect(res.why).toContain("Backend"); expect(res.tip).toContain("Backend");
+  });
+});
+
+describe("a mesma arquitetura recebe a mesma nota, seja a referência ou o que a pessoa desenhou", () => {
+  it("em todos os casos, refazer os fluxos a partir das conexões da referência não muda nada (carga nem nota)", () => {
+    for (const c of ALL) {
+      const checks = checksOf(c.id), load = loadOf(c.id); if (!checks || !load) continue;
+      const ref = buildReference(checks, load);
+      const again = buildAutoFlows("client", ref.n.map((n) => ({ id: n.id, type: n.d.type, name: n.d.name })), ref.e.map((e: any) => ({ id: e.id, source: e.source, target: e.target })), 0.9);
+      const redone: Snapshot = structuredClone(ref);
+      redone.f = again.map((a) => a.flow); redone.w = again.map((a) => a.workload); redone.m = Object.fromEntries(again.map((a) => [a.flow.id, { name: a.name, weight: a.weight }]));
+      expect(rateSnapshot(redone, c.id).overall, c.id).toBe(rateSnapshot(structuredClone(ref), c.id).overall);
+      expect(redone.f.map((f) => f.steps.map((x) => x.nodeId)), c.id).toEqual(ref.f.map((f) => f.steps.map((x) => x.nodeId)));
+    }
+  });
+  it("nenhuma referência fica abaixo do nível ouro (a nota não penaliza o desenho de exemplo)", () => {
+    for (const c of ALL) { const checks = checksOf(c.id), load = loadOf(c.id); if (!checks || !load) continue; expect(rateSnapshot(buildReference(checks, load), c.id).overall ?? 0, c.id).toBeGreaterThanOrEqual(75); }
   });
 });
