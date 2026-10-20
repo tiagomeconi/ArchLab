@@ -662,3 +662,19 @@ def test_padroes_prontos_inserem_componentes_conectados_e_versoes_restauram_o_de
     page.locator("dialog[open]").get_by_role("button", name="Restaurar").first.click()  # só existe a versão "com fila"
     page.wait_for_timeout(800)
     assert page.locator(".react-flow__node-arch").count() == 4 and page.locator(".react-flow__node-group").count() == 0
+
+
+def test_ver_a_referencia_e_sair_nao_vira_o_desenho_da_pessoa(page):
+    open_case(page, "Wikipedia")
+    add_component(page, "Cliente"); page.wait_for_timeout(1200)   # o autosave grava o desenho da pessoa
+    assert page.locator(".react-flow__node-arch").count() == 1
+    page.get_by_role("button", name="Ver solução de referência").click()
+    page.get_by_role("button", name="Ver a referência").click(); page.wait_for_timeout(1500)
+    assert page.locator(".react-flow__node-arch").count() > 3
+    # sai sem voltar ao próprio desenho e reabre o caso: tem que ser o dela, não a referência
+    open_case(page, "Wikipedia")
+    page.wait_for_timeout(1200)
+    assert page.locator(".react-flow__node-arch").count() == 1
+    # e recarregar a página também não troca
+    page.reload(); page.wait_for_selector(".react-flow"); page.wait_for_timeout(1200)
+    assert page.locator(".react-flow__node-arch").count() == 1

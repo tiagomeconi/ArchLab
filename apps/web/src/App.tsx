@@ -890,6 +890,16 @@ function Lab() {
   const valid = (s: any) => s && Array.isArray(s.n) && Array.isArray(s.e) && Array.isArray(s.f) && Array.isArray(s.w) && s.m && typeof s.m === "object";
   useEffect(() => {
     try {
+      // saiu da página enquanto via a referência: o desenho da pessoa fica no backup e volta no lugar (a referência nunca vira o desenho dela)
+      const mine = localStorage.getItem(`${storeKey}:mine`);
+      if (mine) {
+        localStorage.removeItem(`${storeKey}:mine`);
+        if (valid(JSON.parse(mine))) {
+          localStorage.setItem(storeKey, JSON.stringify({ v: 1, savedAt: Date.now(), snap: mine, title: freeEditable ? designTitle : undefined }));
+          if (mine !== snap()) { restore(mine); say(t("Seu desenho foi restaurado")); }
+          return;
+        }
+      }
       const raw = localStorage.getItem(storeKey); if (!raw) return;
       const saved = JSON.parse(raw)?.snap; if (typeof saved !== "string" || !valid(JSON.parse(saved)) || saved === snap()) return;
       restore(saved); say("Desenho anterior recuperado");
@@ -897,6 +907,7 @@ function Lab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
+    if (viewingRef) return; // olhando a referência: não grava por cima do desenho da pessoa
     if (nodes.length && blank && !sharedMode) setSave("saving");
     const t = setTimeout(() => {
       try { localStorage.setItem(storeKey, JSON.stringify({ v: 1, savedAt: Date.now(), snap: key, title: freeEditable ? designTitle : undefined })); if (nodes.length && blank && !sharedMode) setSave((cur) => (cur === "cloud" || (uid && cloudReady.current) ? cur : "local")); }
@@ -904,7 +915,7 @@ function Lab() {
     }, 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, storeKey, designTitle]);
+  }, [key, storeKey, designTitle, viewingRef]);
   // ── nuvem (só logado): puxa o desenho salvo e depois grava as mudanças; nunca sobrescreve a nuvem antes de olhar o que já existe ──
   const auth = useAuth();
   const uid = authEnabled && auth.status === "in" ? auth.user?.id : undefined;
