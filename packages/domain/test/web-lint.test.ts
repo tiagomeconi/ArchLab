@@ -63,3 +63,15 @@ describe("custo estimado", () => {
     expect(c.lines.map((l) => l.id)).toEqual(["db", "api"]);
   });
 });
+
+describe("cadeia síncrona em grafos densos", () => {
+  it("termina rápido em um grafo em camadas totalmente conectado (60 nós) e ignora ciclos", () => {
+    const layers = 12, width = 5, id = (l: number, i: number) => `n${l}_${i}`;
+    const edges: LintEdge[] = [];
+    for (let l = 0; l < layers - 1; l++) for (let i = 0; i < width; i++) for (let j = 0; j < width; j++) edges.push(e(id(l, i), id(l + 1, j)));
+    const t0 = Date.now();
+    const r = longestSyncChain(edges, [id(0, 0)]);
+    expect(Date.now() - t0).toBeLessThan(500); expect(r.len).toBe(layers - 1);
+    expect(longestSyncChain([e("a", "b"), e("b", "c"), e("c", "a")], ["a"]).len).toBe(2);
+  });
+});

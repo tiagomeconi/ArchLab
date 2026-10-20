@@ -771,7 +771,8 @@ function Lab() {
     edges: docEdges.map((e) => ({ source: e.source, target: e.target, protocol: String(e.configuration.protocol), mode: String(e.configuration.mode), tls: e.configuration.tls === undefined ? undefined : !!e.configuration.tls })),
     inFlow: new Set(flows.flatMap((f) => f.steps.map((s) => s.nodeId))),
     utilization: new Map([...loads.entries()].map(([id, l]) => [id, l.utilization])), readPct,
-  }), [nodes, docEdges, flows, loads, readPct]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [semKey, docEdges, flows, loads, readPct]);
   const cost = useMemo(() => estimateCost(docNodes), [docNodes]);
   const reviewHigh = findings.filter((f) => f.severity === "alta").length;
   const focusNodes = (ids: string[]) => {

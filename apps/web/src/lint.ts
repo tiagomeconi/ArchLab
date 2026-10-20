@@ -28,17 +28,22 @@ const SIDE = new Set(["observability", "secrets-manager", "service-discovery", "
 const SYNC_CHAIN_LIMIT = 5;
 const FANOUT_LIMIT = 5;
 
-/** maior sequência de chamadas síncronas encadeadas a partir de cada origem (ignora ciclos) */
+/** maior sequência de chamadas síncronas encadeadas a partir de cada origem (ciclos são ignorados). Com memória, é linear no tamanho do grafo. */
 export function longestSyncChain(edges: LintEdge[], roots: string[]): { len: number; path: string[] } {
   const out = new Map<string, string[]>();
   for (const e of edges) if (e.mode === "sync") out.set(e.source, [...(out.get(e.source) ?? []), e.target]);
-  let best: string[] = [];
-  const walk = (id: string, path: string[]) => {
-    if (path.length > best.length) best = path;
-    for (const next of out.get(id) ?? []) if (!path.includes(next)) walk(next, [...path, next]);
+  const best = new Map<string, string[]>(); // melhor caminho a partir de cada nó (inclui o próprio nó)
+  const walk = (id: string, onPath: Set<string>): string[] => {
+    const hit = best.get(id); if (hit) return hit;
+    onPath.add(id);
+    let tail: string[] = [];
+    for (const next of out.get(id) ?? []) { if (onPath.has(next)) continue; const p = walk(next, onPath); if (p.length > tail.length) tail = p; }
+    onPath.delete(id);
+    const res = [id, ...tail]; best.set(id, res); return res;
   };
-  for (const r of roots) walk(r, [r]);
-  return { len: Math.max(0, best.length - 1), path: best };
+  let top: string[] = [];
+  for (const r of roots) { const p = walk(r, new Set()); if (p.length > top.length) top = p; }
+  return { len: Math.max(0, top.length - 1), path: top };
 }
 
 export function lintArchitecture(inp: LintInput): Finding[] {
