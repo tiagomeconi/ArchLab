@@ -17,3 +17,16 @@ export function homeSummary(progress: Record<string, CaseProgress>, all: StudyCa
 }
 
 export const dayPart = (hour: number): "morning" | "afternoon" | "night" => (hour < 5 ? "night" : hour < 12 ? "morning" : hour < 18 ? "afternoon" : "night");
+
+/** Início (segunda 00:00, hora local) da semana de `d`. */
+export function weekStart(d: Date): Date { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+
+/** Caso do desafio da semana: igual para todo mundo na mesma semana (sorteio determinístico) e diferente a cada semana. */
+export function weeklyChallenge(now: Date, pool: StudyCase[] = ALL_CASES): { case: StudyCase; start: Date; end: Date; daysLeft: number } | null {
+  if (!pool.length) return null;
+  const start = weekStart(now), end = new Date(start); end.setDate(end.getDate() + 7);
+  const key = `${start.getFullYear()}-${start.getMonth() + 1}-${start.getDate()}`;
+  let h = 2166136261; for (const ch of key) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  const c = pool[Math.abs(h) % pool.length]!;
+  return { case: c, start, end, daysLeft: Math.max(1, Math.ceil((end.getTime() - now.getTime()) / 86400000)) };
+}

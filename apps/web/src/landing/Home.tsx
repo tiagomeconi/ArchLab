@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { useAuth } from "../auth";
 import { loadProgress } from "../progress";
-import { ALL_CASES, dayPart, homeSummary } from "../home";
+import { ALL_CASES, dayPart, homeSummary, weeklyChallenge } from "../home";
+import { levelLocked } from "../plan";
 import { profileOverall } from "../leagues";
 import { LeagueCard } from "./LeagueCard";
 import { StreakCard } from "./StreakCard";
@@ -55,6 +56,8 @@ export function Home() {
   const hello0 = part === "morning" ? t("Bom dia") : part === "afternoon" ? t("Boa tarde") : t("Boa noite");
   const sub = h.done || h.started ? t("Você concluiu {done} de {total} casos. Continue de onde parou.", { done: h.done, total: h.total }) : t("Bem-vindo ao ArchLab. Comece por um caso guiado ou desenhe o seu próprio sistema.");
   const overall = useMemo(() => profileOverall(ALL_CASES.map((c) => progress[c.id]?.ovr)), [progress]);
+  const challenge = useMemo(() => weeklyChallenge(new Date(), ALL_CASES.filter((c) => !levelLocked(c.level))), [auth.user?.id]);
+  const challengeDone = !!challenge && progress[challenge.case.id]?.status === "done" && progress[challenge.case.id]!.updatedAt >= challenge.start.getTime();
   const n = h.next, p = n ? progress[n.id] : undefined;
   const pct = p && p.total ? Math.min(100, Math.round((p.met / p.total) * 100)) : 0;
 
@@ -69,6 +72,21 @@ export function Home() {
             <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-on-accent"><Icon name={fresh[0]!.icon} size={22} /></span>
             <p className="text-sm"><b>{fresh.length === 1 ? t("Nova conquista:") : t("Novas conquistas:")}</b> {fresh.map((a) => t(a.title)).join(" · ")}. <a {...link("/perfil#conquistas")} className="font-semibold text-accent hover:underline">{t("Ver conquistas")}</a></p>
           </div>
+        </BlurFade>
+      )}
+
+      {challenge && (
+        <BlurFade delay={0.09}>
+          <section aria-label={t("Desafio da semana")} className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl border border-line bg-surface px-5 py-4">
+            <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent"><Icon name="emoji_events" size={24} /></span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-text-2">{t("Desafio da semana")}</p>
+              <p className="truncate font-semibold">{t(challenge.case.company?.name ?? challenge.case.title)} <span className="font-normal text-text-2">· {t(challenge.case.level)}</span></p>
+              <p className="text-sm text-text-2">{challengeDone ? t("Concluído nesta semana. Volte na segunda para o próximo.") : t("Termina em {n} dias.", { n: challenge.daysLeft })}</p>
+            </div>
+            {challengeDone ? <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-ok"><Icon name="check_circle" size={20} />{t("Concluído")}</span>
+              : <button onClick={() => openCase(challenge.case)} className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90">{t("Aceitar o desafio")}<Icon name="arrow_forward" size={16} /></button>}
+          </section>
         </BlurFade>
       )}
 
