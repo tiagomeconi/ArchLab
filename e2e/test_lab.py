@@ -608,3 +608,19 @@ def test_caos_oferece_queda_do_grupo_e_o_formato_do_trafego_muda_a_carga(page):
     # o seletor de formato existe e aceita o pico repentino
     sel = page.get_by_label("Formato do tráfego na simulação")
     sel.select_option("spike"); assert sel.input_value() == "spike"
+
+
+def test_exporta_documento_de_design_e_diagrama_mermaid(page):
+    page.goto(page.base + "/app?blank=1"); page.wait_for_selector(".react-flow")
+    add_component(page, "Cliente"); add_component(page, "Backend")
+    page.wait_for_timeout(400)
+    page.get_by_role("button", name="Compartilhar e exportar").click()
+    with page.expect_download() as d:
+        page.get_by_role("menuitem", name=re.compile("Documento de design")).click()
+    md = open(d.value.path(), encoding="utf-8").read()
+    assert md.startswith("# ") and "```mermaid" in md and "## Componentes" in md and "Backend" in md
+    page.get_by_role("button", name="Compartilhar e exportar").click()
+    with page.expect_download() as d2:
+        page.get_by_role("menuitem", name=re.compile("Diagrama Mermaid")).click()
+    mm = open(d2.value.path(), encoding="utf-8").read()
+    assert mm.startswith("flowchart LR") and "Backend" in mm

@@ -3,7 +3,7 @@ import { Icon } from "./ui";
 import { t } from "./i18n";
 
 /** Um só botão para tudo que sai ou entra do desenho: link de compartilhamento, relatório em imagem, arquivo .json e importação. */
-export function ExportMenu({ onLink, onJson, onReport, onCard, onImport, busy }: { onLink: () => void; onJson: () => void; onReport: () => void; onCard: () => void; onImport: () => void; busy?: boolean }) {
+export function ExportMenu({ onLink, onJson, onMermaid, onDoc, onReport, onCard, onImport, busy }: { onLink: () => void; onJson: () => void; onMermaid: () => void; onDoc: () => void; onReport: () => void; onCard: () => void; onImport: () => void; busy?: boolean }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -31,6 +31,12 @@ export function ExportMenu({ onLink, onJson, onReport, onCard, onImport, busy }:
           </button>
           <button role="menuitem" onClick={pick(onReport)}>
             <Icon name="image" size={20} /><span><b>{t("Relatório em imagem")}</b><small>{t("PNG com a nota, o caso e o desenho, para compartilhar")}</small></span>
+          </button>
+          <button role="menuitem" onClick={pick(onDoc)}>
+            <Icon name="description" size={20} /><span><b>{t("Documento de design (.md)")}</b><small>{t("Componentes, comunicação, riscos e custo, pronto para README ou wiki")}</small></span>
+          </button>
+          <button role="menuitem" onClick={pick(onMermaid)}>
+            <Icon name="schema" size={20} /><span><b>{t("Diagrama Mermaid (.mmd)")}</b><small>{t("Texto que o GitHub, Notion e Obsidian desenham sozinhos")}</small></span>
           </button>
           <button role="menuitem" onClick={pick(onJson)}>
             <Icon name="data_object" size={20} /><span><b>{t("Desenho (.json)")}</b><small>{t("Arquivo para guardar e importar de volta")}</small></span>

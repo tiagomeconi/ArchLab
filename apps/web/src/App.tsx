@@ -20,6 +20,7 @@ import { GroupNode, GROUP_MIN, cleanGroups, inGroup, type GroupData, type GroupD
 import { ReviewPanel, ConceptCard } from "./ReviewPanel";
 import { lintArchitecture } from "./lint";
 import { estimateCost } from "./cost";
+import { toDesignDoc, toMermaid, type DocEdge as ExportEdge, type DocNode as ExportNode } from "./exportDoc";
 import { SHAPES, shapeFactor, type Shape } from "./trafficShape";
 import { portFromHandle, sideOf, SIDES, type Side } from "./ports";
 import { Brief } from "./Brief";
@@ -909,6 +910,23 @@ function Lab() {
     a.download = `archlab-${title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "desenho"}.json`;
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); say("Desenho exportado");
   };
+  /** Dados do desenho para as exportações em texto (Mermaid e documento de design). */
+  const docParts = () => {
+    const nodesDoc: ExportNode[] = nodes.map((n) => ({ id: n.id, name: n.data.name, type: n.data.type, replicas: n.data.replicas, provider: providerOf(n.data.type, n.data.providerId)?.name, note: n.data.note }));
+    const edgesDoc: ExportEdge[] = docEdges.map((e) => ({ source: e.source, target: e.target, protocol: String(e.configuration.protocol), mode: String(e.configuration.mode), bidirectional: !!e.configuration.bidirectional }));
+    return { nodesDoc, edgesDoc, groupsDoc: chaosGroups.map((g) => ({ name: g.name, nodeIds: g.nodeIds })) };
+  };
+  const downloadText = (name: string, text: string, type: string, msg: string) => {
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: `${type};charset=utf-8` }));
+    const slug = (blank ? designName : (session?.title ?? "desenho")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "desenho";
+    a.download = `archlab-${slug}.${name}`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); say(msg);
+  };
+  const exportMermaid = () => { const p = docParts(); downloadText("mmd", toMermaid(p.nodesDoc, p.edgesDoc, p.groupsDoc), "text/plain", t("Diagrama Mermaid exportado")); };
+  const exportDoc = () => {
+    const p = docParts(); const r = session?.requirements;
+    downloadText("md", toDesignDoc({ title: blank ? designName : (session?.title ?? "Desenho"), summary: session?.summary, nodes: p.nodesDoc, edges: p.edgesDoc, groups: p.groupsDoc, findings, cost, notes,
+      requirements: r ? { functional: r.functional, nonFunctional: r.nonFunctional } : undefined }), "text/markdown", t("Documento de design exportado"));
+  };
   const [reporting, setReporting] = useState(false);
   const exportReport = async () => {
     if (reporting) return;
@@ -1154,7 +1172,7 @@ function Lab() {
         )}
         <span className="spacer" />
         <RatingChip rating={rating} title={blank ? designName : (session?.title ?? t("Encurtador de links"))} />
-        <ExportMenu onLink={copyLink} onJson={exportDesign} onReport={exportReport} onCard={exportCard} onImport={() => fileRef.current?.click()} busy={reporting} />
+        <ExportMenu onLink={copyLink} onJson={exportDesign} onMermaid={exportMermaid} onDoc={exportDoc} onReport={exportReport} onCard={exportCard} onImport={() => fileRef.current?.click()} busy={reporting} />
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) importDesign(f); e.target.value = ""; }} />
         <LangToggle />
         <ThemeToggle className="theme-btn" />
