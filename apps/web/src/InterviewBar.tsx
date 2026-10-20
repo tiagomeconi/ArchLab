@@ -53,8 +53,8 @@ export function InterviewPanel({ active, summary, onClose, onFinish }: { active:
   const total = active.minutes * 60, elapsed = (now - active.startedAt) / 1000, ph = phaseAt(elapsed, total);
   return (
     <dialog ref={ref} className="dialog interview" onClose={onClose}>
-      <header className="chaos-head"><h2><Icon name="timer" size={22} />{" "}{t("Modo entrevista")}</h2>
-        <button className="icon-btn" aria-label={t("Fechar")} onClick={() => ref.current?.close()}><Icon name="close" size={18} /></button></header>
+      <div className="chaos-head"><h2><Icon name="timer" size={22} />{" "}{t("Modo entrevista")}</h2>
+        <button className="icon-btn" aria-label={t("Fechar")} onClick={() => ref.current?.close()}><Icon name="close" size={18} /></button></div>
       <p className="sub">{t("Tempo restante: {tempo} de {n} minutos.", { tempo: clock(total - elapsed), n: active.minutes })}</p>
       <ol className="phases">
         {PHASES.map((p, i) => (
@@ -73,11 +73,11 @@ export function InterviewPanel({ active, summary, onClose, onFinish }: { active:
           <div><b className="num">{summary.important}</b><small>{t("Pontos importantes")}</small></div>
         </div>
       </section>
-      <footer className="chaos-foot">
+      <div className="chaos-foot">
         <span className="spacer" />
         <button className="chip" onClick={() => ref.current?.close()}>{t("Continuar")}</button>
         <button className="chip primary" onClick={() => { ref.current?.close(); onFinish(); }}><Icon name="flag" size={16} />{" "}{t("Encerrar entrevista")}</button>
-      </footer>
+      </div>
     </dialog>
   );
 }
@@ -92,8 +92,8 @@ export function InterviewResult({ minutes, usedSec, summary, onClose }: { minute
     : t("O desenho ainda tem lacunas sérias. Releia os requisitos e use as dicas antes de tentar outra vez.");
   return (
     <dialog ref={ref} className="dialog interview" onClose={onClose}>
-      <header className="chaos-head"><h2><Icon name="flag" size={22} />{" "}{t("Entrevista encerrada")}</h2>
-        <button className="icon-btn" aria-label={t("Fechar")} onClick={() => ref.current?.close()}><Icon name="close" size={18} /></button></header>
+      <div className="chaos-head"><h2><Icon name="flag" size={22} />{" "}{t("Entrevista encerrada")}</h2>
+        <button className="icon-btn" aria-label={t("Fechar")} onClick={() => ref.current?.close()}><Icon name="close" size={18} /></button></div>
       <p className="sub">{t("Você usou {tempo} dos {n} minutos.", { tempo: clock(usedSec), n: minutes })}</p>
       <div className="sum-grid big">
         <div><b className="num">{summary.rating ?? "—"}</b><small>{t("Nota geral")}</small></div>
@@ -101,7 +101,7 @@ export function InterviewResult({ minutes, usedSec, summary, onClose }: { minute
         <div><b className="num">{summary.findings}</b><small>{t("Pontos na revisão")}</small></div>
       </div>
       <p className="verdict">{verdict}</p>
-      <footer className="chaos-foot"><span className="spacer" /><button className="chip primary" onClick={() => ref.current?.close()}>{t("Fechar")}</button></footer>
+      <div className="chaos-foot"><span className="spacer" /><button className="chip primary" onClick={() => ref.current?.close()}>{t("Fechar")}</button></div>
     </dialog>
   );
 }

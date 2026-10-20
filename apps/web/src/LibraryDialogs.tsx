@@ -11,8 +11,8 @@ export function PatternsDialog({ onPick, onClose }: { onPick: (p: Pattern) => vo
   useEffect(() => { ref.current?.showModal(); }, []);
   return (
     <dialog ref={ref} className="dialog chaos patterns" onClose={onClose} aria-label={t("Padrões prontos")}>
-      <header className="chaos-head"><h2><Icon name="extension" size={22} />{" "}{t("Padrões prontos")}</h2>
-        <button className="icon-btn" aria-label={t("Fechar")} onClick={() => ref.current?.close()}><Icon name="close" size={18} /></button></header>
+      <div className="chaos-head"><h2><Icon name="extension" size={22} />{" "}{t("Padrões prontos")}</h2>
+        <button className="icon-btn" aria-label={t("Fechar")} onClick={() => ref.current?.close()}><Icon name="close" size={18} /></button></div>
       <p className="sub">{t("Escolha um padrão para inserir no canvas. Depois ligue o seu cliente à entrada e ajuste réplicas e provedores.")}</p>
       <div className="chaos-body"><div className="chaos-grid">
         {PATTERNS.map((p) => (
@@ -35,8 +35,8 @@ export function VersionsDialog({ versions, onSave, onRestore, onDelete, onClose 
   const fmt = (at: number) => new Date(at).toLocaleString();
   return (
     <dialog ref={ref} className="dialog interview versions" onClose={onClose} aria-label={t("Versões do desenho")}>
-      <header className="chaos-head"><h2><Icon name="history" size={22} />{" "}{t("Versões do desenho")}</h2>
-        <button className="icon-btn" aria-label={t("Fechar")} onClick={() => ref.current?.close()}><Icon name="close" size={18} /></button></header>
+      <div className="chaos-head"><h2><Icon name="history" size={22} />{" "}{t("Versões do desenho")}</h2>
+        <button className="icon-btn" aria-label={t("Fechar")} onClick={() => ref.current?.close()}><Icon name="close" size={18} /></button></div>
       <p className="sub">{t("Salve pontos de retorno antes de mudanças grandes. As versões ficam neste navegador, junto do desenho.")}</p>
       <form className="ver-form" onSubmit={(e) => { e.preventDefault(); onSave(name); setName(""); }}>
         <input value={name} maxLength={60} onChange={(e) => setName(e.target.value)} placeholder={t("Nome da versão (ex.: antes do cache)")} aria-label={t("Nome da versão")} />

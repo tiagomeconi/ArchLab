@@ -63,3 +63,11 @@ def test_aluno_entra_pelo_codigo_e_codigo_invalido_mostra_erro(conta):
     pg.get_by_role("button", name="Turma da Maria").click()
     assert pg.get_by_text("Casos atribuídos").count() == 1
     assert pg.get_by_role("table").count() == 0  # aluno não vê a tabela de progresso da turma
+
+
+def test_turmas_sem_violacoes_do_axe(conta):
+    from axe_playwright_python.sync_playwright import Axe
+    pg = conta(); _stub(pg, [CLASS]); pg.goto(pg.base + "/turmas")
+    pg.get_by_role("button", name="Backend 2026.1").click(); pg.get_by_role("table").wait_for(); pg.wait_for_timeout(500)
+    v = Axe().run(pg).response["violations"]
+    assert [f"{x['id']}: {[n['target'][0] for n in x['nodes'][:2]]}" for x in v] == []

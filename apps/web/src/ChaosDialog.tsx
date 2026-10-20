@@ -25,10 +25,10 @@ export function ChaosDialog({ items = CHAOS, active, suggested, targetOf, select
 
   return (
     <dialog ref={ref} className="dialog chaos" onClose={onClose}>
-      <header className="chaos-head">
+      <div className="chaos-head">
         <h2><Icon name="local_fire_department" size={22} />{" "}{t("Modo caos")}</h2>
         <button className="icon-btn" aria-label={t("Fechar")} onClick={() => ref.current?.close()}><Icon name="close" size={18} /></button>
-      </header>
+      </div>
       <p className="sub">{t("Injete falhas no seu desenho e veja como ele se comporta. As falhas")}{" "}<b>{t("direcionadas")}</b>{" "}{t("atingem o componente")}{" "}
         {selectedName ? <>{t("selecionado")} (<b>{selectedName}</b>)</> : t("gargalo (nenhum selecionado)")}; {t("os eventos")}{" "}<b>{t("globais")}</b>{" "}{t("afetam tudo. Combine várias: fatores de capacidade multiplicam, latências somam e “indisponível” prevalece.")}</p>
       <div className="chaos-body">
@@ -58,13 +58,13 @@ export function ChaosDialog({ items = CHAOS, active, suggested, targetOf, select
           </section>
         ))}
       </div>
-      <footer className="chaos-foot">
+      <div className="chaos-foot">
         <span className="note">{staged.size ? t("{n} falha(s) selecionada(s)", { n: staged.size }) : t("Nenhuma falha selecionada")}</span>
         <span className="spacer" />
         <button className="chip" onClick={() => setStaged(new Set())} disabled={!staged.size}>{t("Limpar")}</button>
         <button className="chip" onClick={() => done(false)}>{t("Aplicar")}</button>
         <button className="chip primary" onClick={() => done(true)}><Icon name="play_arrow" size={16} />{" "}{t("Aplicar e simular")}</button>
-      </footer>
+      </div>
     </dialog>
   );
 }

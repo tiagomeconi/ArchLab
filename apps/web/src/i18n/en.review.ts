@@ -406,4 +406,5 @@ export const review: Record<string, string> = {
   "Não foi possível salvar a versão": "Could not save the version",
   "Antes de restaurar": "Before restoring",
   "Versão restaurada: {nome}": "Version restored: {nome}",
+  "Ações": "Actions",
 };

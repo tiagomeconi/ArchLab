@@ -9,8 +9,13 @@ def violacoes(pg):
     return [f"{v['id']} ({v['impact']}): {v['help']} → {[n['target'][0] for n in v['nodes'][:2]]}" for v in axe.run(pg).response["violations"]]
 
 
+def violacoes_em(pg, contexto):
+    """Como `violacoes`, mas só dentro de um elemento (um diálogo modal escurece o resto da página e falsearia o contraste)."""
+    return [f"{v['id']} ({v['impact']}): {v['help']} → {[n['target'][0] for n in v['nodes'][:2]]}" for v in axe.run(pg, context=contexto).response["violations"]]
+
+
 @pytest.mark.parametrize("theme", ["dark", "light"])
-@pytest.mark.parametrize("path", ["/", "/start", "/start/estudo", "/start/livre", "/desenhos", "/termos", "/privacidade"])
+@pytest.mark.parametrize("path", ["/", "/start", "/start/estudo", "/start/trilhas", "/start/livre", "/desenhos", "/planos", "/termos", "/privacidade", "/confirmado"])
 def test_paginas_sem_violacoes_do_axe(make_page, theme, path):
     pg = make_page(theme=theme)
     pg.goto(pg.base + path); pg.wait_for_timeout(1500)
@@ -60,3 +65,19 @@ def test_respeita_reducao_de_movimento(make_page):
     pg.wait_for_selector("h1")
     dur = pg.evaluate("getComputedStyle(document.querySelector('a[href=\"/start/estudo\"]')).transitionDuration")
     assert dur in ("1e-05s", "0.00001s", "0s")
+
+
+@pytest.mark.parametrize("theme", ["dark", "light"])
+def test_revisao_cartao_de_conceito_grupos_e_dialogos_novos_sem_violacoes(make_page, theme):
+    import re
+    from helpers import add_component
+    pg = make_page(theme=theme)
+    pg.goto(pg.base + "/app?blank=1"); pg.wait_for_selector(".react-flow")
+    pg.get_by_role("button", name="Padrões prontos").click()
+    assert violacoes_em(pg, "dialog[open]") == []  # diálogo de padrões
+    pg.locator("dialog[open]").get_by_role("button", name=re.compile("Fila e workers")).click(); pg.wait_for_timeout(800)
+    pg.locator(".react-flow__pane").click(position={"x": 300, "y": 600}); pg.keyboard.press("Control+a"); pg.keyboard.press("g"); pg.wait_for_timeout(500)
+    pg.get_by_role("tab", name=re.compile("Revisão")).click(); pg.wait_for_timeout(300)
+    assert violacoes(pg) == []  # canvas com grupo selecionado + aba de revisão
+    pg.get_by_role("button", name="Versões do desenho").click()
+    assert violacoes_em(pg, "dialog[open]") == []  # diálogo de versões

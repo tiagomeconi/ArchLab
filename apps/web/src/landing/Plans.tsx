@@ -19,7 +19,7 @@ export function Plans() {
     return { ini: n("Iniciante"), inter: n("Intermediário"), adv: n("Avançado") };
   }, []);
   const Item = ({ children, on = true }: { children: string; on?: boolean }) => (
-    <li className={`flex items-start gap-2 text-sm ${on ? "" : "text-text-2/70 line-through decoration-text-2/40"}`}><Icon name={on ? "check" : "close"} size={17} />{children}</li>
+    <li className={`flex items-start gap-2 text-sm ${on ? "" : "text-text-2 line-through decoration-text-2/50"}`}><Icon name={on ? "check" : "close"} size={17} />{children}</li>
   );
   return (
     <>

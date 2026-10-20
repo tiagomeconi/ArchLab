@@ -137,7 +137,7 @@ function ClassDetail({ c, uid, onGone }: { c: ClassRow; uid: string; onGone: () 
           {students.length === 0 ? <p className="mt-2 text-sm text-text-2">{t("Ninguém entrou ainda. Passe o código para os alunos.")}</p> : assign.length === 0 ? <p className="mt-2 text-sm text-text-2">{students.length} {t("alunos na turma")}.</p> : (
             <div className="mt-2 overflow-x-auto">
               <table className="w-full min-w-[420px] text-sm">
-                <thead><tr className="text-left text-xs text-text-2"><th className="py-1.5 pr-3 font-medium">{t("Aluno")}</th>{assign.map((a) => <th key={a.caseId} className="px-2 py-1.5 font-medium">{t(caseById(a.caseId)?.company?.name ?? caseById(a.caseId)?.title ?? a.caseId)}</th>)}<th /></tr></thead>
+                <thead><tr className="text-left text-xs text-text-2"><th className="py-1.5 pr-3 font-medium">{t("Aluno")}</th>{assign.map((a) => <th key={a.caseId} className="px-2 py-1.5 font-medium">{t(caseById(a.caseId)?.company?.name ?? caseById(a.caseId)?.title ?? a.caseId)}</th>)}<th><span className="sr-only">{t("Ações")}</span></th></tr></thead>
                 <tbody>{students.map((s, i) => (
                   <tr key={s.userId} className="border-t border-line">
                     <td className="py-2 pr-3 font-medium">{studentLabel(s, i, t("Aluno"))}</td>
