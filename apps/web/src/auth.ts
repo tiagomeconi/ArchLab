@@ -5,6 +5,9 @@ import { LEGAL_VERSION } from "./legal";
 /** Login com Supabase. Sem `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` o app roda em modo local, sem conta. */
 const URL_ = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const KEY_ = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+/** Endereço público do site, usado nos links dos e-mails. `VITE_SITE_URL` vence a origem atual (evita link para localhost quando o cadastro é feito de um endereço de teste). */
+const SITE = ((import.meta.env.VITE_SITE_URL as string | undefined)?.trim().replace(/\/+$/, "")) || "";
+const siteUrl = () => SITE || location.origin;
 export const authEnabled = Boolean(URL_ && KEY_);
 
 export type AuthState = { status: "disabled" | "loading" | "out" | "in" | "recovery"; user: User | null };
@@ -60,13 +63,30 @@ export function authMessage(e: unknown): string {
   return "Não foi possível concluir. Tente de novo";
 }
 
+export type OAuthProvider = "google" | "github";
+/** Entra com Google/GitHub: o provedor já verifica o e-mail, então não há e-mail de confirmação. Volta para a página atual da área logada. */
+export async function signInWithProvider(provider: OAuthProvider) {
+  const inside = /^\/(start|app)(\/|$)/.test(location.pathname);
+  const { error } = await (await getClient()).auth.signInWithOAuth({ provider, options: { redirectTo: `${siteUrl()}${inside ? location.pathname + location.search : "/start"}` } });
+  if (error) throw error;
+}
+/** Completa o cadastro de quem entrou por login social: nome, nascimento e aceite dos termos. */
+export async function completeProfile(name: string, birthDate: string) {
+  const sb = await getClient();
+  const uid = state.user?.id; if (!uid) throw new Error("sem sessão");
+  const { data, error: e1 } = await sb.auth.updateUser({ data: { name, birth_date: birthDate, terms_version: LEGAL_VERSION, terms_accepted_at: new Date().toISOString() } });
+  if (e1) throw e1;
+  const { error } = await sb.from("profiles").upsert({ id: uid, full_name: name, birth_date: birthDate, updated_at: new Date().toISOString() }, { onConflict: "id" });
+  if (error) throw error;
+  set({ status: state.status, user: data.user ?? state.user });
+}
 export async function signIn(email: string, password: string) {
   const { error } = await (await getClient()).auth.signInWithPassword({ email, password });
   if (error) throw error;
 }
 /** Retorna `true` quando a conta já entrou; `false` quando falta confirmar o e-mail. */
 export async function signUp(email: string, password: string, name: string, birthDate: string): Promise<boolean> {
-  const { data, error } = await (await getClient()).auth.signUp({ email, password, options: { data: { name, birth_date: birthDate, terms_version: LEGAL_VERSION, terms_accepted_at: new Date().toISOString() }, emailRedirectTo: `${location.origin}/start` } });
+  const { data, error } = await (await getClient()).auth.signUp({ email, password, options: { data: { name, birth_date: birthDate, terms_version: LEGAL_VERSION, terms_accepted_at: new Date().toISOString() }, emailRedirectTo: `${siteUrl()}/confirmado` } });
   if (error) throw error;
   // e-mail já cadastrado: o Supabase devolve um usuário sem identidades (evita revelar quais e-mails existem)
   if (data.user && data.user.identities && data.user.identities.length === 0) throw new Error("already registered");
@@ -79,7 +99,7 @@ export async function verifyPassword(password: string) {
   if (error) throw error;
 }
 export async function resetPassword(email: string) {
-  const { error } = await (await getClient()).auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/login` });
+  const { error } = await (await getClient()).auth.resetPasswordForEmail(email, { redirectTo: `${siteUrl()}/login` });
   if (error) throw error;
 }
 export async function setNewPassword(password: string) {

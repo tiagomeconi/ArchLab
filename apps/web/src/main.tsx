@@ -7,6 +7,7 @@ import "./styles.css";
 import { usePath } from "./nav";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "./auth";
+import { needsProfile } from "./account";
 import { firstSync, initCloudSync } from "./cloudSync";
 
 initCloudSync();
@@ -22,6 +23,8 @@ const PublicProfile = lazy(() => import("./landing/PublicProfile").then((m) => (
 const Lab = lazy(() => import("./landing/EditorGate").then((m) => ({ default: m.EditorGate })));
 const Settings = lazy(() => import("./landing/Settings").then((m) => ({ default: m.Settings })));
 const Ranking = lazy(() => import("./landing/Ranking").then((m) => ({ default: m.Ranking })));
+const Confirmed = lazy(() => import("./landing/Confirmed").then((m) => ({ default: m.Confirmed })));
+const CompleteProfile = lazy(() => import("./landing/CompleteProfile").then((m) => ({ default: m.CompleteProfile })));
 const Legal = lazy(() => import("./landing/Legal").then((m) => ({ default: m.Legal })));
 
 const blank = <div style={{ minHeight: "100vh", background: "var(--bg)" }} />;
@@ -33,7 +36,9 @@ function Protected({ children }: { children: ReactNode }) {
   useEffect(() => { if (auth.status === "in" && !synced) firstSync(auth).then(() => setSynced(true)); }, [auth, synced]);
   if (auth.status === "disabled") return <>{children}</>;
   if (auth.status === "out" || auth.status === "recovery") return <Login embedded />;
-  if (auth.status === "loading" || !synced) return blank;
+  if (auth.status === "loading") return blank;
+  if (needsProfile(auth.user?.user_metadata)) return <Suspense fallback={blank}><CompleteProfile /></Suspense>;
+  if (!synced) return blank;
   return <>{children}</>;
 }
 
@@ -64,10 +69,12 @@ function Root() {
   const pub = path.startsWith("/u/");
   const legal = path === "/termos" || path === "/privacidade";
   const auth = path === "/login" || path === "/cadastro";
+  const confirmed = path === "/confirmado" || path === "/confirmado/";
   // cada área (landing, login, sistema, laboratório) entra com um fade suave; dentro do sistema quem anima é o AppLayout
-  const area = inApp ? "lab" : inside ? "inside" : pub ? "public" : legal ? "legal" : auth ? "auth" : "landing";
+  const area = inApp ? "lab" : inside ? "inside" : confirmed ? "confirmed" : pub ? "public" : legal ? "legal" : auth ? "auth" : "landing";
   const page = inApp ? <Protected><Lab /></Protected>
     : inside ? <Inside path={path} />
+    : confirmed ? <Confirmed />
     : legal ? <Legal kind={path === "/termos" ? "termos" : "privacidade"} />
     : pub ? <PublicProfile handle={decodeURIComponent(path.slice(3).replace(/\/+$/, "")).replace(/^@/, "")} />
     : auth ? <Visitor><Login key={path} initial={path === "/cadastro" ? "signup" : "signin"} /></Visitor>

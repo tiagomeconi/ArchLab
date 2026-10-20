@@ -1,5 +1,17 @@
 /** Cadastro completo, perfil e menu da conta. */
 export const auth2: Record<string, string> = {
+  "ou": "or",
+  "Continuar com GitHub": "Continue with GitHub",
+  "Continuar com Google": "Continue with Google",
+  "Criar conta com e-mail": "Create account with email",
+  "Entrar com e-mail": "Sign in with email",
+  "Complete seu cadastro": "Complete your profile",
+  "Falta só confirmar alguns dados para liberar a sua conta.": "Just a few details left to unlock your account.",
+  "Link inválido": "Invalid link",
+  "E-mail confirmado": "Email confirmed",
+  "Não foi possível confirmar": "Could not confirm",
+  "O link expirou ou já foi usado. Se você já consegue entrar, está tudo certo; senão, crie a conta de novo ou peça outro link.": "The link has expired or was already used. If you can already sign in, you're all set; otherwise, create the account again or request a new link.",
+  "Sua conta foi validada. Já pode entrar no ArchLab com o e-mail e a senha que você cadastrou.": "Your account has been verified. You can now sign in to ArchLab with the email and password you registered.",
   "Nome completo": "Full name",
   "Data de nascimento": "Date of birth",
   "Confirmar senha": "Confirm password",

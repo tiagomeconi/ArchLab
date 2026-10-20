@@ -38,3 +38,12 @@ export function handleError(h: string): string | null {
   if (RESERVED_HANDLES.includes(h)) return "Esse nome é reservado. Escolha outro.";
   return null;
 }
+
+/** Entrou por Google/GitHub e ainda não informou nascimento ou aceitou os termos (o cadastro por e-mail já traz os dois). */
+export const needsProfile = (meta: Record<string, unknown> | null | undefined): boolean =>
+  !meta || !meta.birth_date || !meta.terms_accepted_at;
+/** Nome sugerido pelo provedor social (Google: name/full_name; GitHub: name ou user_name). */
+export const suggestedName = (meta: Record<string, unknown> | null | undefined): string => {
+  const v = meta?.name ?? meta?.full_name ?? meta?.user_name;
+  return typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, 120) : "";
+};

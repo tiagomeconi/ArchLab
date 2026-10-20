@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { birthError, fullNameOk, handleError, initials, passwordOk, sanitizeHandle } from "../../../apps/web/src/account";
+import { birthError, fullNameOk, handleError, initials, needsProfile, passwordOk, sanitizeHandle, suggestedName } from "../../../apps/web/src/account";
 
 describe("regras de cadastro", () => {
   it("senha exige maiúscula, minúscula, número, símbolo e 8+ caracteres", () => {
@@ -23,5 +23,19 @@ describe("regras de cadastro", () => {
     expect(sanitizeHandle("  Tiago.Meconi-99 ")).toBe("tiagomeconi99"); expect(sanitizeHandle("a".repeat(40))).toHaveLength(20);
     for (const ok of ["tiago", "t_m_99", "abc"]) expect(handleError(ok), ok).toBeNull();
     for (const bad of ["", "ab", "Tiago", "tiago!", "a".repeat(21), "admin", "login", "u"]) expect(handleError(bad), bad).not.toBeNull();
+  });
+});
+
+describe("login social", () => {
+  it("cadastro incompleto: falta nascimento ou aceite dos termos", () => {
+    expect(needsProfile(undefined)).toBe(true);
+    expect(needsProfile({ name: "A B" })).toBe(true);
+    expect(needsProfile({ birth_date: "2000-01-01" })).toBe(true);
+    expect(needsProfile({ birth_date: "2000-01-01", terms_accepted_at: "2026-10-20T00:00:00Z" })).toBe(false);
+  });
+  it("nome sugerido vem do provedor e é normalizado", () => {
+    expect(suggestedName({ full_name: "  Ana   Souza " })).toBe("Ana Souza");
+    expect(suggestedName({ user_name: "anasouza" })).toBe("anasouza");
+    expect(suggestedName(null)).toBe("");
   });
 });

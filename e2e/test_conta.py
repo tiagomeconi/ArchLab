@@ -48,7 +48,7 @@ def conta(browser, auth_url):
     def make(logged=True, width=1440, height=1000, profile=PROFILE, public=PUBLIC):
         ctx = browser.new_context(viewport={"width": width, "height": height}); ctxs.append(ctx)
         exp = int(time.time()) + 3600
-        user = {"id": USER_ID, "aud": "authenticated", "role": "authenticated", "email": "tiago@exemplo.com", "created_at": "2026-10-19T12:00:00Z", "app_metadata": {}, "user_metadata": {"name": "Tiago Meconi", "birth_date": "1995-04-12"}}
+        user = {"id": USER_ID, "aud": "authenticated", "role": "authenticated", "email": "tiago@exemplo.com", "created_at": "2026-10-19T12:00:00Z", "app_metadata": {}, "user_metadata": {"name": "Tiago Meconi", "birth_date": "1995-04-12", "terms_accepted_at": "2026-10-19T12:00:00Z"}}
         sess = {"access_token": f"{_b64({'alg': 'HS256'})}.{_b64({'sub': USER_ID, 'exp': exp, 'role': 'authenticated'})}.sig", "refresh_token": "r", "expires_in": 3600, "expires_at": exp, "token_type": "bearer", "user": user}
         init = ("localStorage.setItem('archlab:tour-done','1');localStorage.setItem('archlab:theme','dark');localStorage.setItem('archlab:lang','pt');"
                 f"localStorage.setItem('archlab:progress', {json.dumps(json.dumps(PROG))});localStorage.setItem('archlab:activity', {json.dumps(json.dumps(DAYS))});localStorage.setItem('archlab:ach-seen','[]');")
