@@ -624,3 +624,21 @@ def test_exporta_documento_de_design_e_diagrama_mermaid(page):
         page.get_by_role("menuitem", name=re.compile("Diagrama Mermaid")).click()
     mm = open(d2.value.path(), encoding="utf-8").read()
     assert mm.startswith("flowchart LR") and "Backend" in mm
+
+
+def test_modo_entrevista_inicia_o_relogio_mostra_as_fases_e_encerra_com_resumo(page):
+    open_case(page, "Wikipedia")
+    page.get_by_role("button", name=re.compile("Modo entrevista")).click()
+    page.get_by_role("menuitem", name=re.compile("30 minutos")).click()
+    painel = page.locator("dialog[open].interview")
+    painel.wait_for()
+    assert "Requisitos e escopo" in painel.inner_text() and painel.locator("li.now").count() == 1
+    page.keyboard.press("Escape")
+    chip = page.locator(".interview-on")
+    chip.wait_for()
+    assert re.search(r"\d\d:\d\d", chip.inner_text())
+    chip.click()
+    page.get_by_role("button", name="Encerrar entrevista").click()
+    page.locator("dialog[open].interview", has_text="Entrevista encerrada").wait_for()
+    page.keyboard.press("Escape")
+    assert page.locator(".interview-on").count() == 0

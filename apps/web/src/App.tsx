@@ -20,6 +20,8 @@ import { GroupNode, GROUP_MIN, cleanGroups, inGroup, type GroupData, type GroupD
 import { ReviewPanel, ConceptCard } from "./ReviewPanel";
 import { lintArchitecture } from "./lint";
 import { estimateCost } from "./cost";
+import { InterviewChip, InterviewPanel, InterviewResult, type Interview } from "./InterviewBar";
+import { PAYWALL, currentPlan } from "./plan";
 import { toDesignDoc, toMermaid, type DocEdge as ExportEdge, type DocNode as ExportNode } from "./exportDoc";
 import { SHAPES, shapeFactor, type Shape } from "./trafficShape";
 import { portFromHandle, sideOf, SIDES, type Side } from "./ports";
@@ -395,6 +397,9 @@ function Lab() {
   // o desenho de referência (encurtador) tem carga própria; no canvas em branco vale a carga do caso ou do modo livre
   const { peakRps: PEAK, readPct: READ0 } = (blank ? session?.load : undefined) ?? DEFAULT_LOAD;
   const [traffic, setTraffic] = useState(1); // × a carga de pico do caso
+  const [interview, setInterview] = usePref<Interview | null>(`interview:${session?.caseId ?? "livre"}`, null);
+  const [interviewOpen, setInterviewOpen] = useState(false);
+  const [interviewDone, setInterviewDone] = useState<{ minutes: number; usedSec: number } | null>(null);
   const [shape, setShape] = useState<Shape>("flat"); // como a carga chega ao pico durante a simulação
   const [readPct, setReadPct] = useState(READ0);
   const [speed, setSpeed] = useState(1);
@@ -837,6 +842,7 @@ function Lab() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const rating = useMemo(() => rate({ nodes: docNodes, edges: docEdges, flows, loads: baseline.loads, errFrac: baseErr, p95Ms: baseP95, p95Target: session?.checks?.p95Ms, lossErr, checks, readPct }),
     [docNodes, docEdges, flows, baseline, baseErr, baseP95, session, lossErr, checks, readPct, lang]);
+  const interviewSummary = { rating: rating.overall, met: checks.filter((c) => c.status === "meets").length, total: checks.length, findings: findings.length, important: reviewHigh, nodes: nodes.length };
   const refSnap = useMemo(() => (blank && session?.caseId && session.checks && session.load ? buildReference(session.checks, session.load) : null), [blank, session]);
   const compare = useMemo(() => {
     if (!refSnap) return { missing: [] as string[], extra: [] as string[] };
@@ -1165,6 +1171,10 @@ function Lab() {
         <button className={`chip chaos-btn${chaos.size ? " on" : ""}`} data-tour="chaos" onClick={() => setChaosOpen(true)} title={t("Injetar falhas no desenho")}>
           <Icon name="local_fire_department" size={16} /><span className="lbl">{t("Modo caos")}</span>{chaos.size ? <b className="count">{chaos.size}</b> : null}
         </button>
+        {session?.mode === "study" && (
+          <InterviewChip active={interview} onOpen={() => setInterviewOpen(true)}
+            onStart={(minutes) => { if (PAYWALL && currentPlan() !== "pro") { go("/planos"); return; } setInterview({ startedAt: Date.now(), minutes }); setInterviewOpen(true); }} />
+        )}
         {down.size > 0 && (
           <button className="chip" aria-pressed onClick={() => setDown(new Set())} title={t("Restaurar todos os componentes")}>
             <Icon name="restart_alt" size={16} /><span className="lbl">{t("{n} fora do ar · restaurar", { n: down.size })}</span>
@@ -1349,6 +1359,11 @@ function Lab() {
         ) : <p className="note pad">{t("Selecione um componente no canvas para ver as propriedades.")}</p>)}
       </aside>
 
+      {interviewOpen && interview && (
+        <InterviewPanel active={interview} summary={interviewSummary} onClose={() => setInterviewOpen(false)}
+          onFinish={() => { setInterviewDone({ minutes: interview.minutes, usedSec: Math.min(interview.minutes * 60, (Date.now() - interview.startedAt) / 1000) }); setInterview(null); }} />
+      )}
+      {interviewDone && <InterviewResult minutes={interviewDone.minutes} usedSec={interviewDone.usedSec} summary={interviewSummary} onClose={() => setInterviewDone(null)} />}
       {providerFor && (
         <ProviderDialog key={providerFor} type={nodes.find((n) => n.id === providerFor)?.data.type ?? ""}
           current={nodes.find((n) => n.id === providerFor)?.data.providerId}

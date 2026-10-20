@@ -850,3 +850,22 @@ button.dn-name { cursor: text; } button.dn-name:hover .msr, button.dn-name:focus
 .cost-box > small { display: block; font-size: 11px; line-height: 1.4; color: var(--text-2); }
 
 .shape-sel { margin-top: 4px; width: 100%; font: inherit; font-size: 11px; color: var(--text-2); background: var(--surface-solid); border: 1px solid var(--border); border-radius: 8px; padding: 2px 4px; }
+
+/* modo entrevista */
+.chip.interview-on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.chip.interview-on.over { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+.interview-start { position: relative; display: inline-flex; }
+.interview-pop { right: auto; left: 0; min-width: 190px; }
+dialog.interview { width: min(560px, calc(100vw - 32px)); }
+.phases { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.phases li { padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border); opacity: .6; }
+.phases li.now { opacity: 1; border-color: var(--accent); background: var(--accent-soft); }
+.phases li.past { opacity: .45; }
+.phases b { display: flex; justify-content: space-between; font-size: 13px; } .phases b small { font-weight: 500; color: var(--text-2); }
+.phases p { margin: 4px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--text-2); }
+.summary h3 { margin: 18px 0 8px; font-size: 13px; }
+.sum-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+.sum-grid.big { grid-template-columns: repeat(3, 1fr); }
+.sum-grid div { padding: 10px; text-align: center; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-solid); }
+.sum-grid b { display: block; font-size: 20px; } .sum-grid small { font-size: 11px; color: var(--text-2); }
+.verdict { margin: 14px 0 0; line-height: 1.5; font-size: 14px; }
