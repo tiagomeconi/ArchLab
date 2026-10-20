@@ -439,7 +439,7 @@ function Lab() {
   const [flows, setFlows] = useState<Flow[]>(blank ? [] : original.traffic.flows);
   const [workloads, setWorkloads] = useState<any[]>(blank ? [] : original.traffic.workloads);
   const [meta, setMeta] = useState<Record<string, FlowMeta>>(blank ? {} : { "flow-redirect": { name: "Redirecionar link", weight: 1 } });
-  const [briefPref, setBriefOpen] = usePref("briefOpen", !(lay.touch && typeof innerWidth !== "undefined" && innerWidth < 1400));
+  const [briefPref, setBriefOpen] = usePref(lesson ? "lessonBriefOpen" : "briefOpen", lesson ? true : !(lay.touch && typeof innerWidth !== "undefined" && innerWidth < 1400));
   const [chaos, setChaos] = useState<Set<string>>(new Set());
   const [chaosOpen, setChaosOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -462,7 +462,7 @@ function Lab() {
     const set = () => document.documentElement.style.setProperty("--topbar-bottom", `${bar.offsetTop + bar.offsetHeight}px`);
     set(); const ro = new ResizeObserver(set); ro.observe(bar); window.addEventListener("resize", set);
     return () => { ro.disconnect(); window.removeEventListener("resize", set); };
-  }, []);
+  }, [lay.narrowBar]);
   const [edgeSel, setEdgeSel] = useState<Set<string>>(new Set());
   const [groups, setGroups] = useState<GroupDoc[]>([]);
   const [groupSel, setGroupSel] = useState<Set<string>>(new Set());
@@ -1127,7 +1127,7 @@ function Lab() {
       return o ? { protocol: o.protocol, mode: o.mode, timeoutMs: o.timeoutMs, networkLatencyMs: o.networkLatencyMs, tls: o.tls } : null;
     });
     setNodes((ns) => [...ns.map((n) => ({ ...n, selected: false })), ...built.nodes.map((n) => ({
-      id: n.id, type: "arch", position: { x: n.x, y: n.y }, width: 240, selected: true,
+      id: n.id, type: "arch", position: { x: n.x, y: n.y }, width: 240, selected: !opts.quiet,
       data: { name: n.name, type: n.type, replicas: n.replicas, hitRate: n.type === "redis" ? (n.hitRate ?? DEFAULT_CACHE.hitRate) : undefined, health: "idle" as Health },
     }))]);
     setDocEdges((es) => [...es, ...built.edges.map((e) => ({
@@ -1180,7 +1180,7 @@ function Lab() {
     };
     alignAnim.current = requestAnimationFrame(step);
   };
-  const doFit = () => fitView({ padding: compact ? { top: "76px", bottom: "150px", left: "24px", right: "24px" } : { top: "110px", bottom: "60px", left: briefOpen ? "420px" : "80px", right: "400px" }, duration: 400 });
+  const doFit = () => fitView({ padding: compact ? { top: "76px", bottom: "150px", left: "24px", right: "24px" } : lay.narrowBar ? { top: "86px", bottom: "60px", left: briefOpen ? "350px" : "70px", right: "350px" } : { top: "110px", bottom: "60px", left: briefOpen ? "420px" : "80px", right: "400px" }, duration: 400 });
 
   const keys = useRef<(e: KeyboardEvent) => void>(() => {});
   keys.current = (e) => {
@@ -1279,7 +1279,7 @@ function Lab() {
   );
   return (
     <div className={`lab${briefOpen ? " brief-open" : ""}${compact ? " ly-sheet" : " ly-dock"}${lay.phone ? " ly-phone" : ""}${lay.touch ? " touch" : ""}`}>
-      {compact ? (
+      {lay.narrowBar ? (
         <header className="panel topbar compact">
           <a className="icon-btn back" href="/start" aria-label={t("Voltar ao início")} onClick={(e) => { e.preventDefault(); go(lesson ? "/start/aulas" : "/start"); }}><Icon name="arrow_back" size={24} /></a>
           {blank ? <DesignName value={designName} editable={freeEditable} onCommit={setDesignTitle} status={sharedMode ? null : save} /> : <b className="cb-title">{original.metadata.title ?? t("Links curtos")}</b>}
@@ -1347,7 +1347,7 @@ function Lab() {
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} isValidConnection={isValidConnection}
         deleteKeyCode={["Backspace", "Delete"]} connectionMode={ConnectionMode.Loose} connectionRadius={lay.touch ? 56 : 36} connectionLineComponent={ConnectionLine}
         onNodeClick={onNodeClick} zoomOnDoubleClick={!lay.touch} nodeDragThreshold={lay.touch ? 5 : 1} panOnScroll={false}
-        fitView={!blank} defaultViewport={{ x: 0, y: 0, zoom: 1 }} fitViewOptions={{ padding: compact ? { top: "76px", bottom: "150px", left: "24px", right: "24px" } : { top: "110px", bottom: "60px", left: "420px", right: "400px" } }} minZoom={0.25} maxZoom={2}
+        fitView={!blank} defaultViewport={{ x: 0, y: 0, zoom: 1 }} fitViewOptions={{ padding: compact ? { top: "76px", bottom: "150px", left: "24px", right: "24px" } : lay.narrowBar ? { top: "86px", bottom: "60px", left: briefOpen ? "350px" : "70px", right: "350px" } : { top: "110px", bottom: "60px", left: "420px", right: "400px" } }} minZoom={0.25} maxZoom={2}
         onPaneClick={() => { setSelected(null); setGroupSel(new Set()); setConnectFrom(null); }} onDrop={onDrop}
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
       >
@@ -1516,14 +1516,6 @@ function Lab() {
       {compact && (
         <>
           {lesson && lessonSum && (sheetSnap === "closed" || view !== "brief") && <LessonStrip s={lessonSum} onOpen={() => { setView("brief"); setSheetSnap("half"); }} />}
-          {(selNode || connectFrom) && (sheetSnap === "closed" || view !== "tools") && (() => {
-            const n = nodes.find((x) => x.id === (connectFrom ?? selNode?.id)); if (!n) return null;
-            return (
-              <NodeActionBar raised={!!(lesson && lessonSum && (sheetSnap === "closed" || view !== "brief"))} name={n.data.name} replicas={n.data.replicas} maxReplicas={MAX_REPLICAS} connecting={!!connectFrom}
-                onConnect={() => { setConnectFrom(n.id); setSheetSnap("closed"); }} onReplicas={(r) => setReplicas(n.id, r)}
-                onProps={() => showTab("props")} onRemove={() => { deleteElements({ nodes: [{ id: n.id }] }); setConnectFrom(null); }} onCancel={() => setConnectFrom(null)} />
-            );
-          })()}
           <Dock active={dockActive} onPick={pickDock} items={[
             ...(hasPanel ? [{ id: "brief" as const, icon: lesson ? "school" : "checklist", label: lesson ? t("Aula") : t("Requisitos") }] : []),
             { id: "components" as const, icon: "widgets", label: t("Componentes") },
@@ -1532,7 +1524,17 @@ function Lab() {
             { id: "review" as const, icon: "fact_check", label: t("Revisão"), badge: reviewHigh },
           ]} />
           <button type="button" className="fit-fab icon-btn" aria-label={t("Enquadrar o desenho")} onClick={doFit}><Icon name="fit_screen" size={22} /></button>
-          {moreOpen && (
+        </>
+      )}
+      {lay.touch && (selNode || connectFrom) && (!compact || sheetSnap === "closed" || view !== "tools") && (() => {
+            const n = nodes.find((x) => x.id === (connectFrom ?? selNode?.id)); if (!n) return null;
+            return (
+              <NodeActionBar raised={!!(lesson && lessonSum && (sheetSnap === "closed" || view !== "brief"))} name={n.data.name} replicas={n.data.replicas} maxReplicas={MAX_REPLICAS} connecting={!!connectFrom}
+                onConnect={() => { setConnectFrom(n.id); setSheetSnap("closed"); }} onReplicas={(r) => setReplicas(n.id, r)}
+                onProps={() => showTab("props")} onRemove={() => { deleteElements({ nodes: [{ id: n.id }] }); setConnectFrom(null); }} onCancel={() => setConnectFrom(null)} />
+            );
+          })()}
+      {lay.narrowBar && moreOpen && (
             <MoreSheet onClose={() => setMoreOpen(false)}>
               <section className="more-sec"><h3>{t("Cenário da simulação")}</h3><div className="more-scn">{scenario}</div></section>
               <section className="more-sec"><h3>{t("Ferramentas")}</h3>
@@ -1559,8 +1561,6 @@ function Lab() {
               </section>
             </MoreSheet>
           )}
-        </>
-      )}
       {patternsOpen && <PatternsDialog onPick={insertPattern} onClose={() => setPatternsOpen(false)} />}
       {versionsOpen && <VersionsDialog versions={versions} onSave={saveNow} onRestore={restoreVersion} onDelete={(v) => setVersions(deleteVersion(storeKey, v.id))} onClose={() => setVersionsOpen(false)} />}
       {interviewOpen && interview && (

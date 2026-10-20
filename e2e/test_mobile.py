@@ -73,3 +73,30 @@ def test_celular_aula_1_inteira_so_com_toques_inclusive_conectar(make_page):
     pg.locator(".react-flow__node-arch", has_text="Backend").first.tap(); pg.wait_for_timeout(400)
     pg.locator(".lesson-strip.ok").wait_for(); continua()
     pg.get_by_role("region", name="Aula concluída").wait_for()
+
+
+TABLET_DEITADO = dict(width=1180, height=820, has_touch=True, is_mobile=True)
+
+
+def test_tablet_deitado_tem_barra_compacta_aula_visivel_e_barra_de_acoes(make_page):
+    pg = make_page(**TABLET_DEITADO); _abre_aula(pg, "Muita gente ao mesmo tempo")
+    assert pg.locator(".lab.ly-dock.touch").count() == 1
+    assert pg.locator("header").first.bounding_box()["height"] <= 62          # barra compacta, não duas linhas
+    pg.get_by_role("region", name="Aula").get_by_role("heading", name="Mais cópias do servidor").wait_for()   # a aula fica à mostra ao lado do canvas
+    assert _sem_rolagem_horizontal(pg) <= 1
+    pg.locator(".react-flow__node-arch", has_text="Backend").first.tap(); pg.wait_for_timeout(400)
+    assert pg.get_by_role("toolbar", name=re.compile("Ações de")).is_visible()
+    # as réplicas pela barra de ações cumprem a tarefa da aula (3 réplicas no Backend)
+    for _ in range(2): pg.get_by_role("button", name="Mais uma réplica").last.tap(); pg.wait_for_timeout(200)
+    pg.get_by_role("region", name="Aula").get_by_role("status").wait_for()
+    # menu "Mais": cenário da simulação na folha de baixo
+    pg.get_by_role("button", name="Mais opções").tap()
+    pg.get_by_role("dialog", name="Mais opções").get_by_text("Cenário da simulação").wait_for()
+
+
+@pytest.mark.parametrize("disp", [CELULAR, TABLET_PE, TABLET_DEITADO], ids=["celular", "tablet-em-pe", "tablet-deitado"])
+def test_telas_principais_cabem_na_largura_em_toque(make_page, disp):
+    pg = make_page(**disp)
+    for path in ("/start", "/start/aulas", "/start/estudo", "/start/trilhas", "/start/livre", "/desenhos", "/planos"):
+        pg.goto(pg.base + path); pg.wait_for_selector("h1"); pg.wait_for_timeout(500)
+        assert _sem_rolagem_horizontal(pg) <= 1, path

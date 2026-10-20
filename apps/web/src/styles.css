@@ -913,16 +913,16 @@ dialog.patterns { width: min(720px, calc(100vw - 32px)); }
 .lab.ly-sheet .react-flow { user-select: none; -webkit-user-select: none; touch-action: none; }
 
 /* barra superior */
-.lab.ly-sheet .topbar.compact { top: calc(var(--safe-top) + 8px); left: 8px; right: 8px; height: var(--bar-h); padding: 0 6px; gap: 4px; flex-wrap: nowrap; display: flex; align-items: center; border-radius: 18px; animation: none; }
-.lab.ly-sheet .topbar.compact .icon-btn { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 14px; color: var(--text); position: relative; }
-.lab.ly-sheet .topbar.compact .dn { flex: 1 1 0; width: auto; min-width: 0; max-width: none; margin: 0; }
-.lab.ly-sheet .topbar.compact .cb-title { flex: 1 1 0; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lab.ly-sheet .topbar.compact .spacer { display: none; }
-.lab.ly-sheet .topbar.compact .ovr-chip { height: 44px; padding: 0 10px; flex: none; } .lab.ly-sheet .topbar.compact .ovr-lbl { display: none; }
-.lab.ly-sheet .topbar.compact .simbtn { height: 44px; min-width: 44px; padding: 0 14px; border-radius: 14px; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; }
+.lab .topbar.compact { top: calc(var(--safe-top) + 8px); left: 8px; right: 8px; height: var(--bar-h); padding: 0 6px; gap: 4px; flex-wrap: nowrap; display: flex; align-items: center; border-radius: 18px; animation: none; }
+.lab .topbar.compact .icon-btn { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 14px; color: var(--text); position: relative; }
+.lab .topbar.compact .dn { flex: 1 1 0; width: auto; min-width: 0; max-width: none; margin: 0; }
+.lab .topbar.compact .cb-title { flex: 1 1 0; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lab .topbar.compact .spacer { display: none; }
+.lab .topbar.compact .ovr-chip { height: 44px; padding: 0 10px; flex: none; } .lab .topbar.compact .ovr-lbl { display: none; }
+.lab .topbar.compact .simbtn { height: 44px; min-width: 44px; padding: 0 14px; border-radius: 14px; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; }
 .lab.ly-phone .topbar.compact .simbtn { padding: 0; width: 44px; } .lab.ly-phone .topbar.compact .lbl-sim { display: none; }
 .lab.ly-sheet .more-dot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); border: 2px solid var(--surface-solid); }
-.lab.ly-sheet .topbar.compact .dn-status span { display: none; }
+.lab .topbar.compact .dn-status span { display: none; }
 
 /* o que é de computador some: controles de zoom, minimapa, legenda de protocolos, dica de rodapé e o botão de reabrir o enunciado */
 .lab.ly-sheet .react-flow__controls, .lab.ly-sheet .mm-wrap, .lab.ly-sheet .proto-legend, .lab.ly-sheet .hint, .lab.ly-sheet .brief-open-btn, .lab.ly-sheet .react-flow__attribution { display: none !important; }
@@ -1003,7 +1003,9 @@ dialog.more-sheet::backdrop { background: rgba(3, 8, 18, .55); }
 .touch .react-flow__edge-interaction { stroke-width: 44px; }
 .touch .node-step button { width: 30px; height: 30px; }
 .touch .edge-label .cut, .touch .edge-label .edge-type { min-height: 34px; }
-.touch input[type=range] { height: 34px; }
+.touch .more-scn input[type=range], .touch .sheet input[type=range] { box-sizing: content-box; height: 8px; padding: 14px 0; background-clip: content-box; touch-action: pan-y; }
+.touch .more-scn input[type=range]::-webkit-slider-thumb, .touch .sheet input[type=range]::-webkit-slider-thumb { width: 28px; height: 28px; }
+.touch .more-scn input[type=range]::-moz-range-thumb, .touch .sheet input[type=range]::-moz-range-thumb { width: 24px; height: 24px; }
 .lab.ly-phone .edge-traffic .traffic-dot { display: none; }
 .lab.ly-phone dialog.dialog { margin: auto 0 0; width: 100%; max-width: 100%; max-height: 92dvh; border-radius: 22px 22px 0 0; overflow: auto; }
 .lab.ly-sheet .ver-form input, .lab.ly-sheet .group-name { font-size: 16px; }
@@ -1012,3 +1014,18 @@ dialog.more-sheet::backdrop { background: rgba(3, 8, 18, .55); }
 .dock-lbl { font-size: 10.5px; letter-spacing: -.01em; padding: 0; }
 .lab.ly-sheet .brief-bar:not(:has(.seg)) { display: none; }
 .action-bar.raised { bottom: calc(var(--dock-h) + 74px); }
+.lab.ly-sheet .sidebar .inspector { max-height: none; }
+
+/* barra compacta fora do layout de gavetas (tablet deitado e janelas estreitas de computador) */
+.lab.ly-dock .topbar.compact { top: 12px; left: 12px; right: 12px; height: 56px; padding: 0 8px; gap: 6px; flex-wrap: nowrap; display: flex; align-items: center; animation: none; }
+.lab.ly-dock .topbar.compact .icon-btn { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 14px; color: var(--text); position: relative; }
+.lab.ly-dock .topbar.compact .dn { flex: 1 1 0; width: auto; min-width: 0; max-width: 320px; }
+.lab.ly-dock .topbar.compact .spacer { display: block; flex: 1; }
+.lab.ly-dock .action-bar { bottom: 18px; left: 50%; right: auto; transform: translateX(-50%); width: min(520px, calc(100% - 800px)); min-width: 360px; margin: 0; }
+
+/* tablet deitado e janelas entre 1024 e 1279 px: painéis laterais mais estreitos, sem minimapa nem dica de rodapé */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .lab.ly-dock .brief, .lab.ly-dock .sidebar { width: 324px; }
+  .lab.ly-dock .mm-wrap, .lab.ly-dock .hint { display: none; }
+  .lab.ly-dock.brief-open .react-flow__controls { margin-left: 356px; }
+}
