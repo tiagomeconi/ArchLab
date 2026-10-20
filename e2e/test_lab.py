@@ -375,7 +375,7 @@ def test_relatorio_em_imagem_baixa_um_png_com_o_caso(page):
     page.get_by_role("button", name="Ver a referência").click()
     page.wait_for_timeout(1000)
     page.get_by_role("button", name="Exportar").click()
-    assert page.get_by_role("menuitem").count() == 5  # link, cartão, imagem, .json e abrir arquivo
+    assert page.get_by_role("menuitem").count() == 7  # link, cartão, imagem, .json e abrir arquivo
     with page.expect_download() as d:
         page.get_by_role("menuitem", name="Relatório em imagem").click()
     arq = d.value
