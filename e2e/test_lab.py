@@ -642,3 +642,22 @@ def test_modo_entrevista_inicia_o_relogio_mostra_as_fases_e_encerra_com_resumo(p
     page.locator("dialog[open].interview", has_text="Entrevista encerrada").wait_for()
     page.keyboard.press("Escape")
     assert page.locator(".interview-on").count() == 0
+
+
+def test_padroes_prontos_inserem_componentes_conectados_e_versoes_restauram_o_desenho(page):
+    page.goto(page.base + "/app?blank=1"); page.wait_for_selector(".react-flow")
+    page.get_by_role("button", name="Padrões prontos").click()
+    page.locator("dialog[open]").get_by_role("button", name=re.compile("Fila e workers")).click()
+    page.wait_for_timeout(800)
+    assert page.locator(".react-flow__node-arch").count() == 4 and page.locator(".react-flow__edge").count() == 3
+    # versão: salva, muda o desenho e restaura
+    page.get_by_role("button", name="Versões do desenho").click()
+    dlg = page.locator("dialog[open]"); dlg.get_by_label("Nome da versão").fill("com fila"); dlg.get_by_role("button", name="Salvar versão agora").click()
+    dlg.get_by_text("com fila").wait_for(); page.keyboard.press("Escape")
+    page.get_by_role("button", name="Padrões prontos").click()
+    page.locator("dialog[open]").get_by_role("button", name=re.compile("Duas zonas")).click(); page.wait_for_timeout(800)
+    assert page.locator(".react-flow__node-arch").count() == 8 and page.locator(".react-flow__node-group").count() == 2
+    page.get_by_role("button", name="Versões do desenho").click()
+    page.locator("dialog[open]").get_by_role("button", name="Restaurar").first.click()  # só existe a versão "com fila"
+    page.wait_for_timeout(800)
+    assert page.locator(".react-flow__node-arch").count() == 4 and page.locator(".react-flow__node-group").count() == 0

@@ -20,6 +20,9 @@ import { GroupNode, GROUP_MIN, cleanGroups, inGroup, type GroupData, type GroupD
 import { ReviewPanel, ConceptCard } from "./ReviewPanel";
 import { lintArchitecture } from "./lint";
 import { estimateCost } from "./cost";
+import { PatternsDialog, VersionsDialog } from "./LibraryDialogs";
+import { buildPattern, type Pattern } from "./patterns";
+import { deleteVersion, loadVersions, saveVersion, type Version } from "./versions";
 import { InterviewChip, InterviewPanel, InterviewResult, type Interview } from "./InterviewBar";
 import { PAYWALL, currentPlan } from "./plan";
 import { toDesignDoc, toMermaid, type DocEdge as ExportEdge, type DocNode as ExportNode } from "./exportDoc";
@@ -399,6 +402,9 @@ function Lab() {
   const [traffic, setTraffic] = useState(1); // × a carga de pico do caso
   const [interview, setInterview] = usePref<Interview | null>(`interview:${session?.caseId ?? "livre"}`, null);
   const [interviewOpen, setInterviewOpen] = useState(false);
+  const [patternsOpen, setPatternsOpen] = useState(false);
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [versions, setVersions] = useState<Version[]>([]);
   const [interviewDone, setInterviewDone] = useState<{ minutes: number; usedSec: number } | null>(null);
   const [shape, setShape] = useState<Shape>("flat"); // como a carga chega ao pico durante a simulação
   const [readPct, setReadPct] = useState(READ0);
@@ -909,6 +915,12 @@ function Lab() {
     return () => clearTimeout(t0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, uid, cloudKey, viewingRef, designTitle]);
+  const openVersions = () => { setVersions(loadVersions(storeKey)); setVersionsOpen(true); };
+  const saveNow = (name: string) => { const l = saveVersion(storeKey, name || t("Versão"), key); if (l) { setVersions(l); say(t("Versão salva")); } else say(t("Não foi possível salvar a versão")); };
+  const restoreVersion = (v: Version) => {
+    saveVersion(storeKey, t("Antes de restaurar"), key); // nunca perde o que estava na tela
+    restore(v.snap); say(t("Versão restaurada: {nome}", { nome: v.name })); setTimeout(doFit, 150);
+  };
   const exportDesign = () => {
     const title = blank ? designName : (session?.title ?? t("Encurtador de links"));
     const blob = new Blob([JSON.stringify({ format: "archlab-design", v: 1, title, snap: JSON.parse(key) }, null, 2)], { type: "application/json" });
@@ -1062,6 +1074,36 @@ function Lab() {
     setGroups((gs) => [...gs, { id, name: `${t("Grupo")} ${i}`, color: GROUP_COLORS_CYCLE[(i - 1) % GROUP_COLORS_CYCLE.length]!, x, y, w: Math.max(GROUP_MIN.w, w), h: Math.max(GROUP_MIN.h, h) }]);
     setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n))); setSelected(null); setGroupSel(new Set([id]));
   };
+  /** Insere um padrão pronto: nós, conexões válidas e grupos, num espaço livre perto do centro da tela. */
+  const insertPattern = (p: Pattern) => {
+    const c = screenToFlowPosition({ x: window.innerWidth * 0.3, y: window.innerHeight * 0.45 });
+    const taken = new Set(nodes.map((n) => n.id));
+    const probe = buildPattern(p, { x: 0, y: 0 }, taken, (s) => s, () => null).nodes;
+    const w = Math.max(...probe.map((n) => n.x)) + 260, h = Math.max(...probe.map((n) => n.y)) - Math.min(...probe.map((n) => n.y)) + 120, top = Math.min(...probe.map((n) => n.y));
+    const origin = { x: c.x, y: c.y - top - h / 2 };
+    for (let i = 0; i < 30 && nodes.some((n) => n.position.x < origin.x + w && n.position.x + 240 > origin.x && n.position.y < origin.y + top + h && n.position.y + 100 > origin.y + top); i++) origin.y += h + 40;
+    const built = buildPattern(p, origin, taken, (s) => t(s), (a, b, protocol, mode) => {
+      const opts = connectionOptions(a, b); const o = opts.find((x) => (!protocol || x.protocol === protocol) && (!mode || x.mode === mode)) ?? opts[0];
+      return o ? { protocol: o.protocol, mode: o.mode, timeoutMs: o.timeoutMs, networkLatencyMs: o.networkLatencyMs, tls: o.tls } : null;
+    });
+    setNodes((ns) => [...ns.map((n) => ({ ...n, selected: false })), ...built.nodes.map((n) => ({
+      id: n.id, type: "arch", position: { x: n.x, y: n.y }, width: 240, selected: true,
+      data: { name: n.name, type: n.type, replicas: n.replicas, hitRate: n.type === "redis" ? DEFAULT_CACHE.hitRate : undefined, health: "idle" as Health },
+    }))]);
+    setDocEdges((es) => [...es, ...built.edges.map((e) => ({
+      id: e.id, source: e.source, sourcePort: "right", target: e.target, targetPort: "left",
+      configuration: { mode: e.mode, protocol: e.protocol, required: true, timeoutMs: e.timeoutMs, networkLatencyMs: e.networkLatencyMs, maxAttempts: 1, backoffMs: 0, retryable: false, tls: e.tls },
+    }))]);
+    if (built.groups.length) setGroups((gs) => [...gs, ...built.groups.map((g, i) => {
+      const m = built.nodes.filter((n) => g.ids.includes(n.id));
+      const x0 = Math.min(...m.map((n) => n.x)) - 36, y0 = Math.min(...m.map((n) => n.y)) - 64, x1 = Math.max(...m.map((n) => n.x)) + 276, y1 = Math.max(...m.map((n) => n.y)) + 140;
+      let k = gs.length + i + 1; while (gs.some((x) => x.id === `grp-${k}`)) k++;
+      return { id: `grp-${k}`, name: g.name, color: GROUP_COLORS_CYCLE[(k - 1) % GROUP_COLORS_CYCLE.length]!, x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    })]);
+    setSelected(null); setTab("props");
+    setTimeout(() => fitView({ nodes: built.nodes.map((n) => ({ id: n.id })), padding: 0.4, maxZoom: 1, duration: 400 }), 60);
+    say(t("Padrão inserido: {nome}", { nome: t(p.title) }));
+  };
   const clearSelection = () => { setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n))); setEdgeSel(new Set()); setSelected(null); setGroupSel(new Set()); };
   const nudge = (dx: number, dy: number) => setNodes((ns) => ns.map((n) => (n.selected ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } } : n)));
   /** Organiza o diagrama: calcula as posições (autolayout.ts) e anima os cards até lá; vira um único passo no desfazer. */
@@ -1203,6 +1245,8 @@ function Lab() {
       >
         <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} color="var(--dot)" />
         <Controls showInteractive={false}>
+          <ControlButton onClick={() => setPatternsOpen(true)} title={t("Padrões prontos")} aria-label={t("Padrões prontos")}><Icon name="extension" size={16} /></ControlButton>
+          <ControlButton onClick={openVersions} title={t("Versões do desenho")} aria-label={t("Versões do desenho")}><Icon name="history" size={16} /></ControlButton>
           <ControlButton onClick={addGroup} title={t("Agrupar blocos (G)")} aria-label={t("Agrupar blocos")}><Icon name="workspaces" size={16} /></ControlButton>
           <ControlButton onClick={autoAlign} title={t("Organizar automaticamente (L)")} aria-label={t("Organizar automaticamente")}><Icon name="auto_fix_high" size={16} /></ControlButton>
         </Controls>
@@ -1359,6 +1403,8 @@ function Lab() {
         ) : <p className="note pad">{t("Selecione um componente no canvas para ver as propriedades.")}</p>)}
       </aside>
 
+      {patternsOpen && <PatternsDialog onPick={insertPattern} onClose={() => setPatternsOpen(false)} />}
+      {versionsOpen && <VersionsDialog versions={versions} onSave={saveNow} onRestore={restoreVersion} onDelete={(v) => setVersions(deleteVersion(storeKey, v.id))} onClose={() => setVersionsOpen(false)} />}
       {interviewOpen && interview && (
         <InterviewPanel active={interview} summary={interviewSummary} onClose={() => setInterviewOpen(false)}
           onFinish={() => { setInterviewDone({ minutes: interview.minutes, usedSec: Math.min(interview.minutes * 60, (Date.now() - interview.startedAt) / 1000) }); setInterview(null); }} />
