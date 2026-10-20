@@ -1,5 +1,5 @@
 /* Ícones: Material Symbols Rounded em subconjunto (só os ícones usados). Regerar com: pnpm --filter @archlab/web gen:icons */
-@font-face { font-family: "Material Symbols Rounded Variable"; font-style: normal; font-display: block; font-weight: 100 700; src: url("/src/fonts/material-symbols-subset.woff2?v=b94ec469") format("woff2"); }
+@font-face { font-family: "Material Symbols Rounded Variable"; font-style: normal; font-display: block; font-weight: 100 700; src: url("/src/fonts/material-symbols-subset.woff2?v=dd565a16") format("woff2"); }
 :root {
   --bg: #f4f6fb; --surface: rgba(255,255,255,.82); --surface-solid: #ffffff; --text: #0f172a; --text-2: #526079;
   --border: rgba(15,23,42,.10); --border-strong: #b6c2d6; --accent: #0369a1; --accent-soft: rgba(3,105,161,.10); --on-accent: #fff;

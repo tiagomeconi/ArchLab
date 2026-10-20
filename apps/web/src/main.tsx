@@ -25,6 +25,7 @@ const Settings = lazy(() => import("./landing/Settings").then((m) => ({ default:
 const Ranking = lazy(() => import("./landing/Ranking").then((m) => ({ default: m.Ranking })));
 const Confirmed = lazy(() => import("./landing/Confirmed").then((m) => ({ default: m.Confirmed })));
 const CompleteProfile = lazy(() => import("./landing/CompleteProfile").then((m) => ({ default: m.CompleteProfile })));
+const Plans = lazy(() => import("./landing/Plans").then((m) => ({ default: m.Plans })));
 const Legal = lazy(() => import("./landing/Legal").then((m) => ({ default: m.Legal })));
 
 const blank = <div style={{ minHeight: "100vh", background: "var(--bg)" }} />;
@@ -52,7 +53,7 @@ function Visitor({ children }: { children: ReactNode }) {
 
 /** Conteúdo da área logada: o menu lateral fica parado e só esta parte carrega e entra com animação. */
 function Inside({ path }: { path: string }) {
-  const content = path === "/perfil" ? <Profile /> : path === "/desenhos" ? <Designs /> : path === "/ranking" ? <Ranking /> : path === "/configuracoes" ? <Settings /> : path === "/start" || path === "/start/" ? <Home /> : <Start path={path} />;
+  const content = path === "/perfil" ? <Profile /> : path === "/desenhos" ? <Designs /> : path === "/ranking" ? <Ranking /> : path === "/configuracoes" ? <Settings /> : path === "/planos" ? <Plans /> : path === "/start" || path === "/start/" ? <Home /> : <Start path={path} />;
   return (
     <Protected>
       <Suspense fallback={blank}>
@@ -65,7 +66,7 @@ function Inside({ path }: { path: string }) {
 function Root() {
   const path = usePath();
   const inApp = path === "/app" || path.startsWith("/app/");
-  const inside = path.startsWith("/start") || path === "/perfil" || path === "/desenhos" || path === "/ranking" || path === "/configuracoes";
+  const inside = path.startsWith("/start") || path === "/perfil" || path === "/desenhos" || path === "/ranking" || path === "/configuracoes" || path === "/planos";
   const pub = path.startsWith("/u/");
   const legal = path === "/termos" || path === "/privacidade";
   const auth = path === "/login" || path === "/cadastro";

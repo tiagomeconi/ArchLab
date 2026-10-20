@@ -45,6 +45,7 @@ export function startAuth() {
   }).catch(() => set({ status: "out", user: null }));
 }
 
+export const getAuthState = (): AuthState => state;
 export const useAuth = (): AuthState => {
   startAuth();
   return useSyncExternalStore((cb) => { listeners.add(cb); return () => { listeners.delete(cb); }; }, () => state, () => state);

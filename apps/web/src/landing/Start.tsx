@@ -9,6 +9,8 @@ import { go } from "../nav";
 import { BrandMark, Icon, SearchField } from "../ui";
 import { cn } from "./lib/utils";
 import { t, useLang } from "../i18n";
+import { levelLocked } from "../plan";
+import { useAuth } from "../auth";
 
 const field = "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-text-2/60 focus:border-accent";
 
@@ -71,9 +73,17 @@ export function Level({ level }: { level: StudyCase["level"] }) {
 }
 
 export function openCase(c: StudyCase) {
+  if (levelLocked(c.level)) { go("/planos"); return; }
   saveSession(sessionFor(c));
   // o encurtador tem desenho de referência pronto; os demais começam com o canvas em branco
   go(c.id === "url-shortener" ? "/app?s=1" : "/app?blank=1&s=1");
+}
+
+/** Cadeado dos casos que o plano atual não abre (só aparece com a restrição ligada). */
+function LockMark({ level }: { level: StudyCase["level"] }) {
+  useAuth();
+  if (!levelLocked(level)) return null;
+  return <span className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-full bg-text px-2.5 py-1 text-xs font-semibold text-bg" title={t("Disponível na assinatura")}><Icon name="lock" size={13} />{t("Pro")}</span>;
 }
 
 function CompanyCard({ c, p }: { c: StudyCase; p?: CaseProgress }) {
@@ -83,6 +93,7 @@ function CompanyCard({ c, p }: { c: StudyCase; p?: CaseProgress }) {
       className="group relative flex flex-col overflow-hidden rounded-3xl border border-line bg-surface p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-[var(--brand)] hover:shadow-[0_24px_60px_-24px_var(--brand)]">
       <span aria-hidden className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full opacity-[.14] blur-3xl transition-opacity duration-500 group-hover:opacity-35" style={{ background: "var(--brand)" }} />
       <ProgressMark p={p} />
+      <LockMark level={c.level} />
       <div className="relative flex items-start justify-between gap-3">
         <BrandMark id={co.logo} name={co.name} color={co.brand} />
       </div>
@@ -156,6 +167,7 @@ function Study() {
             {classics.map((c) => (
               <button key={c.id} onClick={() => openCase(c)} className="group relative flex flex-col overflow-hidden rounded-2xl border border-line bg-surface p-5 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-accent hover:shadow-lg">
                 <ProgressMark p={progress[c.id]} />
+                <LockMark level={c.level} />
                 <div className="flex items-start justify-between gap-3">
                   <span className="grid size-11 place-items-center rounded-xl bg-accent-soft text-accent"><Icon name={c.icon} size={24} /></span>
                 </div>
