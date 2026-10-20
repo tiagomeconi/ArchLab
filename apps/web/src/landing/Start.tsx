@@ -1,125 +1,25 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useReducedMotion } from "motion/react";
+import { useMemo, useState, type ReactNode } from "react";
 import "./landing.css";
 import { CASES, COMPANY_CASES, sessionFor, type CaseGroup, type StudyCase } from "../cases";
+import { leagueOf } from "../leagues";
+import { LeagueBadge } from "../LeagueBadge";
 import { loadProgress, type CaseProgress } from "../progress";
-import { clearSession, DEFAULT_LOAD, emptyRequirements, saveSession, type Requirements } from "../session";
-import { go, link } from "../nav";
-import { BrandMark, Icon, Logo, SearchField } from "../ui";
-import { LOGOS } from "../logos.generated";
-import { ThemeToggle } from "../ThemeToggle";
-import { useTheme } from "../theme";
+import { clearSession, DEFAULT_LOAD, emptyRequirements, newDesignId, saveSession, type Requirements } from "../session";
+import { go } from "../nav";
+import { BrandMark, Icon, SearchField } from "../ui";
 import { cn } from "./lib/utils";
 import { t, useLang } from "../i18n";
-import { LangToggle } from "../LangToggle";
 
 const field = "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-text-2/60 focus:border-accent";
 
-function Shell({ back, title, sub, children }: { back: { to: string; label: string }; title: string; sub: string; children: ReactNode }) {
+/** Cabeçalho de página dentro do sistema (o menu, o topo e a animação de entrada vêm do AppLayout). */
+function Shell({ title, sub, children }: { title: string; sub: string; children: ReactNode }) {
   return (
-    <div className="lp relative min-h-screen">
-      <a href="#conteudo" className="sr-only z-50 rounded-full bg-accent px-4 py-2 font-semibold text-on-accent focus:not-sr-only focus:fixed focus:left-4 focus:top-4">{t("Pular para o conteúdo")}</a>
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
-        <a {...link(back.to)} className="inline-flex items-center gap-2 text-sm font-medium text-text-2 hover:text-text"><Icon name="arrow_back" size={18} />{back.label}</a>
-        <a {...link("/")} className="inline-flex items-center gap-2 font-semibold tracking-tight"><Logo size={30} />{t("ArchLab")}</a>
-        <span className="flex items-center gap-2"><LangToggle /><ThemeToggle /></span>
-      </header>
-      <main id="conteudo" tabIndex={-1} className="mx-auto max-w-6xl px-5 pb-24 pt-6 outline-none sm:px-8">
-        <h1 className="text-balance text-[clamp(2rem,4.2vw,3.25rem)] font-semibold leading-[1.1] tracking-[-0.024em]">{title}</h1>
-        <p className="mt-3 max-w-2xl text-lg leading-snug text-text-2">{sub}</p>
-        <div className="mt-10">{children}</div>
-      </main>
-    </div>
-  );
-}
-
-/* ───────────── escolha do modo ───────────── */
-
-/** Prévia em vídeo do laboratório: toca ao passar o mouse ou focar o cartão. */
-function DemoPreview({ playing }: { playing: boolean }) {
-  const theme = useTheme();
-  const ref = useRef<HTMLVideoElement>(null);
-  const reduced = useReducedMotion();
-  useEffect(() => { const v = ref.current; if (!v || reduced) return; if (playing) v.play().catch(() => {}); else v.pause(); }, [playing, reduced]);
-  return (
-    <video key={theme} ref={ref} className="block size-full object-cover object-top" muted loop playsInline preload="metadata" poster={`/shots/hero-${theme}.jpg`} aria-hidden>
-      <source src={`/shots/demo-${theme}.mp4`} type="video/mp4" />
-      <source src={`/shots/demo-${theme}.webm`} type="video/webm" />
-    </video>
-  );
-}
-
-const CHIPS = ["Chat", "Feed", "Pagamentos", "Streaming", "Corridas", "Ingressos", "Rate limiter"];
-
-/** Prévia animada do modo livre: nós surgem no canvas em branco e se conectam. */
-function DrawPreview({ playing }: { playing: boolean }) {
-  const nodes = [{ x: 40, y: 70, l: "Cliente" }, { x: 150, y: 70, l: "API" }, { x: 260, y: 30, l: "Cache" }, { x: 260, y: 110, l: "Banco" }];
-  const edges = [[0, 1], [1, 2], [1, 3]] as const;
-  return (
-    <div className="relative size-full overflow-hidden" aria-hidden>
-      <div className="lp-grid absolute inset-0 opacity-70" />
-      <svg viewBox="0 0 340 150" className="absolute inset-0 size-full" preserveAspectRatio="xMidYMid meet">
-        {edges.map(([a, b], i) => (
-          <line key={i} x1={nodes[a]!.x + 38} y1={nodes[a]!.y} x2={nodes[b]!.x - 38} y2={nodes[b]!.y} stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"
-            strokeDasharray="120" className={playing ? "st-draw" : ""} style={{ animationDelay: `${0.5 + i * 0.5}s`, strokeDashoffset: playing ? undefined : 0 }} />
-        ))}
-        {nodes.map((n, i) => (
-          <g key={i} className={playing ? "st-pop" : ""} style={{ animationDelay: `${i * 0.35}s`, transformOrigin: `${n.x}px ${n.y}px` }}>
-            <rect x={n.x - 38} y={n.y - 16} width="76" height="32" rx="10" fill="var(--surface-solid)" stroke="var(--border-strong)" />
-            <text x={n.x} y={n.y + 4.5} textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--text)">{t(n.l)}</text>
-          </g>
-        ))}
-      </svg>
-      <div className="absolute inset-x-3 bottom-3 flex flex-wrap gap-1.5">
-        {["Funcionais", "Não funcionais", "Escala", "p95 < 200 ms"].map((k) => <span key={k} className="rounded-full border border-line bg-surface px-2.5 py-0.5 text-[11px] font-medium text-text-2">{t(k)}</span>)}
-      </div>
-    </div>
-  );
-}
-
-function ModeCard({ icon, title, text, bullets, cta, to, tag, preview }: { icon: string; title: string; text: string; bullets: string[]; cta: string; to: string; tag: string; preview: (playing: boolean) => ReactNode }) {
-  const [on, setOn] = useState(false);
-  return (
-    <a {...link(to)} onMouseEnter={() => setOn(true)} onMouseLeave={() => setOn(false)} onFocus={() => setOn(true)} onBlur={() => setOn(false)}
-      className="group relative flex flex-col overflow-hidden rounded-3xl border border-line bg-surface shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent hover:shadow-[0_24px_60px_-20px_var(--accent)]">
-      <div className="relative aspect-[16/9] overflow-hidden border-b border-line bg-bg">
-        {preview(on)}
-        <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-line bg-surface/90 px-3 py-1 text-xs font-semibold backdrop-blur"><Icon name={icon} size={15} />{tag}</span>
-        <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur transition-opacity group-hover:opacity-0"><Icon name="play_arrow" size={14} />{t("Passe o mouse")}</span>
-      </div>
-      <div className="flex flex-1 flex-col p-7">
-        <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
-        <p className="mt-2 text-text-2">{text}</p>
-        <ul className="mt-5 space-y-2 text-sm">
-          {bullets.map((b) => <li key={b} className="flex items-start gap-2"><span className="mt-0.5 text-accent"><Icon name="check_circle" size={17} /></span>{b}</li>)}
-        </ul>
-        <span className="mt-auto inline-flex items-center gap-2 pt-7 font-semibold text-accent">{cta}<span className="transition-transform group-hover:translate-x-1"><Icon name="arrow_forward" size={18} /></span></span>
-      </div>
-    </a>
-  );
-}
-
-function Chooser() {
-  return (
-    <Shell back={{ to: "/", label: t("Página inicial") }} title={t("O que você quer fazer hoje?")} sub={t("Escolha como começar. Você pode voltar e trocar de modo quando quiser.")}>
-      <div className="grid gap-6 md:grid-cols-2">
-        <ModeCard to="/start/estudo" icon="school" tag="Estudo e treino" title={t("Treinar para uma entrevista")}
-          text={t("Escolha um caso clássico de system design e pratique com requisitos e metas de escala já definidos.")}
-          bullets={[t("Netflix, Uber, WhatsApp, Stripe e outras {a} empresas, mais {b} sistemas clássicos", { a: COMPANY_CASES.length - 4, b: CASES.length }), t("Requisitos funcionais e não funcionais prontos para consulta"), t("Simule carga e falhas no seu desenho")]} cta={t("Ver os casos")}
-          preview={(on) => (
-            <>
-              <DemoPreview playing={on} />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 flex gap-1.5 overflow-hidden bg-gradient-to-t from-black/60 to-transparent p-3 pt-8">
-                {CHIPS.map((c) => <span key={c} className="shrink-0 rounded-full bg-white/90 px-2.5 py-0.5 text-[11px] font-semibold text-slate-900">{c}</span>)}
-              </div>
-            </>
-          )} />
-        <ModeCard to="/start/livre" icon="draw" tag="Modo livre" title={t("Desenhar o meu sistema")}
-          text={t("Desenhe o sistema que você tem em mente, com ou sem requisitos. Você define as regras.")}
-          bullets={[t("Canvas em branco para desenhar do zero"), t("Registre requisitos funcionais e não funcionais"), t("Defina escala, metas de latência e restrições")]} cta={t("Configurar e desenhar")}
-          preview={(on) => <DrawPreview playing={on} />} />
-      </div>
-    </Shell>
+    <>
+      <h1 className="text-balance text-[clamp(1.9rem,3.6vw,2.6rem)] font-semibold leading-[1.1] tracking-[-0.024em]">{title}</h1>
+      <p className="mt-2 max-w-2xl text-lg leading-snug text-text-2">{sub}</p>
+      <div className="mt-8">{children}</div>
+    </>
   );
 }
 
@@ -145,7 +45,7 @@ function ProgressMark({ p }: { p?: CaseProgress }) {
     <>
       {(p.status === "done" || p.ovr) && (
         <span className="absolute right-4 top-4 flex items-center gap-2 text-xs font-semibold">
-          {p.ovr ? <span className="rounded-md border border-line px-1.5 py-0.5 tabular-nums text-text-2" title={t("Melhor nota geral (OVR)")}>OVR <b className="text-text">{p.ovr}</b></span> : null}
+          {p.ovr ? <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface py-0.5 pl-1.5 pr-2.5 tabular-nums text-text-2" title={t("Melhor nota: {n} ({liga})", { n: p.ovr, liga: t(leagueOf(p.ovr).name) })}><LeagueBadge league={leagueOf(p.ovr)} size={18} label={false} /><b className="text-text">{p.ovr}</b></span> : null}
           {p.status === "done" && <span className="text-ok" title={t("Concluído")} role="img" aria-label={t("Concluído")}><Icon name="check_circle" size={20} /></span>}
         </span>
       )}
@@ -158,7 +58,7 @@ function ProgressMark({ p }: { p?: CaseProgress }) {
 const LEVELS: StudyCase["level"][] = ["Iniciante", "Intermediário", "Avançado"];
 
 /** Dificuldade como três barrinhas (sem cor de alerta): o rótulo só aparece para leitores de tela e no hover. */
-function Level({ level }: { level: StudyCase["level"] }) {
+export function Level({ level }: { level: StudyCase["level"] }) {
   const n = LEVELS.indexOf(level) + 1;
   return (
     <span className="inline-flex items-center gap-2 text-xs text-text-2" title={t("Dificuldade: {nivel}", { nivel: t(level) })}>
@@ -170,7 +70,7 @@ function Level({ level }: { level: StudyCase["level"] }) {
   );
 }
 
-function openCase(c: StudyCase) {
+export function openCase(c: StudyCase) {
   saveSession(sessionFor(c));
   // o encurtador tem desenho de referência pronto; os demais começam com o canvas em branco
   go(c.id === "url-shortener" ? "/app?s=1" : "/app?blank=1&s=1");
@@ -228,7 +128,7 @@ function Study() {
     && (q.trim() === "" || `${c.title} ${c.company?.focus ?? ""} ${c.summary} ${c.concepts.join(" ")}`.toLowerCase().includes(q.trim().toLowerCase())));
   const companies = list.filter((c) => c.company), classics = list.filter((c) => !c.company);
   return (
-    <Shell back={{ to: "/start", label: t("Trocar de modo") }} title={t("Escolha um caso para treinar")} sub={t("Arquiteturas inspiradas nas grandes empresas e os sistemas que mais aparecem em entrevistas. Ao abrir, os requisitos ficam disponíveis dentro do laboratório.")}>
+    <Shell title={t("Escolha um caso para treinar")} sub={t("Arquiteturas inspiradas nas grandes empresas e os sistemas que mais aparecem em entrevistas. Ao abrir, os requisitos ficam disponíveis dentro do laboratório.")}>
       <div className="flex flex-wrap items-center gap-3">
         <SearchField className="min-w-60 flex-1 sm:max-w-md" value={q} onChange={setQ} placeholder={t("Buscar por empresa, nome ou conceito")} label={t("Buscar casos")} />
         <div className="flex flex-wrap gap-2" role="group" aria-label={t("Filtrar por categoria")}>
@@ -317,10 +217,10 @@ function Free() {
     const p = parseInt(peak, 10), rd = parseInt(read, 10);
     const load = { peakRps: p > 0 ? p : DEFAULT_LOAD.peakRps, readPct: rd >= 10 && rd <= 100 ? rd : DEFAULT_LOAD.readPct };
     if (withReqs) saveSession({ mode: "free", title: name.trim() || "Meu sistema", requirements: r, load, checks: { needs: [], p95Ms: parseInt(p95, 10) > 0 ? parseInt(p95, 10) : undefined } }); else clearSession();
-    go(withReqs ? "/app?blank=1&s=1" : "/app?blank=1");
+    go(withReqs ? `/app?blank=1&s=1&d=${newDesignId()}` : `/app?blank=1&d=${newDesignId()}`);
   };
   return (
-    <Shell back={{ to: "/start", label: t("Trocar de modo") }} title={t("Modo livre")} sub={t("Tudo aqui é opcional. Registre o que já sabe sobre o sistema, ou pule direto para o canvas em branco.")}>
+    <Shell title={t("Modo livre")} sub={t("Tudo aqui é opcional. Registre o que já sabe sobre o sistema, ou pule direto para o canvas em branco.")}>
       <div className="grid gap-10 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-10">
           {text(t("Nome do sistema"), name, setName, t("Ex.: Plataforma de agendamento"))}
@@ -373,5 +273,5 @@ export function Start({ path }: { path: string }) {
   useLang();
   if (path.startsWith("/start/estudo")) return <Study />;
   if (path.startsWith("/start/livre")) return <Free />;
-  return <Chooser />;
+  return <Study />;
 }

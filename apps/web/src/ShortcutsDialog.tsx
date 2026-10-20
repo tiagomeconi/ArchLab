@@ -23,6 +23,7 @@ const GROUPS: { title: string; items: [string[], string][] }[] = [
   ] },
   { title: "Navegação", items: [
     [["F"], "Enquadra o diagrama na tela"],
+    [["L"], "Organiza o diagrama automaticamente"],
     [["Espaço", "arrastar"], "Move o canvas"],
     [["/"], "Busca na paleta de componentes"],
     [["B"], "Mostra ou esconde o enunciado"],
@@ -35,7 +36,7 @@ const GROUPS: { title: string; items: [string[], string][] }[] = [
 ];
 
 /** Atalhos de letra única só valem com o foco fora de campos de texto (spec §6.3). */
-export function ShortcutsDialog({ onClose }: { onClose: () => void }) {
+export function ShortcutsDialog({ onClose, onTour }: { onClose: () => void; onTour?: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { ref.current?.showModal(); }, []);
   return (
@@ -58,6 +59,7 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }) {
             </ul>
           </section>
         ))}
+        {onTour && <button className="chip" onClick={() => { ref.current?.close(); onTour(); }}><Icon name="help" size={16} />{" "}{t("Rever o tutorial")}</button>}
       </div>
     </dialog>
   );

@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.parametrize("path", ["/", "/start", "/start/estudo", "/start/livre"])
+@pytest.mark.parametrize("path", ["/", "/start", "/start/estudo", "/start/livre", "/desenhos", "/termos", "/privacidade"])
 @pytest.mark.parametrize("w", [360, 390, 768])
 def test_sem_rolagem_horizontal(make_page, path, w):
     pg = make_page(width=w, height=800)

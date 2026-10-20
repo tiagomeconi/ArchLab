@@ -18,10 +18,10 @@ def test_alternar_idioma_persiste(make_page):
     pg.wait_for_selector("h1")
     assert pg.evaluate("document.documentElement.lang") == "pt-BR"
     pg.get_by_label("Mudar idioma para inglês (English)").click()
-    pg.get_by_role("heading", name="What do you want to do today?").wait_for()
+    pg.get_by_role("heading", name=re.compile(r"^Good (morning|afternoon|evening)")).wait_for()
     assert pg.evaluate("document.documentElement.lang") == "en"
     pg.reload()
-    pg.get_by_role("heading", name="What do you want to do today?").wait_for()
+    pg.get_by_role("heading", name=re.compile(r"^Good (morning|afternoon|evening)")).wait_for()
 
 
 def test_telas_de_inicio_sem_portugues_em_ingles(make_page):

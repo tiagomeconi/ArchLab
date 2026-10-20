@@ -53,10 +53,12 @@ def make_page(browser, base_url):
     """Cria uma página nova com tema, idioma e viewport escolhidos. Falha o teste se a página lançar erro de JS."""
     ctxs, errors = [], []
 
-    def make(width=1400, height=900, theme="dark", lang="pt", permissions=None, **kw):
+    def make(width=1400, height=900, theme="dark", lang="pt", permissions=None, tour=False, **kw):
         ctx = browser.new_context(viewport={"width": width, "height": height}, accept_downloads=True, **kw)
         # só define se ainda não houver valor: assim o teste de persistência do idioma enxerga o que o app gravou
         ctx.add_init_script(f"if(!localStorage.getItem('archlab:theme')) localStorage.setItem('archlab:theme','{theme}'); if(!localStorage.getItem('archlab:lang')) localStorage.setItem('archlab:lang','{lang}')")
+        if not tour:  # o tutorial de primeiro uso cobriria a tela em todos os testes; só o teste do tutorial o liga
+            ctx.add_init_script("if(!localStorage.getItem('archlab:tour-done')) localStorage.setItem('archlab:tour-done','1')")
         if permissions: ctx.grant_permissions(permissions, origin=base_url)
         pg = ctx.new_page(); pg.set_default_timeout(8000)
         pg.on("pageerror", lambda e: errors.append(str(e)))

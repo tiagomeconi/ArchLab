@@ -1,8 +1,10 @@
+import { LEAGUES, leagueOf, type League } from "./leagues";
+import { badgeInner } from "./leagueSvg";
 import { LOGOS } from "./logos.generated";
 import { INVERT_ON_DARK, SOFT_INVERT_ON_DARK, logoBox } from "./ProviderLogo";
 import { protoOf } from "./protocols";
 import { t } from "./i18n";
-import type { Rating, Tier } from "./rating";
+import type { Rating } from "./rating";
 
 /** `ctx.filter` não existe em Safari antigo; nele os logos escuros são recoloridos pixel a pixel num canvas auxiliar. */
 const CTX_FILTER = typeof document !== "undefined" && "filter" in document.createElement("canvas").getContext("2d")!;
@@ -41,20 +43,17 @@ export interface ReportInput {
 }
 
 const DPR = 2;
-const C = { bg0: "#070d1b", bg1: "#0d1730", card: "#0f1a33", line: "#22325a", text: "#eaf0fa", sub: "#9fb1cf", dim: "#6f82a6", accent: "#38bdf8" };
+export const C = { bg0: "#070d1b", bg1: "#0d1730", card: "#0f1a33", line: "#22325a", text: "#eaf0fa", sub: "#9fb1cf", dim: "#6f82a6", accent: "#38bdf8" };
 const HEALTH: Record<string, { fg: string; bg: string }> = {
   healthy: { fg: "#34d399", bg: "#34d3991f" }, degraded: { fg: "#fbbf24", bg: "#fbbf241f" }, saturated: { fg: "#f87171", bg: "#f871711f" },
   unavailable: { fg: "#f87171", bg: "#f871711f" }, unknown: { fg: "#9fb1cf", bg: "#9fb1cf1f" }, idle: { fg: "#9fb1cf", bg: "#9fb1cf1a" },
   origin: { fg: "#38bdf8", bg: "#38bdf81f" }, noprofile: { fg: "#9fb1cf", bg: "#9fb1cf1a" },
 };
-const TIER: Record<Tier, { name: string; color: string }> = {
-  bronze: { name: "Bronze", color: "#cd8a55" }, silver: { name: "Prata", color: "#b9c4d6" }, gold: { name: "Ouro", color: "#f0c23a" }, elite: { name: "Elite", color: "#38bdf8" },
-};
 const CAT_COLOR: Record<string, string> = { origin: "#22d3ee", iot: "#a3e635", network: "#a78bfa", compute: "#60a5fa", data: "#e879f9", messaging: "#fb923c", support: "#2dd4bf" };
-const SANS = `"Inter Variable", Inter, -apple-system, "Segoe UI", system-ui, sans-serif`;
+export const SANS = `"Inter Variable", Inter, -apple-system, "Segoe UI", system-ui, sans-serif`;
 const num = (n: number) => (n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1).replace(".", ",")}k` : Math.round(n).toLocaleString("pt-BR"));
 
-const svgImage = (logo: { w: number; h: number; body: string }, color?: string): Promise<HTMLImageElement | null> =>
+export const svgImage = (logo: { w: number; h: number; body: string }, color?: string): Promise<HTMLImageElement | null> =>
   new Promise((resolve) => {
     const body = color ? logo.body.replace(/currentColor/g, color) : logo.body;
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${logo.w} ${logo.h}" width="${logo.w * 4}" height="${logo.h * 4}">${body}</svg>`;
@@ -62,14 +61,26 @@ const svgImage = (logo: { w: number; h: number; body: string }, color?: string):
     img.onload = () => resolve(img); img.onerror = () => resolve(null);
     img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   });
-const pngImage = (src: string): Promise<HTMLImageElement | null> =>
+export const badgeImage = (lg: League): Promise<HTMLImageElement | null> =>
+  new Promise((resolve) => {
+    const img = new Image(); img.onload = () => resolve(img); img.onerror = () => resolve(null);
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" width="256" height="288">${badgeInner(lg, "r")}</svg>`)}`;
+  });
+export const pngImage = (src: string): Promise<HTMLImageElement | null> =>
   new Promise((resolve) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = () => resolve(null); i.src = src; });
 
-function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+/** Desenha um ícone Material centrado em (cx, cy) pelo contorno real do glifo (a fonte de ícones não tem o centro óptico no meio da caixa de texto). */
+export function drawIcon(ctx: CanvasRenderingContext2D, name: string, cx: number, cy: number, size: number, color: string) {
+  ctx.save(); ctx.font = `${size}px "Material Symbols Rounded Variable"`; ctx.fillStyle = color; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  const m = ctx.measureText(name);
+  ctx.fillText(name, cx - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2, cy + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
+  ctx.restore();
+}
+export function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   const k = Math.min(r, w / 2, h / 2);
   ctx.beginPath(); ctx.moveTo(x + k, y); ctx.arcTo(x + w, y, x + w, y + h, k); ctx.arcTo(x + w, y + h, x, y + h, k); ctx.arcTo(x, y + h, x, y, k); ctx.arcTo(x, y, x + w, y, k); ctx.closePath();
 }
-function wrap(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxLines: number): string[] {
+export function wrap(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxLines: number): string[] {
   const words = text.split(/\s+/); const lines: string[] = []; let cur = "";
   for (const w of words) {
     const next = cur ? `${cur} ${w}` : w;
@@ -81,7 +92,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxLine
   if (lines.length === maxLines && words.join(" ") !== lines.join(" ")) lines[maxLines - 1] = lines[maxLines - 1]!.replace(/[\s,.;:]*$/, "") + "…";
   return lines;
 }
-function fit(ctx: CanvasRenderingContext2D, text: string, maxW: number) {
+export function fit(ctx: CanvasRenderingContext2D, text: string, maxW: number) {
   if (ctx.measureText(text).width <= maxW) return text;
   let s = text; while (s.length > 1 && ctx.measureText(`${s}…`).width > maxW) s = s.slice(0, -1);
   return `${s}…`;
@@ -104,7 +115,8 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
   try { await Promise.all([document.fonts.load(`700 24px ${SANS}`), document.fonts.load(`500 16px ${SANS}`), document.fonts.load(`24px "Material Symbols Rounded Variable"`)]); } catch { /* usa a fonte do sistema */ }
 
   const caseLogo = r.logoId ? LOGOS[r.logoId] : undefined;
-  const [logoImg, brandImg] = await Promise.all([caseLogo ? svgImage(caseLogo, "#f4f7fb") : Promise.resolve(null), pngImage("/logo.png")]);
+  const lgNow = r.rating.overall === null ? LEAGUES[0]! : leagueOf(r.rating.overall);
+  const [logoImg, brandImg, badgeImg] = await Promise.all([caseLogo ? svgImage(caseLogo, "#f4f7fb") : Promise.resolve(null), pngImage("/logo.png"), badgeImage(lgNow)]);
   const provImgs = new Map<string, HTMLImageElement>();
   await Promise.all([...new Set(r.nodes.map((n) => n.providerId).filter(Boolean) as string[])].map(async (id) => {
     const l = LOGOS[id]; if (!l) return;
@@ -129,7 +141,7 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
   const kx = bw > wMax ? Math.max(sN, Math.min(1.8, (availW - wMax * WF * sN) / (bw - wMax))) : sN;
   const ky = bh > hMax ? Math.max(sN, Math.min(1.8, (availH - hMax * sN) / (bh - hMax))) : sN;
   const spanW0 = (bw - wMax) * kx + wMax * WF * sN, spanH0 = (bh - hMax) * ky + hMax * sN;
-  const mapH = r.nodes.length ? Math.round(Math.max(860, Math.min(maxH, spanH0 + inner * 2 + 30))) : 760;
+  const mapH = r.nodes.length ? Math.round(Math.max(1040, Math.min(maxH, spanH0 + inner * 2 + 30))) : 1040; // a coluna lateral (liga, radar e destaques) pede ~1040 px
   const H = mapH + PAD * 2;
 
   const cv = document.createElement("canvas"); cv.width = W * DPR; cv.height = H * DPR;
@@ -137,12 +149,22 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
 
   const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, C.bg0); bg.addColorStop(1, C.bg1);
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-  const tier = r.rating.tier ? TIER[r.rating.tier] : { name: "—", color: C.dim };
+  const lg = r.rating.overall === null ? null : leagueOf(r.rating.overall);
+  const tier = lg ? { name: lg.name, color: lg.c1 } : { name: "—", color: C.dim };
   const glow = ctx.createRadialGradient(PAD + 80, PAD, 0, PAD + 80, PAD, 520); glow.addColorStop(0, `${tier.color}2e`); glow.addColorStop(1, "transparent");
   ctx.fillStyle = glow; ctx.fillRect(0, 0, W, 700);
 
-  // ── coluna lateral ──
+  // ── coluna lateral: marca, caso, liga, requisitos, radar de atributos e destaques ──
+  const lgDraw = lg ?? LEAGUES[0]!;
+  const lang = document.documentElement.lang === "en" ? "en-US" : "pt-BR";
   let y = PAD;
+  if (brandImg) ctx.drawImage(brandImg, PAD, y, 40, 40);
+  ctx.fillStyle = C.text; ctx.font = `700 22px ${SANS}`; ctx.fillText("ArchLab", PAD + 52, y + 19);
+  ctx.fillStyle = C.dim; ctx.font = `500 13px ${SANS}`; ctx.fillText(t("Relatório de arquitetura"), PAD + 52, y + 38);
+  ctx.textAlign = "right"; ctx.fillText(new Date().toLocaleDateString(lang, { day: "2-digit", month: "long", year: "numeric" }), PAD + SIDE, y + 38); ctx.textAlign = "left";
+  ctx.fillStyle = C.line; ctx.fillRect(PAD, y + 58, SIDE, 1);
+  y += 80;
+
   const lh = 40, lw = logoImg && caseLogo ? Math.min(120, Math.round(lh * (caseLogo.w / caseLogo.h))) : lh;
   const tileW = lw + 28, tileH = 68;
   rr(ctx, PAD, y, tileW, tileH, 18); ctx.fillStyle = "#12203f"; ctx.fill(); ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.stroke();
@@ -150,53 +172,87 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
     const ar = caseLogo.w / caseLogo.h; const dw = ar >= lw / lh ? lw : lh * ar, dh = ar >= lw / lh ? lw / ar : lh;
     ctx.drawImage(logoImg, PAD + (tileW - dw) / 2, y + (tileH - dh) / 2, dw, dh);
   } else {
-    ctx.fillStyle = C.accent; ctx.font = `30px "Material Symbols Rounded Variable"`; ctx.textAlign = "center";
-    ctx.fillText(r.iconName ?? "account_tree", PAD + tileW / 2, y + 45); ctx.textAlign = "left";
+    drawIcon(ctx, r.iconName ?? "account_tree", PAD + tileW / 2, y + tileH / 2, 30, C.accent);
   }
   const tx = PAD + tileW + 18;
   ctx.fillStyle = C.text; ctx.font = `700 32px ${SANS}`; ctx.fillText(fit(ctx, t(r.title), PAD + SIDE - tx), tx, y + 34);
   ctx.fillStyle = C.sub; ctx.font = `500 15px ${SANS}`;
   ctx.fillText(fit(ctx, [r.mode === "study" ? t("Modo estudo") : t("Modo livre"), r.level ? t(r.level) : ""].filter(Boolean).join("  ·  "), PAD + SIDE - tx), tx, y + 58);
-  y += tileH + 22;
+  y += tileH + 18;
 
   if (r.summary) {
-    ctx.fillStyle = C.sub; ctx.font = `500 17px ${SANS}`;
-    const lines = wrap(ctx, t(r.summary), SIDE, 6);
-    lines.forEach((ln, i) => ctx.fillText(ln, PAD, y + 16 + i * 25)); y += lines.length * 25 + 26;
+    ctx.fillStyle = C.sub; ctx.font = `500 16px ${SANS}`;
+    const lines = wrap(ctx, t(r.summary), SIDE, 3);
+    lines.forEach((ln, i) => ctx.fillText(ln, PAD, y + 16 + i * 24)); y += lines.length * 24 + 22;
   }
 
-  // nota, compacta
-  const nh = 74;
-  rr(ctx, PAD, y, SIDE, nh, 16); ctx.fillStyle = `${tier.color}18`; ctx.fill(); ctx.strokeStyle = `${tier.color}66`; ctx.lineWidth = 1.2; ctx.stroke(); ctx.lineWidth = 1;
-  ctx.fillStyle = tier.color; ctx.font = `800 50px ${SANS}`; ctx.fillText(r.rating.overall === null ? "—" : String(r.rating.overall), PAD + 20, y + 56);
-  const nx0 = PAD + 20 + ctx.measureText(r.rating.overall === null ? "—" : String(r.rating.overall)).width + 16;
-  ctx.fillStyle = C.sub; ctx.font = `700 12px ${SANS}`; ctx.fillText("OVR", nx0, y + 30);
-  ctx.fillStyle = tier.color; ctx.font = `800 17px ${SANS}`; ctx.fillText((r.rating.tier ? t(tier.name) : t("Sem nota")).toUpperCase(), nx0, y + 52);
-  if (r.total > 0) { ctx.textAlign = "right"; ctx.fillStyle = C.sub; ctx.font = `500 13px ${SANS}`;
-    ctx.fillText(t("{met} de {total} requisitos", { met: r.met, total: r.total }), PAD + SIDE - 16, y + 44); ctx.textAlign = "left"; }
-  y += nh + 18;
-  // atributos, em miniatura
-  r.rating.attrs.forEach((a, i) => {
-    const ry = y + i * 30;
-    ctx.fillStyle = C.sub; ctx.font = `600 14px ${SANS}`; ctx.fillText(t(a.label), PAD, ry + 12);
-    const bx = PAD + 130, bwid = SIDE - 130 - 34;
-    rr(ctx, bx, ry + 5, bwid, 6, 3); ctx.fillStyle = "#1b2a4d"; ctx.fill();
-    if (a.score !== null) {
-      const col = a.score >= 90 ? "#38bdf8" : a.score >= 75 ? "#f0c23a" : a.score >= 60 ? "#b9c4d6" : "#cd8a55";
-      rr(ctx, bx, ry + 5, Math.max(6, (bwid * a.score) / 100), 6, 3); ctx.fillStyle = col; ctx.fill();
-    }
-    ctx.textAlign = "right"; ctx.fillStyle = a.score === null ? C.dim : C.text; ctx.font = `700 14px ${SANS}`;
-    ctx.fillText(a.score === null ? "—" : String(a.score), PAD + SIDE, ry + 13); ctx.textAlign = "left";
-  });
-  // marca e data no pé da coluna
+  // liga: emblema grande, nome do material e a nota
+  const hh = 172;
+  const hg = ctx.createLinearGradient(PAD, y, PAD + SIDE, y + hh); hg.addColorStop(0, `${tier.color}38`); hg.addColorStop(1, `${lgDraw.c2}10`);
+  rr(ctx, PAD, y, SIDE, hh, 24); ctx.fillStyle = hg; ctx.fill(); ctx.strokeStyle = `${tier.color}88`; ctx.lineWidth = 1.5; ctx.stroke(); ctx.lineWidth = 1;
+  const bW = 108, bH = Math.round((bW * 72) / 64);
+  if (badgeImg) { ctx.save(); if (!lg) ctx.globalAlpha = 0.3; ctx.drawImage(badgeImg, PAD + 26, y + (hh - bH) / 2, bW, bH); ctx.restore(); }
+  const hx = PAD + 26 + bW + 26;
+  ctx.fillStyle = C.sub; ctx.font = `700 12px ${SANS}`; ctx.fillText(t("LIGA"), hx, y + 40);
+  ctx.fillStyle = tier.color; ctx.font = `800 32px ${SANS}`; ctx.fillText(fit(ctx, lg ? t(lg.name) : t("Sem nota"), PAD + SIDE - hx - 16), hx, y + 76);
+  const ov = r.rating.overall === null ? "—" : String(r.rating.overall);
+  ctx.fillStyle = C.text; ctx.font = `800 70px ${SANS}`; ctx.fillText(ov, hx, y + 144);
+  const ow = ctx.measureText(ov).width; ctx.fillStyle = C.sub; ctx.font = `700 16px ${SANS}`; ctx.fillText("OVR", hx + ow + 10, y + 144);
+  y += hh + 22;
+
+  if (r.total > 0) {
+    ctx.fillStyle = C.sub; ctx.font = `600 14px ${SANS}`; ctx.fillText(t("Requisitos"), PAD, y + 12);
+    ctx.textAlign = "right"; ctx.fillStyle = C.text; ctx.font = `700 14px ${SANS}`; ctx.fillText(t("{met} de {total} requisitos", { met: r.met, total: r.total }), PAD + SIDE, y + 12); ctx.textAlign = "left";
+    rr(ctx, PAD, y + 22, SIDE, 8, 4); ctx.fillStyle = "#1b2a4d"; ctx.fill();
+    rr(ctx, PAD, y + 22, Math.max(8, (SIDE * r.met) / r.total), 8, 4); ctx.fillStyle = r.met >= r.total ? "#34d399" : C.accent; ctx.fill();
+    y += 52;
+  }
+
+  // radar dos seis atributos
+  const attrs = r.rating.attrs, na = attrs.length;
+  if (na >= 3) {
+    const R = 120, cx = PAD + SIDE / 2, cy = y + R + 46;
+    const pt = (i: number, k: number): [number, number] => { const a2 = -Math.PI / 2 + (i * 2 * Math.PI) / na; return [cx + R * k * Math.cos(a2), cy + R * k * Math.sin(a2)]; };
+    const poly = (k: (i: number) => number) => { ctx.beginPath(); for (let i = 0; i < na; i++) { const [px, py] = pt(i, k(i)); if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); } ctx.closePath(); };
+    for (const k of [0.25, 0.5, 0.75, 1]) { poly(() => k); ctx.strokeStyle = k === 1 ? "#ffffff30" : "#ffffff16"; ctx.lineWidth = 1; ctx.stroke(); }
+    for (let i = 0; i < na; i++) { const [px, py] = pt(i, 1); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.strokeStyle = "#ffffff14"; ctx.stroke(); }
+    poly((i) => (attrs[i]!.score ?? 0) / 100);
+    const rg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R); rg.addColorStop(0, `${tier.color}22`); rg.addColorStop(1, `${tier.color}66`);
+    ctx.fillStyle = rg; ctx.fill(); ctx.strokeStyle = tier.color; ctx.lineWidth = 2.6; ctx.lineJoin = "round"; ctx.stroke(); ctx.lineWidth = 1;
+    attrs.forEach((a, i) => {
+      const [vx, vy] = pt(i, (a.score ?? 0) / 100);
+      if (a.score !== null) { ctx.beginPath(); ctx.arc(vx, vy, 4.6, 0, Math.PI * 2); ctx.fillStyle = tier.color; ctx.fill(); ctx.strokeStyle = C.bg0; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1; }
+      const ang = -Math.PI / 2 + (i * 2 * Math.PI) / na, ca = Math.cos(ang), sa = Math.sin(ang);
+      const lx0 = cx + (R + 20) * ca, ly0 = cy + (R + 20) * sa;
+      ctx.textAlign = Math.abs(ca) < 0.25 ? "center" : ca > 0 ? "left" : "right";
+      const oy = sa < -0.5 ? -26 : sa > 0.5 ? 14 : -4;
+      ctx.fillStyle = C.sub; ctx.font = `600 13px ${SANS}`; ctx.fillText(t(a.label), lx0, ly0 + oy);
+      ctx.fillStyle = a.score === null ? C.dim : C.text; ctx.font = `800 17px ${SANS}`; ctx.fillText(a.score === null ? "—" : String(a.score), lx0, ly0 + oy + 19);
+    });
+    ctx.textAlign = "left";
+    y = cy + R + 74;
+  }
+
+  // destaques: o ponto mais forte e o que mais merece atenção
+  const scored = attrs.filter((a) => a.score !== null);
+  if (scored.length >= 2) {
+    const best = scored.reduce((m, a) => (a.score! > m.score! ? a : m)), worst = scored.reduce((m, a) => (a.score! < m.score! ? a : m));
+    const block = (tag: string, color: string, a: typeof best, text: string) => {
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(PAD + 5, y + 8, 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.font = `800 12px ${SANS}`; ctx.fillText(tag, PAD + 18, y + 12);
+      ctx.fillStyle = C.text; ctx.font = `700 15px ${SANS}`; ctx.fillText(`${t(a.label)} · ${a.score}`, PAD + 18 + ctx.measureText(tag).width + 12, y + 12);
+      ctx.fillStyle = C.sub; ctx.font = `500 13.5px ${SANS}`;
+      wrap(ctx, text, SIDE - 18, 2).forEach((ln, i) => ctx.fillText(ln, PAD + 18, y + 34 + i * 19));
+      y += 82;
+    };
+    block(t("PONTO FORTE"), "#34d399", best, best.why);
+    if (worst.score! < 90 && worst !== best) block(t("PARA MELHORAR"), "#fbbf24", worst, worst.tip ?? worst.why);
+  }
+
+  // rodapé
   const fy = H - PAD;
   ctx.fillStyle = C.dim; ctx.font = `500 12px ${SANS}`;
-  const date = new Date().toLocaleDateString(document.documentElement.lang === "en" ? "en-US" : "pt-BR", { day: "2-digit", month: "long", year: "numeric" });
-  ctx.fillText(date, PAD, fy);
-  ctx.fillText(fit(ctx, t("Modelo pedagógico com perfis fictícios, não são benchmarks"), SIDE), PAD, fy - 18);
-  if (brandImg) ctx.drawImage(brandImg, PAD, fy - 80, 34, 34);
-  ctx.fillStyle = C.text; ctx.font = `700 20px ${SANS}`; ctx.fillText("ArchLab", PAD + 44, fy - 61);
-  ctx.fillStyle = C.dim; ctx.font = `500 12px ${SANS}`; ctx.fillText(t("Laboratório de system design"), PAD + 44, fy - 44);
+  ctx.fillText(fit(ctx, t("Modelo pedagógico com perfis fictícios, não são benchmarks"), SIDE), PAD, fy);
 
   // ── mapa ──
   const my = PAD;
@@ -272,7 +328,7 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
       ctx.save(); rr(ctx, 0, 0, w, h, 18); ctx.clip(); ctx.fillStyle = color; ctx.fillRect(0, 0, w, 4); ctx.restore();
       // cabeçalho: ícone, nome, provedor/tipo e logo do provedor
       rr(ctx, 14, 16, 36, 36, 11); ctx.fillStyle = `${color}33`; ctx.fill();
-      ctx.fillStyle = color; ctx.font = `22px "Material Symbols Rounded Variable"`; ctx.textAlign = "center"; ctx.fillText(n.icon, 32, 42); ctx.textAlign = "left";
+      drawIcon(ctx, n.icon, 32, 34, 22, color);
       const prov = n.providerId ? provImgs.get(n.providerId) : undefined; const bx = n.providerId ? logoBox(n.providerId, 34) : { w: 0, h: 0 }; const pw = prov ? bx.w : 0;
       ctx.fillStyle = C.text; ctx.font = `700 15px ${SANS}`; ctx.fillText(fit(ctx, n.name, w - 62 - 12 - pw - (pw ? 6 : 0)), 62, 32);
       ctx.fillStyle = C.dim; ctx.font = `500 11.5px ${SANS}`; ctx.fillText(fit(ctx, n.providerName ?? n.type, w - 62 - 12 - pw - (pw ? 6 : 0)), 62, 48);

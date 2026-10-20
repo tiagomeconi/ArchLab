@@ -51,7 +51,9 @@ export function buildReference(checks: Checks, load: Load): Snapshot {
   const search = has.has("search-engine") ? add("search", "search-engine", dataCol) : null;
   const obj = has.has("object-storage") ? add("obj", "object-storage", dataCol) : null;
   const notify = has.has("notification-service") ? add("notify", "notification-service", dataCol + 2) : null;
-  const db = sqlId ?? nosqlId!;
+  // com os dois bancos, o volume (leitura/escrita comum) vai ao NoSQL e o SQL fica com as transações que não podem errar (dinheiro, estoque, estado da corrida)
+  const both = !!sqlId && !!nosqlId;
+  const db = both ? nosqlId! : (sqlId ?? nosqlId!);
 
   const typeOf = (id: string) => nodes.find((n) => n.id === id)!.type;
   const edges: any[] = [];
@@ -66,6 +68,7 @@ export function buildReference(checks: Checks, load: Load): Snapshot {
   entryChain.forEach((id, i) => link(id, entryChain[i + 1] ?? app));
   link("client", ws); link(ws, app);
   link(app, cache); link(app, sqlId); link(app, nosqlId); link(app, streamId); link(streamId, worker); link(worker, db); link(app, search); link(app, obj); link(app, notify);
+  if (worker && !streamId) link(app, worker); // worker sem fila: job assíncrono disparado pelo serviço
   if (cdn && obj) link(cdn, obj);
 
   // ── fluxos ──
@@ -97,7 +100,10 @@ export function buildReference(checks: Checks, load: Load): Snapshot {
   replace(chain(newFlow(t("Leitura"), 1), [...front.filter((x) => x !== cdn), app, ...(cache ? [cache] : []), db], compute({ cache: "read", [db]: "read" })));
   replace(chain(newFlow(t("Escrita"), 0.6), [...front.filter((x) => x !== cdn), app, db], compute({ [db]: "write" })));
   // o consumo da fila/log é calculado pelo próprio motor a partir da aresta fila → worker; o fluxo só publica
-  if (streamId) replace(chain(newFlow(t("Eventos"), 0.5), [...front.filter((x) => x !== cdn), app, streamId], compute({ [streamId]: "message" })));
+  if (streamId) replace(chain(newFlow(t("Eventos"), 0.25), [...front.filter((x) => x !== cdn), app, streamId], compute({ [streamId]: "message" })));
+  if (worker && !streamId) replace(chain(newFlow(t("Processamento"), 0.5), [...front.filter((x) => x !== cdn), app, worker, db], compute({ worker: "compute", [db]: "write" })));
+  if (both) replace(chain(newFlow(t("Transações"), 0.2), [...front.filter((x) => x !== cdn), app, sqlId!], compute({ [sqlId!]: "write" })));
+  if (notify) replace(chain(newFlow(t("Notificações"), 0.3), [...front.filter((x) => x !== cdn), app, notify], compute({ notify: "compute" })));
   if (search) replace(chain(newFlow(t("Busca"), 0.5), [...front.filter((x) => x !== cdn), app, search], compute({ search: "read" })));
   if (obj) replace(chain(newFlow(t("Mídia"), 0.5), cdn ? [cdn, obj] : [...front, app, obj], compute({ cdn: "read", obj: "read" })));
   if (ws) replace(chain(newFlow(t("Tempo real"), 0.5), [ws, app], compute({ ws: "compute" })));

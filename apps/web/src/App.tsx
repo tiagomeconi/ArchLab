@@ -1,6 +1,6 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  applyNodeChanges, Background, Panel, BackgroundVariant, BaseEdge, Controls, EdgeLabelRenderer, getBezierPath, Handle, MiniMap,
+  applyNodeChanges, Background, Panel, BackgroundVariant, BaseEdge, ControlButton, Controls, EdgeLabelRenderer, getBezierPath, Handle, MiniMap,
   NodeResizeControl, Position, ReactFlow, ReactFlowProvider, ResizeControlVariant, useReactFlow,
   type Connection, type ConnectionLineComponentProps, type Edge, type EdgeChange, type EdgeProps, type Node, type NodeChange, type NodeProps,
 } from "@xyflow/react";
@@ -29,11 +29,19 @@ import { Guide } from "./Guide";
 import { evaluate } from "./requirements";
 import { buildReference, MAX_REPLICAS } from "./reference";
 import { saveCaseProgress } from "./progress";
+import { autoLayout, type LNode } from "./autolayout";
+import { renderSocialCard } from "./socialCard";
+import { Tour, tourDone } from "./Tour";
+import { DesignName, type SaveState } from "./DesignName";
+import { recordToday } from "./activity";
 import { canShare, decodeShare, shareUrl, type SharePayload } from "./share";
+import { authEnabled, useAuth } from "./auth";
+import { createShare, fetchDesign, fetchShare, pushDesign } from "./cloud";
 import { caseById, sessionFor } from "./cases";
 import { emptyRequirements, type Session } from "./session";
 import { DEFAULT_LOAD, loadSession } from "./session";
 import { ThemeToggle } from "./ThemeToggle";
+import { AccountMenu } from "./AccountMenu";
 import { t, useLang } from "./i18n";
 import { LangToggle } from "./LangToggle";
 import { protoOf } from "./protocols";
@@ -352,6 +360,18 @@ function Lab() {
     const c = shared.caseId ? caseById(shared.caseId) : undefined;
     return c ? sessionFor(c) : { mode: "free", title: shared.title, requirements: emptyRequirements() };
   }, [sharedMode, stored, shared]);
+  // identidade do desenho: caso (um por caso), livre com id (?d=…, vários) ou o livre antigo ("free"); a referência não é salva
+  const dParam = useMemo(() => { const d = new URLSearchParams(location.search).get("d"); return d && /^[a-z0-9]{4,16}$/i.test(d) ? d.toLowerCase() : null; }, []);
+  const caseMode = !!session?.caseId;
+  const designKey = sharedMode ? null : blank ? (session?.caseId ?? (dParam ? `free-${dParam}` : "free")) : "reference";
+  const fallbackName = designKey === "free" ? t("Canvas livre") : t("Desenho sem nome");
+  const [designTitle, setDesignTitle] = useState<string>(() => {
+    try { const v = JSON.parse(localStorage.getItem(`archlab:design:${designKey}`) ?? "null")?.title; if (typeof v === "string" && v.trim()) return v; } catch { /* ignora */ }
+    return session && !session.caseId ? session.title : "";
+  });
+  const designName = caseMode || (sharedMode && session) ? session!.title : designTitle.trim() || fallbackName;
+  const freeEditable = blank && !caseMode && !sharedMode;
+  const [save, setSave] = useState<SaveState>("idle");
   // o desenho de referência (encurtador) tem carga própria; no canvas em branco vale a carga do caso ou do modo livre
   const { peakRps: PEAK, readPct: READ0 } = (blank ? session?.load : undefined) ?? DEFAULT_LOAD;
   const [traffic, setTraffic] = useState(1); // × a carga de pico do caso
@@ -372,6 +392,9 @@ function Lab() {
   const [chaos, setChaos] = useState<Set<string>>(new Set());
   const [chaosOpen, setChaosOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+  // primeira visita ao laboratório: passeio guiado (nunca em link compartilhado nem com modal aberto)
+  useEffect(() => { if (sharedMode || tourDone()) return; const id = setTimeout(() => { if (!document.querySelector("dialog[open]")) setTourOpen(true); }, 1200); return () => clearTimeout(id); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   // o enunciado do encurtador só vale para o desenho de referência; no canvas em branco o painel mostra os requisitos da sessão (ou some)
   const caseTypes = useMemo(() => (blank && session?.checks ? new Set(session.checks.needs.flatMap((n) => n.any)) : undefined), [blank, session]);
   const chaosHints = useMemo(() => (blank && session?.checks?.chaos ? new Set(session.checks.chaos) : undefined), [blank, session]);
@@ -680,6 +703,7 @@ function Lab() {
     const t = setTimeout(() => {
       h.past.push(h.last); if (h.past.length > 100) h.past.shift();
       h.last = key; h.future = [];
+      recordToday(); // praticou hoje (só conta edição de verdade: restaurar um desenho não passa por aqui)
     }, 350);
     return () => clearTimeout(t);
   }, [key, busy]);
@@ -747,7 +771,7 @@ function Lab() {
   }, [blank, session, nodes.length, checks, stagesDone, viewingRef, rating.overall]);
 
   // ── persistência: o desenho é salvo no navegador (um por caso) e pode ser exportado/importado como arquivo ──
-  const storeKey = `archlab:design:${sharedMode ? "shared" : blank ? (session?.caseId ?? "free") : "reference"}`;
+  const storeKey = `archlab:design:${sharedMode ? "shared" : designKey}`;
   const fileRef = useRef<HTMLInputElement>(null);
   const valid = (s: any) => s && Array.isArray(s.n) && Array.isArray(s.e) && Array.isArray(s.f) && Array.isArray(s.w) && s.m && typeof s.m === "object";
   useEffect(() => {
@@ -759,11 +783,43 @@ function Lab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
-    const t = setTimeout(() => { try { localStorage.setItem(storeKey, JSON.stringify({ v: 1, savedAt: Date.now(), snap: key })); } catch { /* armazenamento cheio ou bloqueado */ } }, 600);
+    if (nodes.length && blank && !sharedMode) setSave("saving");
+    const t = setTimeout(() => {
+      try { localStorage.setItem(storeKey, JSON.stringify({ v: 1, savedAt: Date.now(), snap: key, title: freeEditable ? designTitle : undefined })); if (nodes.length && blank && !sharedMode) setSave((cur) => (cur === "cloud" || (uid && cloudReady.current) ? cur : "local")); }
+      catch { /* armazenamento cheio ou bloqueado */ }
+    }, 600);
     return () => clearTimeout(t);
-  }, [key, storeKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, storeKey, designTitle]);
+  // ── nuvem (só logado): puxa o desenho salvo e depois grava as mudanças; nunca sobrescreve a nuvem antes de olhar o que já existe ──
+  const auth = useAuth();
+  const uid = authEnabled && auth.status === "in" ? auth.user?.id : undefined;
+  const cloudKey = designKey;
+  const cloudReady = useRef(false);
+  useEffect(() => {
+    cloudReady.current = false;
+    if (!uid || !cloudKey || cloudKey === "reference") return;
+    let alive = true;
+    fetchDesign(cloudKey).then((d) => {
+      if (!alive) return;
+      try {
+        const localAt = Number(JSON.parse(localStorage.getItem(storeKey) ?? "null")?.savedAt) || 0;
+        const remote = d && valid(d.snap) ? JSON.stringify(d.snap) : null;
+        if (remote && d!.updatedAt > localAt && remote !== snap()) { restore(remote); if (freeEditable && d!.title) setDesignTitle(d!.title); say(t("Desenho sincronizado da nuvem")); setTimeout(doFit, 150); }
+      } catch { /* dado inválido: segue com o local */ }
+      cloudReady.current = true;
+    });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, cloudKey]);
+  useEffect(() => {
+    if (!uid || !cloudKey || cloudKey === "reference" || viewingRef || !nodes.length) return;
+    const t0 = setTimeout(() => { if (cloudReady.current) void pushDesign(cloudKey, caseMode ? session!.title : designTitle, JSON.parse(key)).then((ok) => setSave(ok ? "cloud" : "error")); }, 2500);
+    return () => clearTimeout(t0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, uid, cloudKey, viewingRef, designTitle]);
   const exportDesign = () => {
-    const title = session?.title ?? (blank ? t("Canvas livre") : t("Encurtador de links"));
+    const title = blank ? designName : (session?.title ?? t("Encurtador de links"));
     const blob = new Blob([JSON.stringify({ format: "archlab-design", v: 1, title, snap: JSON.parse(key) }, null, 2)], { type: "application/json" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
     a.download = `archlab-${title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "desenho"}.json`;
@@ -775,7 +831,7 @@ function Lab() {
     setReporting(true);
     try {
       const found = session?.caseId ? caseById(session.caseId) : undefined;
-      const title = session?.title ?? (blank ? t("Canvas livre") : t("Encurtador de links"));
+      const title = blank ? designName : (session?.title ?? t("Encurtador de links"));
       const blob = await renderReport({
         title, summary: session?.summary, level: found?.level, mode: session?.mode ?? "free", logoId: found?.company?.logo, iconName: found?.icon,
         rating, met: checks.filter((c) => c.status === "meets").length, total: checks.length,
@@ -795,7 +851,8 @@ function Lab() {
   };
   useEffect(() => {
     if (!sharedMode) return;
-    decodeShare(location.hash).then((p) => {
+    const sid = new URLSearchParams(location.search).get("p");
+    (sid ? fetchShare(sid) : decodeShare(location.hash)).then((p) => {
       if (!p) { setShared("error"); say(t("Link inválido ou corrompido")); return; }
       setShared(p);
       const c = p.caseId ? caseById(p.caseId) : undefined;
@@ -804,10 +861,30 @@ function Lab() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const copyLink = async () => {
-    if (!canShare()) { say(t("Seu navegador não suporta compartilhar por link")); return; }
+  const exportCard = async () => {
+    if (reporting) return;
+    setReporting(true);
     try {
-      const url = await shareUrl({ v: 1, title: session?.title ?? "Meu desenho", caseId: session?.caseId, snap: JSON.parse(key) });
+      const found = session?.caseId ? caseById(session.caseId) : undefined;
+      const title = blank ? designName : (session?.title ?? t("Encurtador de links"));
+      const blob = await renderSocialCard({
+        kind: "case", title, subtitle: [session?.mode === "study" ? t("Modo estudo") : t("Modo livre"), found?.level ? t(found.level) : ""].filter(Boolean).join("  ·  "),
+        logoId: found?.company?.logo, iconName: found?.icon, overall: rating.overall, attrs: rating.attrs.map((a) => ({ label: a.label, score: a.score })),
+        author: String(auth.user?.user_metadata?.name ?? "").trim() || undefined,
+      });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+      a.download = `archlab-cartao-${title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "nota"}.png`;
+      a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); say(t("Cartão exportado"));
+    } catch { say(t("Não foi possível gerar o cartão")); }
+    finally { setReporting(false); }
+  };
+  const copyLink = async () => {
+    if (!canShare() && !uid) { say(t("Seu navegador não suporta compartilhar por link")); return; }
+    try {
+      const payload: SharePayload = { v: 1, title: blank ? designName : (session?.title ?? "Meu desenho"), caseId: session?.caseId, snap: JSON.parse(key) };
+      // logado: link curto guardado no banco; senão (ou se falhar) o desenho vai inteiro no #d=…
+      const id = uid ? await createShare(payload) : null;
+      const url = id ? `${location.origin}/app?blank=1&shared=1&p=${id}` : await shareUrl(payload);
       try { await navigator.clipboard.writeText(url); say(url.length > 6000 ? t("Link copiado (longo: pode não funcionar em alguns apps)") : t("Link copiado")); }
       catch { window.prompt(t("Copie o link do desenho:"), url); }
     } catch { say(t("Não foi possível gerar o link")); }
@@ -861,6 +938,26 @@ function Lab() {
   };
   const clearSelection = () => { setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n))); setEdgeSel(new Set()); setSelected(null); };
   const nudge = (dx: number, dy: number) => setNodes((ns) => ns.map((n) => (n.selected ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } } : n)));
+  /** Organiza o diagrama: calcula as posições (autolayout.ts) e anima os cards até lá; vira um único passo no desfazer. */
+  const alignAnim = useRef(0);
+  const autoAlign = () => {
+    if (nodes.length < 2) { say(t("Adicione ao menos dois componentes para organizar")); return; }
+    const ln: LNode[] = nodes.map((n) => ({
+      id: n.id, w: n.width ?? 240, h: n.measured?.height ?? (n.data.load ? 124 : 96), x: n.position.x, y: n.position.y,
+      origin: SOURCE_TYPES.has(String(n.data.type)), side: SIDE_TYPES.has(String(n.data.type)),
+    }));
+    const target = autoLayout(ln, docEdges.map((e) => ({ source: e.source, target: e.target })));
+    const from = new Map(nodes.map((n) => [n.id, { ...n.position }]));
+    const dur = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 420;
+    const t0 = performance.now();
+    cancelAnimationFrame(alignAnim.current);
+    const step = (now: number) => {
+      const k = dur ? Math.min(1, (now - t0) / dur) : 1, e = 1 - Math.pow(1 - k, 3);
+      setNodes((ns) => ns.map((n) => { const a = from.get(n.id), b = target.get(n.id); return a && b ? { ...n, position: { x: a.x + (b.x - a.x) * e, y: a.y + (b.y - a.y) * e } } : n; }));
+      if (k < 1) alignAnim.current = requestAnimationFrame(step); else { say(t("Diagrama organizado")); setTimeout(doFit, 80); }
+    };
+    alignAnim.current = requestAnimationFrame(step);
+  };
   const doFit = () => fitView({ padding: { top: "110px", bottom: "60px", left: briefOpen ? "420px" : "80px", right: "400px" }, duration: 400 });
 
   const keys = useRef<(e: KeyboardEvent) => void>(() => {});
@@ -888,6 +985,7 @@ function Lab() {
     else if (k === "arrowup") { e.preventDefault(); nudge(0, -step); }
     else if (k === "arrowdown") { e.preventDefault(); nudge(0, step); }
     else if (k === "f") doFit();
+    else if (k === "l") autoAlign();
     else if (k === "m") setMapOpen((v) => !v);
     else if (k === "b") setBriefOpen((v) => !v);
     else if (e.key === "?" || (e.key === "/" && e.shiftKey)) setHelpOpen(true);
@@ -908,15 +1006,16 @@ function Lab() {
   return (
     <div className={`lab${briefOpen ? " brief-open" : ""}`}>
       <header className="panel topbar">
-        <a className="brand" href="/start" title={t("Trocar de modo")} onClick={(e) => { e.preventDefault(); go("/start"); }}>
+        <a className="brand" href="/start" title={t("Voltar ao início")} onClick={(e) => { e.preventDefault(); go("/start"); }}>
           <span className="logo"><Logo size={30} /></span>
-          <div>{t("ArchLab")}<small>{blank ? (session?.title ?? "Canvas livre") : (original.metadata.title ?? "Links curtos")}</small></div>
+          <div>{t("ArchLab")}{!blank && <small>{original.metadata.title ?? "Links curtos"}</small>}</div>
         </a>
+        {blank && <DesignName value={designName} editable={freeEditable} onCommit={setDesignTitle} status={sharedMode ? null : save} />}
         <span className="sep" />
         {running ? (
           <button className="simbtn stop" onClick={() => setRun((r) => ({ ...r, status: "stopped" }))}><Icon name="stop" size={20} />{" "}{t("Parar")}</button>
         ) : (
-          <button className="simbtn play" onClick={() => { if (flows.length === 0 && !(blank && syncFlows(true) > 0)) { setTab("flows"); if (!blank) say(t("Antes de simular, crie um fluxo: o caminho que a requisição percorre.")); return; } setRun({ status: "running", t: 0, series: [] }); }} disabled={issues.length > 0}
+          <button className="simbtn play" data-tour="simulate" onClick={() => { if (flows.length === 0 && !(blank && syncFlows(true) > 0)) { setTab("flows"); if (!blank) say(t("Antes de simular, crie um fluxo: o caminho que a requisição percorre.")); return; } setRun({ status: "running", t: 0, series: [] }); }} disabled={issues.length > 0}
             title={issues.length ? t("Corrija os problemas do modelo antes de simular") : t("Simular 300 s com a carga configurada")}>
             <Icon name="play_arrow" size={20} /> {run.status === "idle" ? t("Simular") : t("Simular de novo")}
           </button>
@@ -939,30 +1038,29 @@ function Lab() {
             onChange={(e) => setReadPct(+e.target.value)} />
           <small title={flows.some((f) => f.steps.some((s) => s.operationClass === "write")) ? undefined : t("Ainda não há fluxo de escrita: toda a carga vai para leitura")}>{mixLabel} · {writePct}% write{flows.some((f) => f.steps.some((s) => s.operationClass === "write")) ? "" : ` · ${t("só leitura")}`}</small>
         </div>
-        <button className={`chip chaos-btn${chaos.size ? " on" : ""}`} onClick={() => setChaosOpen(true)} title={t("Injetar falhas no desenho")}>
+        <button className={`chip chaos-btn${chaos.size ? " on" : ""}`} data-tour="chaos" onClick={() => setChaosOpen(true)} title={t("Injetar falhas no desenho")}>
           <Icon name="local_fire_department" size={16} /><span className="lbl">{t("Modo caos")}</span>{chaos.size ? <b className="count">{chaos.size}</b> : null}
         </button>
-        <button className="chip" aria-pressed={down.size > 0} disabled={down.size === 0} onClick={() => setDown(new Set())}
-          title={down.size ? t("Restaurar todos os componentes") : t("Selecione um componente e use “Simular indisponibilidade”")}>
-          <Icon name={down.size ? "restart_alt" : "flash_off"} size={16} />
-          <span className="lbl">{down.size ? t("{n} fora do ar · restaurar", { n: down.size }) : t("Sem falhas")}</span>
-        </button>
+        {down.size > 0 && (
+          <button className="chip" aria-pressed onClick={() => setDown(new Set())} title={t("Restaurar todos os componentes")}>
+            <Icon name="restart_alt" size={16} /><span className="lbl">{t("{n} fora do ar · restaurar", { n: down.size })}</span>
+          </button>
+        )}
         <span className="spacer" />
-        <RatingChip rating={rating} title={session?.title ?? (blank ? t("Canvas livre") : t("Encurtador de links"))} />
-        <button className="chip icon-only" aria-label={t("Copiar link do desenho")} title={t("Compartilhar por link")} onClick={copyLink}><Icon name="share" size={18} /></button>
-        <ExportMenu onJson={exportDesign} onReport={exportReport} busy={reporting} />
-        <button className="chip icon-only" aria-label={t("Importar desenho")} title={t("Importar desenho (.json)")} onClick={() => fileRef.current?.click()}><Icon name="upload" size={18} /></button>
+        <RatingChip rating={rating} title={blank ? designName : (session?.title ?? t("Encurtador de links"))} />
+        <ExportMenu onLink={copyLink} onJson={exportDesign} onReport={exportReport} onCard={exportCard} onImport={() => fileRef.current?.click()} busy={reporting} />
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) importDesign(f); e.target.value = ""; }} />
         <LangToggle />
         <ThemeToggle className="theme-btn" />
-        <button className="chip icon-only" aria-label={t("Atalhos de teclado")} title={t("Atalhos de teclado (?)")} onClick={() => setHelpOpen(true)}><Icon name="keyboard" size={18} /></button>
+        <AccountMenu onShortcuts={() => setHelpOpen(true)} onTour={() => setTourOpen(true)} />
+        {!authEnabled && <button className="chip icon-only" aria-label={t("Atalhos de teclado")} title={t("Atalhos de teclado (?)")} onClick={() => setHelpOpen(true)}><Icon name="keyboard" size={18} /></button>}
         <span className={`status${issues.length ? " bad" : ""}`} role="status" title={issues.map((i) => i.message).join("\n")}>
           <Icon name={issues.length === 0 ? "verified" : "error"} size={15} /> <span className="lbl">{issues.length === 0 ? t("Modelo válido") : t("{n} problema(s)", { n: issues.length })}</span>
         </span>
       </header>
 
       <ReactFlow
-        nodes={shownNodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
+        data-tour="canvas" nodes={shownNodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} isValidConnection={isValidConnection}
         deleteKeyCode={["Backspace", "Delete"]} connectionRadius={36} connectionLineComponent={ConnectionLine}
         fitView={!blank} defaultViewport={{ x: 0, y: 0, zoom: 1 }} fitViewOptions={{ padding: { top: "110px", bottom: "60px", left: "420px", right: "400px" } }} minZoom={0.25} maxZoom={2}
@@ -970,7 +1068,9 @@ function Lab() {
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
       >
         <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} color="var(--dot)" />
-        <Controls showInteractive={false} />
+        <Controls showInteractive={false}>
+          <ControlButton onClick={autoAlign} title={t("Organizar automaticamente (L)")} aria-label={t("Organizar automaticamente")}><Icon name="auto_fix_high" size={16} /></ControlButton>
+        </Controls>
         <Panel position="top-left" className="notes-panel"><NotesPad value={notes} onChange={setNotes} /></Panel>
         {protoLegend.length > 0 && (
           <Panel position="top-center" className="proto-legend" aria-label={t("Protocolos em uso")}>
@@ -1002,7 +1102,7 @@ function Lab() {
       {run.status === "idle" && <p className="hint panel" role="region" aria-label={t("Dica")}><Icon name="info" size={15} />{" "}{t("Arraste da lateral · ligue pelas bolinhas · defina o caminho em Fluxos ·")}{" "}<kbd>?</kbd> {t("atalhos")}</p>}
 
       {!hasPanel ? null : briefOpen ? (
-        <aside className="panel brief" aria-label={blank ? t("Requisitos") : t("Enunciado do desafio")}>
+        <aside className="panel brief" aria-label={blank ? t("Requisitos") : t("Enunciado do desafio")} data-tour="brief">
           <div className="brief-bar">
             {blank && session?.mode === "study" ? (
               <span className="seg" role="tablist" aria-label={t("Painel do caso")}>
@@ -1020,10 +1120,10 @@ function Lab() {
         <button className="chip brief-open-btn" onClick={() => setBriefOpen(true)}><Icon name={blank ? "checklist" : "assignment"} size={16} /> {blank ? t("Ver requisitos") : t("Ver enunciado")}</button>
       )}
 
-      <aside className="panel sidebar" aria-label={t("Ferramentas")}>
+      <aside className="panel sidebar" aria-label={t("Ferramentas")} data-tour="palette">
         <div className="tabs" role="tablist">
           {([["components", "widgets", "Componentes"], ["flows", "route", "Fluxos"], ["props", "tune", "Propriedades"]] as const).map(([k, icon, label]) => (
-            <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>
+            <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)} data-tour={k === "flows" ? "flows" : undefined}>
               <Icon name={icon} size={16} /> {t(label)}
             </button>
           ))}
@@ -1128,7 +1228,8 @@ function Lab() {
           onPick={(id) => patchNode(providerFor, { providerId: id })} onClose={() => setProviderFor(null)} />
       )}
 
-      {helpOpen && <ShortcutsDialog onClose={() => setHelpOpen(false)} />}
+      {helpOpen && <ShortcutsDialog onClose={() => setHelpOpen(false)} onTour={() => setTimeout(() => setTourOpen(true), 150)} />}
+      {tourOpen && <Tour onClose={() => setTourOpen(false)} />}
       <div className="toast-region" aria-live="polite">{toast && <div className="toast" key={toast}>{toast}</div>}</div>
 
       {chaosOpen && (

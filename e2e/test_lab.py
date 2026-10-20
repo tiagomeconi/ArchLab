@@ -1,4 +1,5 @@
 import json
+import re
 from helpers import add_component, nodes, open_case
 
 
@@ -99,14 +100,15 @@ def test_compartilhar_por_link(make_page):
     a.get_by_role("button", name="Ver a referência").click()
     a.wait_for_timeout(800)
     n = nodes(a)
-    a.get_by_label("Copiar link do desenho").click(); a.wait_for_timeout(600)
+    a.get_by_role("button", name="Compartilhar e exportar").click()
+    a.get_by_role("menuitem", name="Copiar link do desenho").click(); a.wait_for_timeout(600)
     link = a.evaluate("navigator.clipboard.readText()")
     assert "#d=" in link and len(link) < 6000
     b = make_page()
     b.goto(link); b.wait_for_selector(".react-flow__node")
     b.wait_for_timeout(1200)
     assert nodes(b) == n
-    assert b.locator(".brand small").inner_text() == "Netflix"
+    assert b.locator(".dn-name span").first.inner_text() == "Netflix"
 
 
 def test_link_compartilhado_corrompido_avisa(page):
@@ -373,7 +375,7 @@ def test_relatorio_em_imagem_baixa_um_png_com_o_caso(page):
     page.get_by_role("button", name="Ver a referência").click()
     page.wait_for_timeout(1000)
     page.get_by_role("button", name="Exportar").click()
-    assert page.get_by_role("menuitem").count() == 2
+    assert page.get_by_role("menuitem").count() == 5  # link, cartão, imagem, .json e abrir arquivo
     with page.expect_download() as d:
         page.get_by_role("menuitem", name="Relatório em imagem").click()
     arq = d.value
@@ -412,3 +414,102 @@ def test_barra_superior_nao_cobre_os_paineis_e_o_menu_de_exportar_e_clicavel(mak
     pg.get_by_role("menuitem", name="Desenho (.json)").hover()   # falha se outro elemento cobrir o item
     with pg.expect_download():
         pg.get_by_role("menuitem", name="Desenho (.json)").click()
+
+
+def test_organizar_automaticamente_desfaz_a_sobreposicao_e_volta_no_desfazer(page):
+    open_case(page, "Netflix")
+    page.get_by_role("button", name="Ver solução de referência").click()
+    page.get_by_role("button", name="Ver a referência").click()
+    page.wait_for_timeout(900)
+
+    def overlapping():
+        bx = [n.bounding_box() for n in page.locator(".react-flow__node").all()]
+        bx = [b for b in bx if b]
+        return [(i, j) for i in range(len(bx)) for j in range(i + 1, len(bx))
+                if bx[i]["x"] < bx[j]["x"] + bx[j]["width"] and bx[i]["x"] + bx[i]["width"] > bx[j]["x"]
+                and bx[i]["y"] < bx[j]["y"] + bx[j]["height"] and bx[i]["y"] + bx[i]["height"] > bx[j]["y"]]
+
+    cards = page.locator(".react-flow__node")
+    a, b = cards.nth(2).bounding_box(), cards.nth(3).bounding_box()
+    page.mouse.move(a["x"] + a["width"] / 2, a["y"] + 14); page.mouse.down()
+    page.mouse.move(b["x"] + b["width"] / 2, b["y"] + 30, steps=6); page.mouse.up()
+    page.wait_for_timeout(600)
+    assert overlapping(), "o teste precisa começar com cards um sobre o outro"
+    page.get_by_role("button", name="Organizar automaticamente").click()
+    page.wait_for_timeout(1500)
+    assert page.get_by_text("Diagrama organizado").count() == 1
+    assert overlapping() == []
+    page.keyboard.press("Control+z"); page.wait_for_timeout(900)
+    assert overlapping(), "desfazer deve devolver os cards à posição anterior"
+
+
+def test_cartao_da_nota_baixa_um_png_vertical(page):
+    open_case(page, "Netflix")
+    page.get_by_role("button", name="Ver solução de referência").click()
+    page.get_by_role("button", name="Ver a referência").click()
+    page.wait_for_timeout(900)
+    page.get_by_role("button", name="Compartilhar e exportar").click()
+    with page.expect_download() as d:
+        page.get_by_role("menuitem", name="Cartão da nota").click()
+    arq = d.value
+    assert arq.suggested_filename == "archlab-cartao-netflix.png"
+    dados = open(arq.path(), "rb").read()
+    assert dados[:8] == b"\x89PNG\r\n\x1a\n"
+    largura, altura = int.from_bytes(dados[16:20], "big"), int.from_bytes(dados[20:24], "big")
+    assert (largura, altura) == (2160, 2700), (largura, altura)  # 1080×1350 em 2x: formato vertical do feed
+
+
+def test_desenho_editado_aparece_em_meus_desenhos_e_reabre(page):
+    open_case(page, "Netflix")
+    add_component(page, "CDN"); add_component(page, "Cache / KV")
+    page.wait_for_timeout(1200)  # o laboratório salva o desenho logo depois da edição
+    page.get_by_role("link", name="Meus desenhos").first.click() if page.get_by_role("link", name="Meus desenhos").count() else page.goto(page.base + "/desenhos")
+    page.get_by_role("heading", name="Meus desenhos").wait_for()
+    page.get_by_role("heading", name="Netflix", exact=True).wait_for()
+    assert page.get_by_text("2 componentes").count() == 1
+    page.get_by_role("button", name="Continuar").first.click()
+    page.wait_for_selector(".react-flow__node")
+    assert nodes(page) == 2
+
+
+def test_praticar_conta_o_dia_na_sequencia(page):
+    open_case(page, "Netflix")
+    add_component(page, "CDN")
+    page.wait_for_timeout(1200)
+    page.goto(page.base + "/start")
+    page.get_by_text("dia seguido", exact=True).wait_for()
+    assert page.locator("section", has_text="Sequência de dias").locator("b").first.inner_text() == "1"
+
+
+def test_desenho_livre_pode_ser_nomeado_e_aparece_assim_em_meus_desenhos(page):
+    page.goto(page.base + "/app?blank=1&d=abc12345"); page.wait_for_selector(".react-flow"); page.wait_for_timeout(500)
+    add_component(page, "CDN"); add_component(page, "Cache / KV")
+    nome = page.get_by_role("button", name=re.compile("Nome do desenho"))
+    assert "Desenho sem nome" in nome.inner_text()
+    nome.click()
+    campo = page.get_by_label("Nome do desenho")
+    campo.fill("Plataforma de agendamento"); campo.press("Enter")
+    page.wait_for_timeout(1200)
+    assert "Plataforma de agendamento" in page.locator(".dn-name").inner_text()
+    assert "Salvo neste navegador" in page.locator(".dn-status").get_attribute("title")
+    page.reload(); page.wait_for_selector(".react-flow"); page.wait_for_timeout(800)
+    assert "Plataforma de agendamento" in page.locator(".dn-name").inner_text() and nodes(page) == 2
+    page.goto(page.base + "/desenhos")
+    page.get_by_role("heading", name="Plataforma de agendamento").wait_for()
+    page.get_by_role("button", name="Renomear Plataforma de agendamento").click()
+    novo = page.get_by_label("Nome do desenho"); novo.fill("Agenda v2"); novo.press("Enter")
+    page.get_by_role("heading", name="Agenda v2").wait_for()
+    page.get_by_role("button", name="Continuar").first.click(); page.wait_for_selector(".react-flow"); page.wait_for_timeout(600)
+    assert "Agenda v2" in page.locator(".dn-name").inner_text() and nodes(page) == 2
+
+
+def test_dois_desenhos_livres_ficam_separados(page):
+    for d, nome in (("aaaa1111", "Primeiro"), ("bbbb2222", "Segundo")):
+        page.goto(page.base + f"/app?blank=1&d={d}"); page.wait_for_selector(".react-flow"); page.wait_for_timeout(400)
+        add_component(page, "CDN")
+        page.get_by_role("button", name=re.compile("Nome do desenho")).click()
+        c = page.get_by_label("Nome do desenho"); c.fill(nome); c.press("Enter"); page.wait_for_timeout(1000)
+    page.goto(page.base + "/desenhos")
+    page.get_by_role("heading", name="Primeiro").wait_for(); page.get_by_role("heading", name="Segundo").wait_for()
+    page.get_by_role("button", name="Novo desenho").click(); page.wait_for_selector(".react-flow")
+    assert "d=" in page.url and nodes(page) == 0

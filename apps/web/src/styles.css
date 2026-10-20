@@ -1,5 +1,5 @@
 /* Ícones: Material Symbols Rounded em subconjunto (só os ícones usados). Regerar com: pnpm --filter @archlab/web gen:icons */
-@font-face { font-family: "Material Symbols Rounded Variable"; font-style: normal; font-display: block; font-weight: 100 700; src: url("/src/fonts/material-symbols-subset.woff2?v=07fd976e") format("woff2"); }
+@font-face { font-family: "Material Symbols Rounded Variable"; font-style: normal; font-display: block; font-weight: 100 700; src: url("/src/fonts/material-symbols-subset.woff2?v=590f65e5") format("woff2"); }
 :root {
   --bg: #f4f6fb; --surface: rgba(255,255,255,.82); --surface-solid: #ffffff; --text: #0f172a; --text-2: #526079;
   --border: rgba(15,23,42,.10); --border-strong: #b6c2d6; --accent: #0369a1; --accent-soft: rgba(3,105,161,.10); --on-accent: #fff;
@@ -722,3 +722,65 @@ a.brand { color: inherit; text-decoration: none; cursor: pointer; }
 /* o painel lateral começa abaixo da barra superior, mesmo quando ela quebra em duas linhas (antes a barra cobria as abas) */
 @media (min-width: 821px) { .sidebar { top: calc(var(--topbar-bottom, 84px) + 8px); } }
 @media (min-width: 821px) { .brief { top: calc(var(--topbar-bottom, 84px) + 8px); } }
+
+/* conta: avatar no topo e menu */
+.acc-btn { all: unset; box-sizing: border-box; display: inline-grid; place-items: center; border-radius: 50%; cursor: pointer; transition: transform .25s var(--ease), box-shadow .25s; }
+.acc-btn:hover { transform: translateY(-1px); box-shadow: 0 0 0 3px var(--accent-soft); }
+.acc-btn:focus-visible, .acc-btn[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--accent-soft); outline: 2px solid var(--accent); outline-offset: 2px; }
+.acc-pop { width: 280px; }
+.acc-pop a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; color: var(--text); text-decoration: none; }
+.acc-pop a:hover, .acc-pop a:focus-visible { background: var(--accent-soft); outline: none; }
+.acc-pop .acc-head { display: flex; align-items: center; gap: 12px; padding: 10px 12px 12px; margin-bottom: 4px; border-bottom: 1px solid var(--border); }
+.acc-pop .acc-head b { font-size: 14px; } .acc-pop .acc-head small { overflow-wrap: anywhere; margin-top: 2px; }
+.acc-pop button[role=menuitem] .msr, .acc-pop a .msr { color: var(--text-2); }
+
+/* troca de área (landing, login, sistema, laboratório): só opacidade, para não criar bloco de contenção dos elementos fixos.
+   A altura de 100% é necessária: o laboratório depende de uma altura definida. */
+.route-fade {
+  height: 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .route-fade { animation: routeFade .4s var(--ease, ease) both; }
+  @keyframes routeFade { from { opacity: 0; } to { opacity: 1; } }
+}
+
+.export-sec { margin: 6px 12px 2px; font: 700 10.5px var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--text-2); }
+.export-sec:first-child { margin-top: 4px; }
+
+/* nota: cabeçalho do cartão (emblema + liga + número, sem caixas duplicadas) */
+.ovr-head { gap: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.ovr-score { display: flex; align-items: baseline; gap: 7px; line-height: 1; }
+.ovr-score b { font-size: 44px; font-weight: 800; letter-spacing: -.035em; color: color-mix(in srgb, var(--tc) 40%, var(--text)); }
+.ovr-score small { font: 700 11px var(--mono); letter-spacing: .1em; color: var(--text-2); }
+.ovr-id strong { margin-top: 6px; }
+
+.react-flow__controls-button .msr { color: var(--text); }
+.react-flow__controls-button:hover .msr { color: var(--accent); }
+
+/* tutorial de primeiro uso */
+.tour-layer { position: fixed; inset: 0; z-index: 400; }
+.tour-dim { position: fixed; inset: 0; background: rgba(7, 12, 24, .62); animation: fade .3s ease both; }
+.tour-spot { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(7, 12, 24, .62), 0 0 0 2px var(--accent); pointer-events: none; transition: left .32s var(--ease), top .32s var(--ease), width .32s var(--ease), height .32s var(--ease); }
+.tour-pop { position: fixed; width: 340px; max-width: calc(100vw - 24px); box-sizing: border-box; padding: 18px 18px 14px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface-solid); color: var(--text); box-shadow: var(--shadow-lg); animation: tourIn .3s var(--ease) both; }
+.tour-pop h3 { margin: 2px 0 6px; font-size: 17px; letter-spacing: -.01em; }
+.tour-pop p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-2); }
+.tour-pop .tour-count { margin: 0; font: 700 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); }
+.tour-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.tour-btns { display: inline-flex; gap: 8px; margin-left: auto; }
+.tour-dots { display: inline-flex; gap: 5px; align-items: center; } .tour-dots i { width: 6px; height: 6px; border-radius: 99px; background: var(--track); transition: width .25s var(--ease), background .25s; } .tour-dots i.on { width: 18px; background: var(--accent); }
+@keyframes tourIn { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } .tour-pop { animation: none; } }
+
+/* nome do desenho e estado do salvamento (topo do laboratório) */
+.dn { display: grid; gap: 1px; flex: 0 1 200px; width: 200px; min-width: 0; overflow: hidden; margin-left: 2px; }
+.dn-name { all: unset; box-sizing: border-box; display: inline-flex; min-width: 0; align-items: center; gap: 6px; max-width: 100%; font-size: 13px; font-weight: 700; line-height: 1.25; color: var(--text); border-radius: 8px; padding: 1px 6px 1px 0; }
+.dn-name span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dn-name .msr { color: var(--text-2); opacity: 0; transition: opacity .2s; flex: none; }
+button.dn-name { cursor: text; } button.dn-name:hover .msr, button.dn-name:focus-visible .msr { opacity: 1; } button.dn-name:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dn-input { box-sizing: border-box; width: 200px; max-width: 100%; font: inherit; font-size: 13px; font-weight: 700; padding: 2px 8px; border-radius: 8px; border: 1px solid var(--accent); background: var(--surface-solid); color: var(--text); outline: none; }
+.dn-status { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-2); white-space: nowrap; overflow: hidden; }
+.dn-status span { overflow: hidden; text-overflow: ellipsis; }
+.dn-status.cloud .msr { color: var(--ok); } .dn-status.error { color: var(--danger); } .dn-status.saving .msr { animation: dnSpin 1s linear infinite; }
+@keyframes dnSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .dn-status.saving .msr { animation: none; } }
+@media (max-width: 1250px) { .dn-status span { display: none; } .dn { flex-basis: 150px; width: 150px; } }

@@ -6,5 +6,14 @@ import { landing } from "./en.landing";
 import { rating } from "./en.rating";
 import { components } from "./en.components";
 import { newcases } from "./en.newcases";
+import { auth } from "./en.auth";
+import { auth2 } from "./en.auth2";
+import { home } from "./en.home";
+import { leagues } from "./en.leagues";
+import { audit } from "./en.audit";
+import { social } from "./en.social";
+import { safety } from "./en.safety";
+import { names } from "./en.names";
+import { profile } from "./en.profile";
 
-export const EN: Record<string, string> = { ...newcases, ...components, ...rating, ...landing, ...cases, ...lab, ...extra, ...start };
+export const EN: Record<string, string> = { ...newcases, ...components, ...rating, ...landing, ...cases, ...lab, ...extra, ...start, ...auth, ...auth2, ...home, ...leagues, ...audit, ...social, ...safety, ...names, ...profile };

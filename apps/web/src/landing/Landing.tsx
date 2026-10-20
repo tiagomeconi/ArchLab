@@ -29,6 +29,7 @@ import { cn } from "./lib/utils";
 import "./landing.css";
 import { t, useLang } from "../i18n";
 import { LangToggle } from "../LangToggle";
+import { authEnabled, useAuth } from "../auth";
 
 /** Screenshot do produto no tema atual (alterna junto com o alternador de tema). */
 function Shot({ name, alt, className, loading }: { name: string; alt: string; className?: string; loading?: "lazy" }) {
@@ -79,11 +80,13 @@ const H2 = ({ children, className }: { children: ReactNode; className?: string }
 );
 const Serif = ({ children }: { children: ReactNode }) => <span className="text-accent">{children}</span>;
 
-const ctaProps = link("/start");
+/** Com login ativo o visitante só entra criando conta (ou em "Entrar"); sem Supabase o laboratório abre direto. */
+const ctaLink = () => link(authEnabled ? "/cadastro" : "/start");
+const ctaLabel = (open: string) => (authEnabled ? t("Criar conta grátis") : open);
 
 function PrimaryButton({ children, big = false }: { children: ReactNode; big?: boolean }) {
   return (
-    <a {...ctaProps} className={cn("group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-accent font-semibold text-on-accent shadow-[0_10px_40px_-10px_var(--accent)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_50px_-10px_var(--accent)] active:translate-y-0",
+    <a {...ctaLink()} className={cn("group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-accent font-semibold text-on-accent shadow-[0_10px_40px_-10px_var(--accent)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_50px_-10px_var(--accent)] active:translate-y-0",
       big ? "px-8 py-4 text-base" : "px-5 py-2.5 text-sm")}>
       <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
       <span className="relative">{children}</span>
@@ -95,9 +98,10 @@ function PrimaryButton({ children, big = false }: { children: ReactNode; big?: b
 /* ───────────────────────── cabeçalho ───────────────────────── */
 
 function Header() {
+  const auth = useAuth();
   const { scrollYProgress } = useScroll();
   const bar = useSpring(scrollYProgress, { stiffness: 120, damping: 30 });
-  const links: [string, string][] = [["Ciclo", "#ciclo"], ["Produto", "#produto"], ["Quebre você mesmo", "#lab"], ["Roadmap", "#roadmap"], ["FAQ", "#faq"]];
+  const links: [string, string][] = [["Ciclo", "#ciclo"], ["Produto", "#produto"], ["Quebre você mesmo", "#lab"], ["FAQ", "#faq"]];
   // seção ativa: a última cujo topo já passou de ~35% da altura da tela; um clique fixa o destino até a rolagem terminar
   const [active, setActive] = useState<string | null>(null);
   const lock = useRef<{ id: string; until: number } | null>(null);
@@ -143,7 +147,8 @@ function Header() {
         <div className="flex items-center gap-2">
           <LangToggle />
           <ThemeToggle className="!size-9" />
-          <a {...ctaProps} className="inline-flex items-center gap-1.5 rounded-xl bg-text px-4 py-2 text-sm font-semibold text-bg transition-all hover:-translate-y-px hover:opacity-90">{t("Acessar")}{" "}<Icon name="arrow_outward" size={16} />
+          {authEnabled && auth.status === "out" && <a {...link("/login")} className="rounded-xl px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:text-text">{t("Entrar")}</a>}
+          <a {...ctaLink()} className="inline-flex items-center gap-1.5 rounded-xl bg-text px-4 py-2 text-sm font-semibold text-bg transition-all hover:-translate-y-px hover:opacity-90">{authEnabled ? t("Criar conta") : t("Acessar")}{" "}<Icon name="arrow_outward" size={16} />
           </a>
         </div>
         <motion.span style={{ scaleX: bar }} className="pointer-events-none absolute inset-x-4 -bottom-px h-px origin-left bg-accent" />
@@ -163,7 +168,7 @@ function Hero() {
 
       <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
         <BlurFade delay={0.05}>
-          <Eyebrow>{t("Laboratório de System Design · em construção")}</Eyebrow>
+          <Eyebrow>{t("Laboratório de System Design")}</Eyebrow>
         </BlurFade>
         <BlurFade delay={0.12} offset={14}>
           <h1 className="mt-6 text-[clamp(2.4rem,6.2vw,5.2rem)] font-semibold leading-[1.04] tracking-[-0.03em]">{t("Desenhe o sistema.")}<br />{t("Depois veja ele")}{" "}
@@ -181,7 +186,7 @@ function Hero() {
             </BlurFade>
             <BlurFade delay={0.3} offset={10}>
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <PrimaryButton big>{t("Acessar o laboratório")}</PrimaryButton>
+                <PrimaryButton big>{ctaLabel(t("Acessar o laboratório"))}</PrimaryButton>
                 <a href="#lab" className="inline-flex items-center gap-2 rounded-full border border-line-strong px-6 py-4 text-base font-medium transition-colors hover:bg-track">
                   <Icon name="play_circle" size={20} />{" "}{t("Ver quebrando ao vivo")}</a>
               </div>
@@ -266,7 +271,7 @@ function BentoCard({ name, description, icon, cta, className, fade = "h-3/5", ch
         <p className="max-w-md text-[15px] leading-relaxed text-text-2">{t(description)}</p>
       </div>
       <div className="absolute bottom-0 z-20 flex w-full translate-y-10 items-center p-5 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-        <a {...ctaProps} className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full px-1 text-sm font-semibold text-accent">{t(cta)} <Icon name="arrow_forward" size={16} /></a>
+        <a {...ctaLink()} className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full px-1 text-sm font-semibold text-accent">{t(cta)} <Icon name="arrow_forward" size={16} /></a>
       </div>
       <div className="pointer-events-none absolute inset-0 transition-all duration-300 group-hover:bg-accent/[.04]" />
     </div>
@@ -488,7 +493,6 @@ const SCENARIOS: Scenario[] = [
   { name: "Rafael", role: "SRE", ctx: "Logística", goal: "Ensaiar partição de rede e certificado TLS inválido sem encostar em produção.", used: ["Modo caos", "Rede"], hue: "var(--c-messaging)" },
   { name: "Júlia", role: "Engenheira de produto", ctx: "Saúde digital", goal: "Escolher entre SQL e chave-valor vendo cada opção saturar sob o mesmo tráfego.", used: ["Provedores", "Fluxos"], hue: "var(--c-support)" },
   { name: "Tiago", role: "Arquiteto", ctx: "Banco digital", goal: "Preparar uma revisão de arquitetura com evidências, não com palpites.", used: ["Requisitos", "Simulação"], hue: "var(--c-compute)" },
-  { name: "Diego", role: "Instrutor · em breve", ctx: "Bootcamp", goal: "Montar um cenário de falha para a turma e acompanhar a evolução de cada aluno.", used: ["Roadmap"], hue: "var(--c-network)" },
 ];
 
 function Avatar({ name, hue, photo }: { name: string; hue: string; photo?: string }) {
@@ -543,103 +547,6 @@ function Personas() {
   );
 }
 
-/* ───────────────────────── roadmap ───────────────────────── */
-
-interface RoadItem { t: string; to?: string }
-const ROADMAP: { tag: string; tone: "ok" | "accent" | "muted"; phase: string; items: RoadItem[] }[] = [
-  { tag: "Disponível agora", tone: "ok", phase: "Fase atual", items: [
-    { t: "Editor visual com 21 tipos de componente", to: "#produto" }, { t: "Provedores reais com logo", to: "#produto" },
-    { t: "Fluxos de requisição e cache-aside", to: "#ciclo" }, { t: "Simulação de 300 s, tráfego e mix leitura/escrita", to: "#lab" },
-    { t: "Modo caos com 30 falhas", to: "#lab" }, { t: "Enunciado do desafio de links curtos", to: "#ciclo" },
-    { t: "Desfazer/refazer e atalhos de teclado", to: "#produto" },
-  ] },
-  { tag: "A seguir", tone: "accent", phase: "Próxima fase", items: [
-    { t: "Contas e salvamento dos projetos" }, { t: "Mais desafios: chat, feed, vídeo e pagamentos" }, { t: "Comparar duas versões do mesmo desenho" },
-    { t: "Avaliação com regras e achados rastreáveis" }, { t: "Exportar o estudo para o portfólio" },
-  ] },
-  { tag: "Depois", tone: "muted", phase: "Mais adiante", items: [
-    { t: "Tutor opcional que explica o que o motor calculou" }, { t: "Desafios privados e turmas para instrutores" }, { t: "Latência com distribuições e filas mais realistas" },
-  ] },
-];
-const ROAD_DONE = ROADMAP[0]!.items.length;
-const ROAD_TOTAL = ROADMAP.reduce((a, c) => a + c.items.length, 0);
-
-function Roadmap() {
-  const pct = Math.round((ROAD_DONE / ROAD_TOTAL) * 100);
-  return (
-    <Section id="roadmap">
-      <div className="grid items-end gap-8 lg:grid-cols-[1fr_22rem]">
-        <div>
-          <BlurFade inView><Eyebrow>{t("Transparência")}</Eyebrow></BlurFade>
-          <BlurFade inView delay={0.05}><H2 className="mt-5 max-w-3xl">{t("Onde estamos,")}{" "}<Serif>{t("sem maquiagem")}</Serif>.</H2></BlurFade>
-          <BlurFade inView delay={0.1}><p className="mt-5 max-w-2xl text-xl leading-snug text-text-2">{t("O ArchLab está no começo. Hoje há um desafio jogável e um motor de simulação pedagógico — com perfis fictícios de capacidade, não benchmarks. O resto vem em fases.")}</p></BlurFade>
-        </div>
-        <BlurFade inView delay={0.15}>
-          <div className="rounded-3xl border border-line bg-surface/70 p-5 backdrop-blur" role="group" aria-label={t("{a} de {b} entregas planejadas concluídas", { a: ROAD_DONE, b: ROAD_TOTAL })}>
-            <div className="flex items-baseline justify-between"><span className="text-sm font-semibold text-text-2">{t("Entregas planejadas")}</span><span className="text-sm text-text-2">{pct}%</span></div>
-            <div className="mt-1 text-4xl font-semibold tracking-tight tabular-nums"><NumberTicker value={ROAD_DONE} className="text-text" /> <span className="text-xl font-medium text-text-2">{t("de {n}", { n: ROAD_TOTAL })}</span></div>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-track">
-              <motion.i className="block h-full origin-left rounded-full bg-accent" initial={{ scaleX: 0 }} whileInView={{ scaleX: 1 }} viewport={{ once: true }} transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }} style={{ width: `${pct}%` }} />
-            </div>
-            <p className="mt-3 text-xs leading-relaxed text-text-2">{t("Contagem das entregas listadas abaixo. Não é uma promessa de data.")}</p>
-          </div>
-        </BlurFade>
-      </div>
-
-      <div className="relative mt-20">
-        {/* trilha: concluído (sólido) → planejado (tracejado) */}
-        <div className="pointer-events-none absolute inset-x-0 -top-9 hidden h-9 lg:block" aria-hidden>
-          <div className="absolute left-[16.66%] right-[16.66%] top-[26px] h-px">
-            <motion.i className="absolute inset-y-0 left-0 w-1/2 origin-left bg-accent" initial={{ scaleX: 0 }} whileInView={{ scaleX: 1 }} viewport={{ once: true }} transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }} />
-            <i className="absolute inset-y-0 right-0 w-1/2 border-t border-dashed border-line-strong" />
-          </div>
-          {["var(--accent)", "var(--accent)", "var(--border-strong)"].map((c, n) => (
-            <span key={n} className="absolute top-[20px] grid size-3 -translate-x-1/2 place-items-center" style={{ left: `${16.66 + n * 33.34}%` }}>
-              <i className="block size-3 rounded-full ring-4 ring-bg" style={{ background: n === 0 ? c : "var(--bg)", border: `2px solid ${c}` }} />
-            </span>
-          ))}
-          <span className="absolute left-[16.66%] top-0 -translate-x-1/2 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-semibold text-on-accent">
-            <span className="size-1.5 rounded-full bg-on-accent animate-pulse-soft" />{t("você está aqui")}</span>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-3">
-          {ROADMAP.map((c, i) => (
-            <BlurFade key={c.tag} inView delay={i * 0.08}>
-              <Card className="h-full" hover={false}>
-                <div className="flex items-center justify-between">
-                  <span className={cn("inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold", c.tone === "ok" && "bg-ok/12 text-ok", c.tone === "accent" && "bg-accent/12 text-accent", c.tone === "muted" && "bg-track text-text-2")}>
-                    <span className="size-1.5 rounded-full bg-current" />{t(c.tag)}
-                  </span>
-                  <span className="text-xs text-text-2">{c.items.length} {c.items.length === 1 ? t("item") : t("itens")}</span>
-                </div>
-                <ul className="mt-5 space-y-1">
-                  {c.items.map((it, n) => {
-                    const icon = c.tone === "ok" ? "check_circle" : c.tone === "accent" ? "arrow_circle_right" : "schedule";
-                    const inner = (
-                      <>
-                        <span className={cn("mt-0.5 shrink-0", c.tone === "ok" ? "text-ok" : c.tone === "accent" ? "text-accent" : "text-text-2")}><Icon name={icon} size={18} /></span>
-                        <span className={cn("flex-1 text-[15px] leading-snug", c.tone === "muted" && "text-text-2")}>{t(it.t)}</span>
-                        {it.to && <span className="mt-0.5 shrink-0 text-text-2 opacity-0 transition-all duration-300 group-hover/item:translate-x-0.5 group-hover/item:text-accent group-hover/item:opacity-100"><Icon name="arrow_outward" size={16} /></span>}
-                      </>
-                    );
-                    return (
-                      <motion.li key={it.t} initial={{ opacity: 0, x: -8 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: 0.15 + n * 0.05, duration: 0.45 }}>
-                        {it.to
-                          ? <a href={it.to} title={t("Ver na página")} className="group/item -mx-2 flex items-start gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-track">{inner}</a>
-                          : <div className="-mx-2 flex items-start gap-3 px-2 py-2">{inner}</div>}
-                      </motion.li>
-                    );
-                  })}
-                </ul>
-              </Card>
-            </BlurFade>
-          ))}
-        </div>
-      </div>
-    </Section>
-  );
-}
-
 /* ───────────────────────── faq ───────────────────────── */
 
 interface FaqItem { q: string; a: string; icon: string; chips?: string[]; cta?: { label: string; href: string } }
@@ -648,10 +555,10 @@ const FAQ: FaqItem[] = [
     a: "Não. O motor é um modelo de ensino com perfis de capacidade fictícios e créditos inventados. Ele ensina a raciocinar sobre gargalos; não prevê produção nem substitui um teste de carga." },
   { q: "Como os números são calculados?", icon: "calculate", cta: { label: "Ver o motor funcionando", href: "#lab" },
     a: "A carga é somada por componente e dividida pela capacidade (réplicas × capacidade do perfil). O que passa de 100% é rejeitado, e o resto segue pelo caminho da requisição. A latência p95 é um proxy: base do componente + penalidade de saturação + atrasos das falhas." },
-  { q: "Meus dados saem do navegador?", icon: "shield_lock",
-    a: "Não. Tudo roda no seu navegador e nada é enviado a servidores. Guardamos localmente o tema, quais painéis você recolheu e o seu último desenho de cada caso. Você também pode exportar e importar o desenho como arquivo." },
+  { q: "Onde ficam meus dados?", icon: "shield_lock",
+    a: "Os desenhos e as notas da sua conta ficam salvos na nuvem, protegidos por login, e só você os vê. A simulação roda no seu navegador. Preferências como tema e painéis recolhidos ficam só no seu dispositivo. Você também pode exportar e importar o desenho como arquivo." },
   { q: "Preciso de conta?", icon: "person",
-    a: "Hoje não: o laboratório abre direto. Como o salvamento ainda não existe, contas e persistência são as próximas entregas." },
+    a: "Sim, e é grátis. Com a conta, seus desenhos e a melhor nota de cada caso ficam salvos e acompanham você em qualquer dispositivo." },
   { q: "É gratuito?", icon: "sell",
     a: "O ciclo completo — aprender, projetar, simular e quebrar — foi pensado para continuar gratuito. Recursos avançados e de equipe virão depois, sem esconder o essencial." },
   { q: "Funciona no celular?", icon: "smartphone",
@@ -661,13 +568,13 @@ const FAQ: FaqItem[] = [
   { q: "Posso usar para treinar entrevistas?", icon: "work", cta: { label: "Conhecer o ciclo", href: "#ciclo" },
     a: "Foi pensado para isso: o desafio traz enunciado de entrevista, requisitos funcionais e não funcionais, escala, restrições e trade-offs, e você vê com números se o desenho atende." },
   { q: "E para ensinar uma turma?", icon: "cast_for_education",
-    a: "Hoje dá para usar o desafio e compartilhar a tela. Desafios privados, turmas e acompanhamento por aluno estão no roadmap, mas ainda não existem." },
+    a: "Dá para montar um desenho, gerar um link de compartilhamento e abrir o desafio com a turma. Cada pessoa precisa de uma conta gratuita para abrir o link." },
   { q: "Posso exportar meu desenho?", icon: "ios_share",
-    a: "Ainda não. A exportação do estudo (JSON, imagem e resumo para o portfólio) está planejada para a fase de contas e salvamento." },
+    a: "Pode. Exporte o desenho em arquivo (.json) para guardar e importar de volta, ou gere o relatório em imagem (PNG) com a nota e o caso, para o portfólio ou o LinkedIn." },
   { q: "Por que o resultado é determinístico?", icon: "autorenew",
     a: "Para você poder comparar versões. Mesma arquitetura, mesma carga e mesmas falhas dão exatamente o mesmo resultado; mudar o desenho é o que muda a conta." },
   { q: "Isso usa IA?", icon: "psychology",
-    a: "O núcleo não depende de IA: regras e simulação são código determinístico. Um tutor opcional, que apenas explica o que o motor calculou, está planejado para depois." },
+    a: "O núcleo não depende de IA: regras e simulação são código determinístico. O ArchLab não usa IA para calcular nada: o resultado é sempre o mesmo para o mesmo desenho." },
   { q: "As marcas dos logos são parceiras?", icon: "verified",
     a: "Não. Os logos são das respectivas empresas e aparecem de forma ilustrativa, para você associar cada peça à tecnologia real." },
 ];
@@ -703,7 +610,7 @@ function Faq() {
               <div className="mb-3"><Logo size={44} /></div>
               <h3 className="text-lg font-semibold tracking-tight">{t("Ainda com dúvida?")}</h3>
               <p className="mt-1.5 text-[15px] leading-relaxed text-text-2">{t("O jeito mais rápido de entender é abrir o laboratório e quebrar o primeiro sistema.")}</p>
-              <a {...ctaProps} className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent">{t("Abrir o laboratório")}{" "}<Icon name="arrow_forward" size={16} /></a>
+              <a {...ctaLink()} className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent">{ctaLabel(t("Abrir o laboratório"))}{" "}<Icon name="arrow_forward" size={16} /></a>
             </div>
           </BlurFade>
         </div>
@@ -753,7 +660,7 @@ function FinalCta() {
             <h2 className="mx-auto max-w-3xl text-balance text-[clamp(2rem,5vw,3.8rem)] font-semibold leading-[1.04] tracking-[-0.03em]">{t("Pronto para quebrar o seu")}{" "}<Serif>{t("primeiro sistema")}</Serif>?
             </h2>
             <p className="mx-auto mt-5 max-w-lg text-lg text-text-2">{t("Abra o laboratório, projete os links curtos e descubra em quanto tempo o banco cai.")}</p>
-            <div className="mt-9 flex justify-center"><PrimaryButton big>{t("Acessar o laboratório")}</PrimaryButton></div>
+            <div className="mt-9 flex justify-center"><PrimaryButton big>{ctaLabel(t("Acessar o laboratório"))}</PrimaryButton></div>
           </div>
         </div>
       </BlurFade>
@@ -766,8 +673,11 @@ function Footer() {
     <footer className="border-t border-line">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-10 text-sm text-text-2 sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <div className="flex items-center gap-2.5 text-text"><Logo size={28} /><b>{t("ArchLab")}</b><span className="text-text-2">{t("· laboratório de System Design")}</span></div>
-        <p className="max-w-md text-xs leading-relaxed">{t("Projeto em desenvolvimento. Capacidades e custos são fictícios e didáticos. Logotipos pertencem aos respectivos titulares e são usados de forma ilustrativa.")}</p>
-        <a {...ctaProps} className="font-medium text-text hover:text-accent">{t("Acessar o laboratório →")}</a>
+        <p className="max-w-md text-xs leading-relaxed">{t("Capacidades e custos são fictícios e didáticos. Logotipos pertencem aos respectivos titulares e são usados de forma ilustrativa.")}</p>
+        <div className="flex flex-col gap-2 sm:items-end">
+          <a {...ctaLink()} className="font-medium text-text hover:text-accent">{authEnabled ? t("Criar conta →") : t("Acessar o laboratório →")}</a>
+          <nav aria-label={t("Documentos legais")} className="flex gap-4 text-xs"><a {...link("/termos")} className="hover:text-text">{t("Termos de uso")}</a><a {...link("/privacidade")} className="hover:text-text">{t("Política de privacidade")}</a></nav>
+        </div>
       </div>
     </footer>
   );
@@ -777,8 +687,15 @@ function Footer() {
 
 export function Landing() {
   useLang();
+  const [gone, setGone] = useState(() => new URLSearchParams(location.search).get("conta") === "excluida");
   return (
     <div className="lp relative min-h-screen">
+      {gone && (
+        <div role="status" className="fixed inset-x-0 top-[5.5rem] z-40 mx-auto flex w-fit max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl border border-line bg-surface px-5 py-3 text-sm shadow-lg">
+          <Icon name="check_circle" size={20} /><span>{t("Sua conta e todos os seus dados foram excluídos.")}</span>
+          <button type="button" className="font-semibold text-accent" onClick={() => { setGone(false); history.replaceState({}, "", "/"); }}>{t("Fechar")}</button>
+        </div>
+      )}
       <Header />
       <main>
         <Hero />
@@ -788,7 +705,6 @@ export function Landing() {
         <LivePlayground />
         <Numbers />
         <Personas />
-        <Roadmap />
         <Faq />
         <FinalCta />
       </main>

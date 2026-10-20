@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "./ui";
 import { t } from "./i18n";
-import type { Rating as R, Tier } from "./rating";
-
-const TIER_NAME: Record<Tier, string> = { bronze: "Bronze", silver: "Prata", gold: "Ouro", elite: "Elite" };
+import type { Rating as R } from "./rating";
+import { leagueOf } from "./leagues";
+import { LeagueBadge } from "./LeagueBadge";
 
 /** Nota geral do desenho (overall): chip no topo do laboratório + cartão com os seis atributos e o porquê de cada um. */
 export function RatingChip({ rating, title }: { rating: R; title: string }) {
@@ -16,21 +16,24 @@ export function RatingChip({ rating, title }: { rating: R; title: string }) {
     document.addEventListener("mousedown", down); document.addEventListener("keydown", key);
     return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
   }, [open]);
-  const tier = rating.tier ?? "none";
+  const lg = rating.overall === null ? null : leagueOf(rating.overall);
+  const tcStyle = lg ? ({ "--tc": lg.c1 } as React.CSSProperties) : undefined;
   const shown = rating.attrs;
   return (
-    <div className="ovr" ref={ref}>
-      <button className={`ovr-chip tier-${tier}`} aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen((o) => !o)}
-        title={rating.overall === null ? t("Nota geral do desenho: monte e simule para ver") : t("Nota geral do desenho: {n} ({nivel})", { n: rating.overall, nivel: t(TIER_NAME[rating.tier!]) })}>
+    <div className="ovr" ref={ref} data-tour="rating">
+      <button className="ovr-chip" style={tcStyle} aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen((o) => !o)}
+        title={rating.overall === null ? t("Nota geral do desenho: monte e simule para ver") : t("Nota geral do desenho: {n} ({nivel})", { n: rating.overall, nivel: t(lg!.name) })}>
+        {lg ? <LeagueBadge league={lg} size={24} label={false} /> : null}
         <b className="ovr-num num">{rating.overall ?? "—"}</b>
-        <span className="ovr-lbl"><small>OVR</small>{rating.tier ? <em>{t(TIER_NAME[rating.tier])}</em> : <em>{t("sem nota")}</em>}</span>
+        <span className="ovr-lbl"><small>OVR</small>{lg ? <em>{t(lg.name)}</em> : <em>{t("sem nota")}</em>}</span>
       </button>
       {open && (
-        <div className={`ovr-pop tier-${tier}`} role="dialog" aria-label={t("Nota geral do desenho")}>
+        <div className="ovr-pop" style={tcStyle} role="dialog" aria-label={t("Nota geral do desenho")}>
           <div className="ovr-head">
-            <div className="ovr-big"><b className="num">{rating.overall ?? "—"}</b><small>OVR</small></div>
+            {lg ? <LeagueBadge league={lg} size={62} label={false} /> : null}
             <div className="ovr-id">
-              <span className="ovr-tier">{rating.tier ? t(TIER_NAME[rating.tier]) : t("Sem nota ainda")}</span>
+              <span className="ovr-tier">{lg ? t(lg.name) : t("Sem nota ainda")}</span>
+              <div className="ovr-score"><b className="num">{rating.overall ?? "—"}</b><small>OVR</small></div>
               <strong>{title}</strong>
               <small>{t("Média ponderada dos seis atributos abaixo.")}</small>
             </div>

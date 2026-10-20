@@ -30,3 +30,6 @@ const KEY = "archlab:session";
 export function saveSession(s: Session) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* armazenamento bloqueado */ } }
 export function loadSession(): Session | null { try { const r = localStorage.getItem(KEY); return r ? (JSON.parse(r) as Session) : null; } catch { return null; } }
 export function clearSession() { try { localStorage.removeItem(KEY); } catch { /* ignora */ } }
+
+/** Id curto de um desenho livre novo (letras minúsculas e números): vira a chave `free-<id>` e o `?d=<id>` do endereço. */
+export const newDesignId = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("");
