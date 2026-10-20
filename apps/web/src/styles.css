@@ -1,5 +1,5 @@
 /* Ícones: Material Symbols Rounded em subconjunto (só os ícones usados). Regerar com: pnpm --filter @archlab/web gen:icons */
-@font-face { font-family: "Material Symbols Rounded Variable"; font-style: normal; font-display: block; font-weight: 100 700; src: url("/src/fonts/material-symbols-subset.woff2?v=d753c832") format("woff2"); }
+@font-face { font-family: "Material Symbols Rounded Variable"; font-style: normal; font-display: block; font-weight: 100 700; src: url("/src/fonts/material-symbols-subset.woff2?v=7bbec014") format("woff2"); }
 :root {
   --bg: #f4f6fb; --surface: rgba(255,255,255,.82); --surface-solid: #ffffff; --text: #0f172a; --text-2: #526079;
   --border: rgba(15,23,42,.10); --border-strong: #b6c2d6; --accent: #0369a1; --accent-soft: rgba(3,105,161,.10); --on-accent: #fff;
@@ -881,3 +881,21 @@ dialog.patterns { width: min(720px, calc(100vw - 32px)); }
 .shape-btn:hover, .shape-btn[aria-expanded="true"] { background: var(--accent-soft); color: var(--accent); }
 .shape-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .shape-pop { left: 0; right: auto; width: 210px; top: calc(100% + 6px); }
+
+/* aulas guiadas */
+.lesson .tag.ok { color: var(--ok); }
+.lesson-dots { display: flex; gap: 5px; margin: 8px 0 4px; } .lesson-dots i { flex: 1; height: 5px; border-radius: 3px; background: var(--track); }
+.lesson-dots i.done { background: var(--ok); } .lesson-dots i.now { background: var(--accent); }
+.lesson-explain p { margin: 10px 0; font-size: 14px; line-height: 1.6; }
+.lesson-task { margin-top: 16px; padding: 12px 14px; border: 1px solid var(--accent); border-radius: 14px; background: var(--accent-soft); }
+.lesson-task h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); display: flex; align-items: center; gap: 5px; }
+.lesson-task ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.lesson-task li { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; line-height: 1.4; } .lesson-task li.ok { color: var(--ok); } .lesson-task li.ok span { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+.lesson-hint { margin: 10px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--text); display: flex; gap: 6px; align-items: flex-start; }
+.lesson-task .link { margin-top: 10px; display: inline-flex; gap: 4px; align-items: center; font-size: 12.5px; }
+.lesson-done { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: var(--ok-bg); border: 1px solid var(--ok); }
+.lesson-done p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.5; display: flex; gap: 6px; align-items: flex-start; color: var(--text); }
+.lesson-foot { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--border); }
+.lesson-foot .link { font-size: 12.5px; color: var(--text-2); }
+.lesson-actions { display: grid; gap: 8px; margin-top: 18px; } .lesson-actions .chip { justify-content: center; }
+.recap li { margin: 8px 0; line-height: 1.5; }

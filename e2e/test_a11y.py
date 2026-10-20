@@ -15,7 +15,7 @@ def violacoes_em(pg, contexto):
 
 
 @pytest.mark.parametrize("theme", ["dark", "light"])
-@pytest.mark.parametrize("path", ["/", "/start", "/start/estudo", "/start/trilhas", "/start/livre", "/desenhos", "/planos", "/termos", "/privacidade", "/confirmado"])
+@pytest.mark.parametrize("path", ["/", "/start", "/start/aulas", "/start/estudo", "/start/trilhas", "/start/livre", "/desenhos", "/planos", "/termos", "/privacidade", "/confirmado"])
 def test_paginas_sem_violacoes_do_axe(make_page, theme, path):
     pg = make_page(theme=theme)
     pg.goto(pg.base + path); pg.wait_for_timeout(1500)

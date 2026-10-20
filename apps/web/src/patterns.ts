@@ -1,5 +1,5 @@
 /** Biblioteca de padrões: pequenas arquiteturas prontas para inserir no canvas. Gerado de uma fonte PT; o inglês fica em i18n/en.review.ts. */
-export interface PatternNode { key: string; type: string; name: string; replicas: number; x: number; y: number }
+export interface PatternNode { key: string; type: string; name: string; replicas: number; x: number; y: number; hitRate?: number }
 export interface PatternEdge { from: string; to: string; protocol?: string; mode?: "sync" | "async" }
 export interface PatternGroup { name: string; keys: string[] }
 export interface Pattern { id: string; icon: string; title: string; summary: string; nodes: PatternNode[]; edges: PatternEdge[]; groups: PatternGroup[] }
@@ -71,7 +71,7 @@ export const PATTERNS: Pattern[] = [
 
 /** Posição, ids únicos e conexões válidas para inserir um padrão. `optionFor` devolve a configuração da conexão entre dois tipos (ou null se as regras não permitem). */
 export interface BuiltPattern {
-  nodes: { id: string; type: string; name: string; replicas: number; x: number; y: number }[];
+  nodes: { id: string; type: string; name: string; replicas: number; x: number; y: number; hitRate?: number }[];
   edges: { id: string; source: string; target: string; protocol: string; mode: "sync" | "async"; timeoutMs: number; networkLatencyMs: number; tls: boolean }[];
   groups: { name: string; ids: string[] }[];
 }
@@ -82,7 +82,7 @@ export function buildPattern(
   const idOf = new Map<string, string>(); const used = new Set(taken);
   for (const n of p.nodes) { let i = 1; let id = `${n.type}-${n.key}-${i}`; while (used.has(id)) id = `${n.type}-${n.key}-${++i}`; used.add(id); idOf.set(n.key, id); }
   const typeOfKey = new Map(p.nodes.map((n) => [n.key, n.type]));
-  const nodes = p.nodes.map((n) => ({ id: idOf.get(n.key)!, type: n.type, name: tr(n.name), replicas: n.replicas, x: origin.x + n.x, y: origin.y + n.y }));
+  const nodes = p.nodes.map((n) => ({ id: idOf.get(n.key)!, type: n.type, name: tr(n.name), replicas: n.replicas, x: origin.x + n.x, y: origin.y + n.y, hitRate: n.hitRate }));
   const edges: BuiltPattern["edges"] = [];
   for (const e of p.edges) {
     const o = optionFor(typeOfKey.get(e.from)!, typeOfKey.get(e.to)!, e.protocol, e.mode); if (!o) continue;

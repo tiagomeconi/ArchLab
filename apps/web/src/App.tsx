@@ -20,6 +20,9 @@ import { GroupNode, GROUP_MIN, cleanGroups, inGroup, type GroupData, type GroupD
 import { ReviewPanel, ConceptCard } from "./ReviewPanel";
 import { lintArchitecture } from "./lint";
 import { estimateCost } from "./cost";
+import { LessonPanel } from "./LessonPanel";
+import { lessonById, openLesson } from "./lessonNav";
+import type { LessonState } from "./lessonGoals";
 import { PatternsDialog, VersionsDialog } from "./LibraryDialogs";
 import { buildPattern, type Pattern } from "./patterns";
 import { deleteVersion, loadVersions, saveVersion, type Version } from "./versions";
@@ -388,6 +391,8 @@ function Lab() {
   }, [sharedMode, stored, shared]);
   // identidade do desenho: caso (um por caso), livre com id (?d=…, vários) ou o livre antigo ("free"); a referência não é salva
   const dParam = useMemo(() => { const d = new URLSearchParams(location.search).get("d"); return d && /^[a-z0-9]{4,16}$/i.test(d) ? d.toLowerCase() : null; }, []);
+  // modo aula (?l=…): canvas em branco com o painel guiado no lugar dos requisitos
+  const lesson = useMemo(() => lessonById(new URLSearchParams(location.search).get("l")), []);
   const caseMode = !!session?.caseId;
   const designKey = sharedMode ? null : blank ? (session?.caseId ?? (dParam ? `free-${dParam}` : "free")) : "reference";
   const fallbackName = designKey === "free" ? t("Canvas livre") : t("Desenho sem nome");
@@ -417,6 +422,7 @@ function Lab() {
   const [providerFor, setProviderFor] = useState<string | null>(null);
   const { screenToFlowPosition, deleteElements, fitView } = useReactFlow();
   const counter = useRef(0);
+  const nodesRef = useRef<Node<NodeData>[]>([]);
   const [docEdges, setDocEdges] = useState<DocEdge[]>(blank ? [] : original.edges);
   const [flows, setFlows] = useState<Flow[]>(blank ? [] : original.traffic.flows);
   const [workloads, setWorkloads] = useState<any[]>(blank ? [] : original.traffic.workloads);
@@ -850,6 +856,15 @@ function Lab() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const rating = useMemo(() => rate({ nodes: docNodes, edges: docEdges, flows, loads: baseline.loads, errFrac: baseErr, p95Ms: baseP95, p95Target: session?.checks?.p95Ms, lossErr, checks, readPct }),
     [docNodes, docEdges, flows, baseline, baseErr, baseP95, session, lossErr, checks, readPct, lang]);
+  // modo aula: estado do canvas que as metas das tarefas conferem
+  nodesRef.current = nodes;
+  const lessonState: LessonState | null = lesson ? {
+    nodes: nodes.map((n) => { const u = loads.get(n.id)?.utilization; return { id: n.id, type: n.data.type, replicas: n.data.replicas, hitRate: n.data.hitRate, util: u != null && Number.isFinite(u) ? u : null }; }),
+    edges: docEdges.map((e) => ({ source: e.source, target: e.target })),
+    simulated: run.status !== "idle" && run.t >= 3,
+    selectedType: selNode?.data.type ?? null, tab, chaos: chaos.size,
+    maxUtil: (() => { const us = [...loads.entries()].filter(([, l]) => !l.source && l.utilization !== null && Number.isFinite(l.utilization)).map(([, l]) => l.utilization as number); return us.length ? Math.max(...us) : null; })(),
+  } : null;
   const interviewSummary = { rating: rating.overall, met: checks.filter((c) => c.status === "meets").length, total: checks.length, findings: findings.length, important: reviewHigh, nodes: nodes.length };
   const refSnap = useMemo(() => (blank && session?.caseId && session.checks && session.load ? buildReference(session.checks, session.load) : null), [blank, session]);
   const compare = useMemo(() => {
@@ -1077,7 +1092,7 @@ function Lab() {
     setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n))); setSelected(null); setGroupSel(new Set([id]));
   };
   /** Insere um padrão pronto: nós, conexões válidas e grupos, num espaço livre perto do centro da tela. */
-  const insertPattern = (p: Pattern) => {
+  const insertPattern = (p: Pattern, opts: { quiet?: boolean } = {}) => {
     const c = screenToFlowPosition({ x: window.innerWidth * 0.3, y: window.innerHeight * 0.45 });
     const taken = new Set(nodes.map((n) => n.id));
     const probe = buildPattern(p, { x: 0, y: 0 }, taken, (s) => s, () => null).nodes;
@@ -1090,7 +1105,7 @@ function Lab() {
     });
     setNodes((ns) => [...ns.map((n) => ({ ...n, selected: false })), ...built.nodes.map((n) => ({
       id: n.id, type: "arch", position: { x: n.x, y: n.y }, width: 240, selected: true,
-      data: { name: n.name, type: n.type, replicas: n.replicas, hitRate: n.type === "redis" ? DEFAULT_CACHE.hitRate : undefined, health: "idle" as Health },
+      data: { name: n.name, type: n.type, replicas: n.replicas, hitRate: n.type === "redis" ? (n.hitRate ?? DEFAULT_CACHE.hitRate) : undefined, health: "idle" as Health },
     }))]);
     setDocEdges((es) => [...es, ...built.edges.map((e) => ({
       id: e.id, source: e.source, sourcePort: "right", target: e.target, targetPort: "left",
@@ -1102,10 +1117,24 @@ function Lab() {
       let k = gs.length + i + 1; while (gs.some((x) => x.id === `grp-${k}`)) k++;
       return { id: `grp-${k}`, name: g.name, color: GROUP_COLORS_CYCLE[(k - 1) % GROUP_COLORS_CYCLE.length]!, x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
     })]);
-    setSelected(null); setTab("props");
+    setSelected(null);
     setTimeout(() => fitView({ nodes: built.nodes.map((n) => ({ id: n.id })), padding: 0.4, maxZoom: 1, duration: 400 }), 60);
-    say(t("Padrão inserido: {nome}", { nome: t(p.title) }));
+    if (!opts.quiet) { setTab("props"); say(t("Padrão inserido: {nome}", { nome: t(p.title) })); }
   };
+  // aula com ponto de partida: monta o desenho inicial quando o canvas está vazio (não repõe se a pessoa já tem o desenho salvo)
+  useEffect(() => {
+    if (!lesson?.starter) return;
+    const st = lesson.starter;
+    const id = setTimeout(() => {
+      if (nodesRef.current.length > 0) return;
+      insertPattern({ id: `starter-${lesson.id}`, icon: lesson.icon, title: lesson.title, summary: "", groups: [],
+        nodes: st.nodes.map((n) => ({ key: n.key, type: n.type, name: n.name, replicas: n.replicas, x: n.x, y: n.y, hitRate: n.hitRate })),
+        edges: st.edges.map((e) => ({ from: e.from, to: e.to })) }, { quiet: true });
+      setTimeout(() => doFit(), 650); // enquadra o desenho entre os painéis laterais
+    }, 500);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const clearSelection = () => { setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n))); setEdgeSel(new Set()); setSelected(null); setGroupSel(new Set()); };
   const nudge = (dx: number, dy: number) => setNodes((ns) => ns.map((n) => (n.selected ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } } : n)));
   /** Organiza o diagrama: calcula as posições (autolayout.ts) e anima os cards até lá; vira um único passo no desfazer. */
@@ -1287,10 +1316,10 @@ function Lab() {
                 <button role="tab" aria-selected={leftTab === "req"} className={leftTab === "req" ? "on" : ""} onClick={() => setLeftTab("req")}><Icon name="checklist" size={15} />{" "}{t("Requisitos")}</button>
                 <button role="tab" aria-selected={leftTab === "guide"} className={leftTab === "guide" ? "on" : ""} onClick={() => setLeftTab("guide")}><Icon name="alarm" size={15} />{" "}{t("Guia")}</button>
               </span>
-            ) : <span><Icon name={blank ? "checklist" : "assignment"} size={17} /> {blank ? t("Requisitos") : t("Desafio")}</span>}
+            ) : <span><Icon name={lesson ? "school" : blank ? "checklist" : "assignment"} size={17} /> {lesson ? t("Aula") : blank ? t("Requisitos") : t("Desafio")}</span>}
             <button className="icon-btn" aria-label={t("Recolher enunciado")} title={t("Recolher")} onClick={() => setBriefOpen(false)}><Icon name="left_panel_close" size={18} /></button>
           </div>
-          {blank && session ? (leftTab === "guide" && session.mode === "study"
+          {lesson && lessonState ? <LessonPanel lesson={lesson} state={lessonState} onExit={() => go("/start/aulas")} onNext={(l) => openLesson(l, true)} /> : blank && session ? (leftTab === "guide" && session.mode === "study"
             ? <Guide session={session} checks={checks} onStages={setStagesDone} />
             : <RequirementsView session={session} checks={checks} reference={refSnap ? { ...compare, viewing: viewingRef, hasBackup: backupAt === 1, onLoad: loadReference, onBack: backToMine } : undefined} />) : <Brief nodes={docNodes} flows={flows} loads={loads} rps={rps} down={down} p95Ms={readP95} />}
         </aside>

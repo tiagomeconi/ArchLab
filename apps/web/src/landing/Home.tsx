@@ -2,7 +2,10 @@ import { useMemo } from "react";
 import { useAuth } from "../auth";
 import { loadProgress } from "../progress";
 import { ALL_CASES, dayPart, homeSummary, weeklyChallenge } from "../home";
-import { levelLocked } from "../plan";
+import { levelLocked, lessonLocked } from "../plan";
+import { LESSONS } from "../lessons";
+import { loadLessons } from "../lessonProgress";
+import { openLesson } from "../lessonNav";
 import { profileOverall } from "../leagues";
 import { LeagueCard } from "./LeagueCard";
 import { StreakCard } from "./StreakCard";
@@ -56,6 +59,7 @@ export function Home() {
   const hello0 = part === "morning" ? t("Bom dia") : part === "afternoon" ? t("Boa tarde") : t("Boa noite");
   const sub = h.done || h.started ? t("Você concluiu {done} de {total} casos. Continue de onde parou.", { done: h.done, total: h.total }) : t("Bem-vindo ao ArchLab. Comece por um caso guiado ou desenhe o seu próprio sistema.");
   const overall = useMemo(() => profileOverall(ALL_CASES.map((c) => progress[c.id]?.ovr)), [progress]);
+  const lessonNext = useMemo(() => { const p = loadLessons(); const l = LESSONS.find((x) => !p[x.id]?.done); return l && !lessonLocked(l) ? { l, started: !!p[l.id], first: !Object.values(p).some((x) => x.done) } : null; }, [auth.user?.id]);
   const challenge = useMemo(() => weeklyChallenge(new Date(), ALL_CASES.filter((c) => !levelLocked(c.level))), [auth.user?.id]);
   const challengeDone = !!challenge && progress[challenge.case.id]?.status === "done" && progress[challenge.case.id]!.updatedAt >= challenge.start.getTime();
   const n = h.next, p = n ? progress[n.id] : undefined;
@@ -72,6 +76,19 @@ export function Home() {
             <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-on-accent"><Icon name={fresh[0]!.icon} size={22} /></span>
             <p className="text-sm"><b>{fresh.length === 1 ? t("Nova conquista:") : t("Novas conquistas:")}</b> {fresh.map((a) => t(a.title)).join(" · ")}. <a {...link("/perfil#conquistas")} className="font-semibold text-accent hover:underline">{t("Ver conquistas")}</a></p>
           </div>
+        </BlurFade>
+      )}
+
+      {lessonNext && (
+        <BlurFade delay={0.085}>
+          <section aria-label={t("Aulas guiadas")} className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl border border-accent/40 bg-accent/10 px-5 py-4">
+            <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent text-on-accent"><Icon name="auto_stories" size={24} /></span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">{lessonNext.first ? t("Nunca fez system design? Comece pelas aulas.") : t("Continue suas aulas.")}</p>
+              <p className="truncate text-sm text-text-2">{t(lessonNext.l.title)} · {t("{n} min", { n: lessonNext.l.minutes })}</p>
+            </div>
+            <button onClick={() => openLesson(lessonNext.l)} className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90">{lessonNext.started ? t("Continuar") : t("Começar")}<Icon name="arrow_forward" size={16} /></button>
+          </section>
         </BlurFade>
       )}
 

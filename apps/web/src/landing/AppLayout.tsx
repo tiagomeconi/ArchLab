@@ -12,6 +12,7 @@ import { cn } from "./lib/utils";
 
 const ITEMS = [
   { to: "/start", icon: "home", label: "Início", on: (p: string) => p === "/start" || p === "/start/" },
+  { to: "/start/aulas", icon: "auto_stories", label: "Aulas", on: (p: string) => p.startsWith("/start/aulas") },
   { to: "/start/estudo", icon: "school", label: "Casos", on: (p: string) => p.startsWith("/start/estudo") },
   { to: "/start/trilhas", icon: "route", label: "Trilhas", on: (p: string) => p.startsWith("/start/trilhas") },
   { to: "/start/livre", icon: "draw", label: "Modo livre", on: (p: string) => p.startsWith("/start/livre") },
