@@ -593,3 +593,18 @@ def test_revisao_automatica_aponta_problemas_e_o_cartao_de_conceito_explica_o_co
     page.get_by_role("tab", name=re.compile("Propriedades")).click()
     page.locator(".concept summary").click()
     assert "quando usar" in page.locator(".concept").inner_text().lower()
+
+
+def test_caos_oferece_queda_do_grupo_e_o_formato_do_trafego_muda_a_carga(page):
+    page.goto(page.base + "/app?blank=1"); page.wait_for_selector(".react-flow")
+    add_component(page, "Cliente"); add_component(page, "Backend")
+    page.wait_for_timeout(400)
+    page.locator(".react-flow__pane").click(position={"x": 300, "y": 300})
+    page.keyboard.press("Control+a"); page.keyboard.press("g"); page.wait_for_timeout(500)
+    page.get_by_role("button", name=re.compile("Modo caos|Injetar falhas")).first.click()
+    page.wait_for_selector("dialog[open].chaos")
+    assert page.locator(".chaos-card", has_text="Queda do grupo").count() == 1
+    page.keyboard.press("Escape")
+    # o seletor de formato existe e aceita o pico repentino
+    sel = page.get_by_label("Formato do tráfego na simulação")
+    sel.select_option("spike"); assert sel.input_value() == "spike"

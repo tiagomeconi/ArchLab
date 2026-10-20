@@ -47,3 +47,19 @@ describe("revisão de arquitetura", () => {
     expect(f.some((x) => x.rule === "spof" && x.nodeIds.includes("dns"))).toBe(false);
   });
 });
+
+import { estimateCost } from "../../../apps/web/src/cost";
+describe("custo estimado", () => {
+  it("soma preço por instância vezes réplicas, ignora origens de carga e conta o que não tem preço", () => {
+    const nodes = [
+      { id: "c", name: "c", properties: { profileId: "source-v1", replicas: 1 } },
+      { id: "api", name: "api", properties: { profileId: "compute-standard-v1", replicas: 3 } },
+      { id: "db", name: "db", properties: { profileId: "sql-standard-v1", replicas: 2 } },
+      { id: "q", name: "q", properties: { profileId: "queue-standard-v1", replicas: 1 } },
+    ];
+    const c = estimateCost(nodes);
+    expect(c.total).toBe(80 * 3 + 300 * 2);
+    expect(c.unknown).toBe(1);
+    expect(c.lines.map((l) => l.id)).toEqual(["db", "api"]);
+  });
+});

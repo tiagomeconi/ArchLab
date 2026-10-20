@@ -6,7 +6,9 @@ import { t } from "./i18n";
 export interface TargetInfo { id: string; name: string; why: string }
 
 /** Modal do modo caos: escolha falhas, veja o alvo de cada uma e aplique/simule. */
-export function ChaosDialog({ active, suggested, targetOf, selectedName, onApply, onClose }: {
+export function ChaosDialog({ items = CHAOS, active, suggested, targetOf, selectedName, onApply, onClose }: {
+  /** falhas disponíveis (as fixas mais uma por grupo do desenho) */
+  items?: ChaosItem[];
   active: Set<string>;
   /** falhas que mais interessam ao caso aberto */
   suggested?: Set<string>;
@@ -34,7 +36,7 @@ export function ChaosDialog({ active, suggested, targetOf, selectedName, onApply
           <section key={cat.id}>
             <h3>{t(cat.title)}</h3>
             <div className="chaos-grid">
-              {CHAOS.filter((i) => i.cat === cat.id).map((i) => {
+              {items.filter((i) => i.cat === cat.id).map((i) => {
                 const on = staged.has(i.id);
                 const tgt = i.scope === "target" ? targetOf(i) : null;
                 const blocked = i.scope === "target" && !tgt;
@@ -42,7 +44,7 @@ export function ChaosDialog({ active, suggested, targetOf, selectedName, onApply
                   <button key={i.id} className={`chaos-card${on ? " on" : ""}`} aria-pressed={on} disabled={blocked} onClick={() => toggle(i.id)}>
                     <span className="ci"><Icon name={i.icon} size={20} /></span>
                     <span className="ct">
-                      <b>{t(i.title)}{suggested?.has(i.id) && <span className="sugg">{t("Sugerida")}</span>}</b>
+                      <b>{t(i.title)}{i.label ? `: ${i.label}` : ""}{suggested?.has(i.id) && <span className="sugg">{t("Sugerida")}</span>}</b>
                       <small>{t(i.desc)}</small>
                       <em>{i.scope === "global" ? <><Icon name="public" size={12} /> global</>
                         : tgt ? <><Icon name="my_location" size={12} /> {t("alvo")}: {tgt.name} <i>({t(tgt.why)})</i></>

@@ -10,6 +10,11 @@ export interface GroupData extends Record<string, unknown> {
   name: string; color: string;
   onRename: (id: string, name: string) => void; onColor: (id: string, color: string) => void; onDelete: (id: string) => void;
 }
+/** O bloco pertence ao grupo quando o seu centro está dentro da moldura. */
+export const inGroup = (g: { x: number; y: number; w: number; h: number }, n: { x: number; y: number; w?: number; h?: number }) => {
+  const cx = n.x + (n.w ?? 240) / 2, cy = n.y + (n.h ?? 96) / 2;
+  return cx >= g.x && cx <= g.x + g.w && cy >= g.y && cy <= g.y + g.h;
+};
 export const GROUP_MIN = { w: 200, h: 140 };
 
 /** Valida grupos vindos de desenho salvo, link compartilhado ou arquivo: nada de fora entra sem checagem. */

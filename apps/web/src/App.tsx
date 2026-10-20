@@ -16,14 +16,16 @@ import { FlowsPanel } from "./FlowsPanel";
 import { NotesPad } from "./Notes";
 import { ExportMenu } from "./ExportMenu";
 import { renderReport } from "./report";
-import { GroupNode, GROUP_MIN, cleanGroups, type GroupData, type GroupDoc } from "./GroupNode";
+import { GroupNode, GROUP_MIN, cleanGroups, inGroup, type GroupData, type GroupDoc } from "./GroupNode";
 import { ReviewPanel, ConceptCard } from "./ReviewPanel";
 import { lintArchitecture } from "./lint";
+import { estimateCost } from "./cost";
+import { SHAPES, shapeFactor, type Shape } from "./trafficShape";
 import { portFromHandle, sideOf, SIDES, type Side } from "./ports";
 import { Brief } from "./Brief";
 import { ChaosDialog } from "./ChaosDialog";
 import { ShortcutsDialog } from "./ShortcutsDialog";
-import { CHAOS, pickTarget, resolveChaos } from "./chaos";
+import { CHAOS, groupChaos, pickTarget, resolveChaos } from "./chaos";
 import { DURATION, SimPanel, type RunStatus, type Sample } from "./SimPanel";
 import { addStep, buildAutoFlows, SIDE_TYPES, SOURCE_TYPES, createFlow, removeNodeFromFlow, removeStep, type Flow, type FlowMeta } from "./flowOps";
 import { fmt, Icon, Logo, Range, SearchField, usePref } from "./ui";
@@ -392,6 +394,7 @@ function Lab() {
   // o desenho de referência (encurtador) tem carga própria; no canvas em branco vale a carga do caso ou do modo livre
   const { peakRps: PEAK, readPct: READ0 } = (blank ? session?.load : undefined) ?? DEFAULT_LOAD;
   const [traffic, setTraffic] = useState(1); // × a carga de pico do caso
+  const [shape, setShape] = useState<Shape>("flat"); // como a carga chega ao pico durante a simulação
   const [readPct, setReadPct] = useState(READ0);
   const [speed, setSpeed] = useState(1);
   const [run, setRun] = useState<{ status: RunStatus; t: number; series: Sample[] }>({ status: "idle", t: 0, series: [] });
@@ -481,11 +484,17 @@ function Lab() {
     spread(reads, 1 - wShare); spread(writes, wShare);
     return out;
   }, [flows, meta, readPct]);
+  // blocos dentro de cada grupo; só muda quando a composição muda (não a cada frame de um arrasto)
+  const memberKey = groups.map((g) => `${g.id}|${g.name}|${nodes.filter((n) => inGroup(g, { x: n.position.x, y: n.position.y, w: n.width, h: n.measured?.height })).map((n) => n.id).join(",")}`).join(";");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const chaosGroups = useMemo(() => groups.map((g) => ({ id: g.id, name: g.name, nodeIds: nodes.filter((n) => inGroup(g, { x: n.position.x, y: n.position.y, w: n.width, h: n.measured?.height })).map((n) => n.id) })), [memberKey]);
   // modo caos: contexto, alvo de cada falha direcionada e efeitos compostos
   const chaosCtx = useMemo(() => ({
     nodes: docNodes.map((n: any) => ({ id: n.id, type: n.type, name: n.name, replicas: n.properties.replicas, source: !!PROFILES[n.properties.profileId]?.source })),
     edges: docEdges.map((e) => ({ id: e.id, source: e.source, target: e.target, tls: !!e.configuration.tls })),
-  }), [docNodes, docEdges]);
+    groups: chaosGroups,
+  }), [docNodes, docEdges, chaosGroups]);
+  const chaosItems = useMemo(() => [...CHAOS, ...groupChaos(chaosCtx)], [chaosCtx]);
   const baseTraffic = Math.round(PEAK * traffic);
   const baseline = useMemo(() => solveDemand(doc, { rps: baseTraffic, weights, inactiveNodeIds: [...down] }), [doc, baseTraffic, weights, down]);
   const bottleneck = useCallback((ids: string[]) => {
@@ -494,7 +503,7 @@ function Lab() {
     return best?.[0] ?? null;
   }, [baseline]);
   const chaosRes = useMemo(() => resolveChaos(chaos, chaosCtx, selected, bottleneck), [chaos, chaosCtx, selected, bottleneck]);
-  const rps = Math.round(baseTraffic * chaosRes.traffic);
+  const rps = Math.round(baseTraffic * chaosRes.traffic * (run.status === "running" ? shapeFactor(shape, run.t, DURATION) : 1));
   const result = useMemo(
     () => solveDemand(doc, { rps, weights, inactiveNodeIds: [...down], effects: chaosRes.effects }),
     [doc, rps, weights, down, chaosRes],
@@ -608,8 +617,7 @@ function Lab() {
         if (c.dragging && (dx || dy)) {
           // quem está dentro do grupo (pelo centro do bloco) anda junto
           setNodes((ns) => ns.map((n) => {
-            const cx = n.position.x + (n.width ?? 240) / 2, cy = n.position.y + (n.measured?.height ?? 96) / 2;
-            return cx >= g.x && cx <= g.x + g.w && cy >= g.y && cy <= g.y + g.h ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } } : n;
+            return inGroup(g, { x: n.position.x, y: n.position.y, w: n.width, h: n.measured?.height }) ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } } : n;
           }));
         }
         setGroups((gs) => gs.map((x) => (x.id === g.id ? { ...x, x: c.position!.x, y: c.position!.y } : x)));
@@ -752,6 +760,7 @@ function Lab() {
     inFlow: new Set(flows.flatMap((f) => f.steps.map((s) => s.nodeId))),
     utilization: new Map([...loads.entries()].map(([id, l]) => [id, l.utilization])), readPct,
   }), [nodes, docEdges, flows, loads, readPct]);
+  const cost = useMemo(() => estimateCost(docNodes), [docNodes]);
   const reviewHigh = findings.filter((f) => f.severity === "alta").length;
   const focusNodes = (ids: string[]) => {
     if (!ids.length) return;
@@ -1125,6 +1134,9 @@ function Lab() {
           <Range min={1} max={100} step={1} value={Math.round(traffic * 10)} aria-label={t("Multiplicador de tráfego")}
             onChange={(e) => setTraffic(+e.target.value / 10)} />
           <small className="num">{fmt(rpsTween)} req/s{traffic === 1 ? (blank ? ` · ${t("pico do caso")}` : ` · ${t("pico do desafio")}`) : ""}</small>
+          <select className="shape-sel" value={shape} aria-label={t("Formato do tráfego na simulação")} title={t("Formato do tráfego na simulação")} onChange={(e) => setShape(e.target.value as Shape)}>
+            {SHAPES.map((sh) => <option key={sh.id} value={sh.id}>{t(sh.label)}</option>)}
+          </select>
         </div>
         <div className="hctl" style={{ minWidth: 168 }}>
           <label><span>{t("Leituras vs escritas")}</span><b className="num">{readPct}% read</b></label>
@@ -1192,7 +1204,7 @@ function Lab() {
         </div>
       </ReactFlow>
 
-      {run.status !== "idle" && <SimPanel collapsed={simMin} onToggle={() => setSimMin((v) => !v)} status={run.status} t={run.t} series={run.series} chaos={CHAOS.filter((c) => chaos.has(c.id)).map((c) => c.title)} />}
+      {run.status !== "idle" && <SimPanel collapsed={simMin} onToggle={() => setSimMin((v) => !v)} status={run.status} t={run.t} series={run.series} chaos={chaosItems.filter((c) => chaos.has(c.id)).map((c) => (c.label ? `${t(c.title)}: ${c.label}` : c.title))} />}
 
       {run.status === "idle" && <p className="hint panel" role="region" aria-label={t("Dica")}><Icon name="info" size={15} />{" "}{t("Arraste da lateral · ligue pelas bolinhas · defina o caminho em Fluxos ·")}{" "}<kbd>?</kbd> {t("atalhos")}</p>}
 
@@ -1231,7 +1243,7 @@ function Lab() {
             onAddStep={(fid, s) => setFlows((fs) => fs.map((f) => (f.id === fid ? addStep(f, s) : f)))}
             onRemoveStep={(fid, sid) => setFlows((fs) => fs.map((f) => (f.id === fid ? removeStep(f, sid) : f)))} />
         )}
-        {tab === "review" && <ReviewPanel findings={findings} hasNodes={nodes.length > 0} onFocus={focusNodes} />}
+        {tab === "review" && <ReviewPanel findings={findings} hasNodes={nodes.length > 0} cost={cost} onFocus={focusNodes} />}
         {tab === "props" && (sel && selNode && selHealth ? (
           <div className="inspector" key={selected}>
             <label className="name-field">
@@ -1330,7 +1342,7 @@ function Lab() {
       <div className="toast-region" aria-live="polite">{toast && <div className="toast" key={toast}>{toast}</div>}</div>
 
       {chaosOpen && (
-        <ChaosDialog active={chaos} suggested={chaosHints} selectedName={selNode?.data.name ?? null}
+        <ChaosDialog items={chaosItems} active={chaos} suggested={chaosHints} selectedName={selNode?.data.name ?? null}
           targetOf={(item) => { const t = pickTarget(item, chaosCtx, selected, bottleneck); const n = t && docNodes.find((x: any) => x.id === t.id); return t && n ? { id: t.id, name: n.name, why: t.why } : null; }}
           onApply={(ids, simulate) => { setChaos(ids); if (simulate) setRun({ status: "running", t: 0, series: [] }); }}
           onClose={() => setChaosOpen(false)} />

@@ -3,10 +3,13 @@ import type { Effects, NodeEffect, EdgeEffect } from "@archlab/domain";
 /** Catálogo do modo caos. Os números são intensidades de ensino (spec §10.5), editáveis no futuro. */
 export interface ChaosNode { id: string; type: string; name: string; replicas: number; source: boolean }
 export interface ChaosEdge { id: string; source: string; target: string; tls: boolean }
-export interface ChaosCtx { nodes: ChaosNode[]; edges: ChaosEdge[] }
+/** `groups`: molduras do desenho com os ids dos blocos de dentro (a queda de um grupo é a queda de uma zona, região ou cluster) */
+export interface ChaosCtx { nodes: ChaosNode[]; edges: ChaosEdge[]; groups?: { id: string; name: string; nodeIds: string[] }[] }
 export interface Patch { nodes: Record<string, NodeEffect>; edges: Record<string, EdgeEffect>; traffic: number }
 export interface ChaosItem {
   id: string; cat: string; icon: string; title: string; desc: string;
+  /** complemento mostrado depois do título (ex.: o nome do grupo), sem tradução */
+  label?: string;
   scope: "global" | "target";
   /** tipos de componente que podem ser alvo (se ausente, qualquer um que não seja origem de carga) */
   types?: string[];
@@ -109,6 +112,15 @@ export const CHAOS: ChaosItem[] = [
     desc: "Rampa curta para ×5 sobre a carga atual (traffic-spike).", apply: () => ({ ...empty(), traffic: 5 }) },
 ];
 
+/** Uma falha por grupo do desenho: todos os blocos de dentro saem do ar de uma vez. */
+export function groupChaos(ctx: ChaosCtx): ChaosItem[] {
+  return (ctx.groups ?? []).filter((g) => g.nodeIds.length).map((g) => ({
+    id: `grp:${g.id}`, cat: "infra", icon: "workspaces", title: "Queda do grupo", label: g.name, scope: "global" as const,
+    desc: "Tudo que está dentro do grupo sai do ar de uma vez, como numa zona, região ou cluster inteiro.",
+    apply: (c: ChaosCtx) => { const p = empty(); const src = new Set(c.nodes.filter((n) => n.source).map((n) => n.id)); for (const id of g.nodeIds) if (!src.has(id)) p.nodes[id] = { unavailable: true }; return p; },
+  }));
+}
+
 /** Alvo de uma falha direcionada: o componente selecionado, senão o gargalo, senão o primeiro compatível. */
 export function pickTarget(item: ChaosItem, ctx: ChaosCtx, selected: string | null, bottleneck: (ids: string[]) => string | null): { id: string; why: string } | null {
   if (item.scope !== "target") return null;
@@ -125,7 +137,7 @@ export interface Resolved { effects: Effects; traffic: number; targets: Record<s
 export function resolveChaos(active: Set<string>, ctx: ChaosCtx, selected: string | null, bottleneck: (ids: string[]) => string | null): Resolved {
   const out: Resolved = { effects: { nodes: {}, edges: {} }, traffic: 1, targets: {}, faultNodes: new Set(), faultEdges: new Set() };
   const nodes = out.effects.nodes!, edges = out.effects.edges!;
-  for (const item of CHAOS) {
+  for (const item of [...CHAOS, ...groupChaos(ctx)]) {
     if (!active.has(item.id)) continue;
     let target: string | null = null;
     if (item.scope === "target") {
