@@ -569,3 +569,27 @@ def test_agrupar_blocos_em_moldura_que_leva_o_conteudo_junto(page):
     # remover o grupo mantém os blocos
     g.locator("button.del").click(); page.wait_for_timeout(300)
     assert page.locator(".react-flow__node-group").count() == 0 and nodes(page) == 2
+
+
+def test_revisao_automatica_aponta_problemas_e_o_cartao_de_conceito_explica_o_componente(page):
+    page.goto(page.base + "/app?blank=1"); page.wait_for_selector(".react-flow")
+    add_component(page, "Cliente"); add_component(page, "Backend")
+    page.wait_for_timeout(400)
+    ns = page.locator(".react-flow__node-arch")
+    for i, (x, y) in enumerate([(250, 450), (650, 450)]):
+        bb = ns.nth(i).bounding_box(); page.mouse.move(bb["x"] + bb["width"] / 2, bb["y"] + 20); page.mouse.down()
+        page.mouse.move(x + 120, y + 20, steps=8); page.mouse.up(); page.wait_for_timeout(200)
+    ha = ns.nth(0).locator('.react-flow__handle[data-handleid="right"]').bounding_box(); hb = ns.nth(1).locator('.react-flow__handle[data-handleid="left"]').bounding_box()
+    page.mouse.move(ha["x"] + 5, ha["y"] + 5); page.mouse.down(); page.mouse.move(hb["x"] + 5, hb["y"] + 5, steps=12); page.mouse.up(); page.wait_for_timeout(300)
+    if page.locator("dialog[open]").count(): page.get_by_role("button", name="Conectar").click(); page.wait_for_timeout(300)
+    page.wait_for_timeout(600)
+    page.get_by_role("tab", name=re.compile("Revisão")).click()
+    item = page.locator(".review-item", has_text="ponto único de falha")
+    assert item.count() == 1
+    assert "Dê 2 ou mais réplicas" in item.inner_text()
+    item.locator(".review-head").click(); page.wait_for_timeout(500)
+    assert page.locator(".react-flow__node-arch.selected, .react-flow__node.selected").count() >= 1
+    # cartão de conceito na aba Propriedades
+    page.get_by_role("tab", name=re.compile("Propriedades")).click()
+    page.locator(".concept summary").click()
+    assert "quando usar" in page.locator(".concept").inner_text().lower()

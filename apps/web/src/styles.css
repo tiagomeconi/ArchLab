@@ -1,5 +1,5 @@
 /* Ícones: Material Symbols Rounded em subconjunto (só os ícones usados). Regerar com: pnpm --filter @archlab/web gen:icons */
-@font-face { font-family: "Material Symbols Rounded Variable"; font-style: normal; font-display: block; font-weight: 100 700; src: url("/src/fonts/material-symbols-subset.woff2?v=cad97b80") format("woff2"); }
+@font-face { font-family: "Material Symbols Rounded Variable"; font-style: normal; font-display: block; font-weight: 100 700; src: url("/src/fonts/material-symbols-subset.woff2?v=5eb245b1") format("woff2"); }
 :root {
   --bg: #f4f6fb; --surface: rgba(255,255,255,.82); --surface-solid: #ffffff; --text: #0f172a; --text-2: #526079;
   --border: rgba(15,23,42,.10); --border-strong: #b6c2d6; --accent: #0369a1; --accent-soft: rgba(3,105,161,.10); --on-accent: #fff;
@@ -820,3 +820,24 @@ button.dn-name { cursor: text; } button.dn-name:hover .msr, button.dn-name:focus
 .hint-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 4px; }
 .hint-row .link { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
 .hint-line { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); margin: 0; }
+
+/* revisão automática e cartão de conceito */
+.tab-count { margin-left: 4px; min-width: 16px; height: 16px; padding: 0 4px; display: inline-grid; place-items: center; border-radius: 999px; font-style: normal; font-size: 10px; font-weight: 700; background: var(--danger); color: #fff; }
+.review { padding: 4px 14px 16px; }
+.review-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.review-item { border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; background: var(--surface-solid); }
+.review-item.alta { border-left: 4px solid var(--danger); } .review-item.media { border-left: 4px solid var(--warn); } .review-item.info { border-left: 4px solid var(--accent); }
+.review-head { display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: left; background: none; border: none; padding: 0; color: inherit; cursor: pointer; }
+.review-head:disabled { cursor: default; }
+.review-head small { display: block; font-size: 11px; color: var(--text-2); }
+.review-head b { font-size: 13.5px; line-height: 1.3; }
+.review-item.alta .review-head .msr { color: var(--danger); } .review-item.media .review-head .msr { color: var(--warn); } .review-item.info .review-head .msr { color: var(--accent); }
+.review-item p { margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--text-2); }
+.review-item p.fix { color: var(--text); display: flex; gap: 6px; align-items: flex-start; }
+.review-empty { display: grid; justify-items: center; gap: 6px; text-align: center; padding: 28px 18px; color: var(--ok); }
+.review-empty p { margin: 0; color: var(--text-2); font-size: 12.5px; line-height: 1.5; }
+.concept { margin: 12px 0 4px; border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; background: var(--surface-solid); }
+.concept summary { cursor: pointer; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.concept dl { margin: 8px 0 2px; display: grid; gap: 2px; }
+.concept dt { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; margin-top: 6px; }
+.concept dd { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--text-2); }

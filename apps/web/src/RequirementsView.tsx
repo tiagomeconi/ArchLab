@@ -5,6 +5,7 @@ import { BrandMark, Icon, usePref } from "./ui";
 import { caseById } from "./cases";
 import type { Session } from "./session";
 import { t, useLang } from "./i18n";
+import { hintFor } from "./hints";
 
 function Group({ title, icon, children, note }: { title: string; icon: string; children: ReactNode; note?: string }) {
   return (
@@ -59,6 +60,7 @@ export function RequirementsView({ session, checks, reference }: { session: Sess
   const { requirements: r } = session;
   const found = session.caseId ? caseById(session.caseId) : undefined;
   const logoOf = found?.company?.logo ?? (found ? `icon:${found.icon}` : undefined);
+  const [hintLevel, setHintLevel] = useState<Record<string, number>>({});
   const [manual, setManual] = usePref<Record<string, boolean>>(`reqManual:${session.caseId ?? session.title}`, {});
   const met = checks.filter((c) => c.status === "meets").length;
   const manualItems = [...r.functional.map((txt, i) => [`f${i}`, txt, "Funcional"] as const), ...r.nonFunctional.map((txt, i) => [`n${i}`, txt, "Não funcional"] as const)];
@@ -84,7 +86,20 @@ export function RequirementsView({ session, checks, reference }: { session: Sess
           </div>
           <ul className="reqs">
             {checks.map((c) => (
-              <li key={c.id}><div><b>{c.label}</b><small>{c.detail}</small></div><Chip s={c.status} /></li>
+              <li key={c.id}><div><b>{c.label}</b><small>{c.detail}</small>
+                {c.status !== "meets" && c.status !== "manual" && (() => {
+                  const h = hintFor(session, c.id); if (!h) return null;
+                  const lv = hintLevel[c.id] ?? 0;
+                  return (
+                    <span className="hint-row">
+                      {lv === 0 && <button className="link" onClick={() => setHintLevel((m) => ({ ...m, [c.id]: 1 }))}><Icon name="lightbulb" size={13} />{" "}{t("Ver dica")}</button>}
+                      {lv >= 1 && <small className="hint-line"><Icon name="lightbulb" size={13} />{" "}{t("Pense em: {grupo}.", { grupo: h.groups.map((g) => t(g)).join(" · ") })}</small>}
+                      {lv === 1 && <button className="link" onClick={() => setHintLevel((m) => ({ ...m, [c.id]: 2 }))}>{t("Mais uma dica")}</button>}
+                      {lv >= 2 && <small className="hint-line">{t("Na paleta: {itens}.", { itens: h.items.map((i) => t(i.label)).join(", ") })}</small>}
+                    </span>
+                  );
+                })()}
+              </div><Chip s={c.status} /></li>
             ))}
           </ul>
         </Group>

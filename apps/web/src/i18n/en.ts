@@ -15,5 +15,6 @@ import { social } from "./en.social";
 import { safety } from "./en.safety";
 import { names } from "./en.names";
 import { profile } from "./en.profile";
+import { review } from "./en.review";
 
-export const EN: Record<string, string> = { ...newcases, ...components, ...rating, ...landing, ...cases, ...lab, ...extra, ...start, ...auth, ...auth2, ...home, ...leagues, ...audit, ...social, ...safety, ...names, ...profile };
+export const EN: Record<string, string> = { ...newcases, ...components, ...rating, ...landing, ...cases, ...lab, ...extra, ...start, ...auth, ...auth2, ...home, ...leagues, ...audit, ...social, ...safety, ...names, ...profile, ...review };

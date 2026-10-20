@@ -17,6 +17,8 @@ import { NotesPad } from "./Notes";
 import { ExportMenu } from "./ExportMenu";
 import { renderReport } from "./report";
 import { GroupNode, GROUP_MIN, cleanGroups, type GroupData, type GroupDoc } from "./GroupNode";
+import { ReviewPanel, ConceptCard } from "./ReviewPanel";
+import { lintArchitecture } from "./lint";
 import { portFromHandle, sideOf, SIDES, type Side } from "./ports";
 import { Brief } from "./Brief";
 import { ChaosDialog } from "./ChaosDialog";
@@ -395,7 +397,7 @@ function Lab() {
   const [run, setRun] = useState<{ status: RunStatus; t: number; series: Sample[] }>({ status: "idle", t: 0, series: [] });
   const [down, setDown] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<string | null>(blank ? null : "db");
-  const [tab, setTab] = useState<"components" | "flows" | "props">("components");
+  const [tab, setTab] = useState<"components" | "flows" | "props" | "review">("components");
   const [providerFor, setProviderFor] = useState<string | null>(null);
   const { screenToFlowPosition, deleteElements, fitView } = useReactFlow();
   const counter = useRef(0);
@@ -627,7 +629,7 @@ function Lab() {
     if (!changes.length) return;
     setNodes((ns) => applyNodeChanges(changes, ns));
     for (const c of changes) {
-      if (c.type === "select" && c.selected) { setSelected(c.id); setTab((t) => (t === "flows" ? t : "props")); }
+      if (c.type === "select" && c.selected) { setSelected(c.id); setTab((t) => (t === "flows" || t === "review" ? t : "props")); }
       if (c.type === "remove") {
         setSelected((s) => (s === c.id ? null : s));
         setDown((d) => { const n = new Set(d); n.delete(c.id); return n; });
@@ -744,6 +746,18 @@ function Lab() {
   const selProvider = selNode ? providerOf(selNode.data.type, selNode.data.providerId) : undefined;
   const selLoad = selected ? loads.get(selected) : undefined;
   const selHealth = selNode ? healthOf(selLoad, down.has(selNode.id), profileById.get(selNode.id) ?? "unresolved", SIDE_TYPES.has(selNode.data.type)) : undefined;
+  const findings = useMemo(() => lintArchitecture({
+    nodes: nodes.map((n) => ({ id: n.id, type: n.data.type, name: n.data.name, replicas: n.data.replicas })),
+    edges: docEdges.map((e) => ({ source: e.source, target: e.target, protocol: String(e.configuration.protocol), mode: String(e.configuration.mode), tls: e.configuration.tls === undefined ? undefined : !!e.configuration.tls })),
+    inFlow: new Set(flows.flatMap((f) => f.steps.map((s) => s.nodeId))),
+    utilization: new Map([...loads.entries()].map(([id, l]) => [id, l.utilization])), readPct,
+  }), [nodes, docEdges, flows, loads, readPct]);
+  const reviewHigh = findings.filter((f) => f.severity === "alta").length;
+  const focusNodes = (ids: string[]) => {
+    if (!ids.length) return;
+    setNodes((ns) => ns.map((n) => ({ ...n, selected: ids.includes(n.id) })));
+    fitView({ nodes: ids.map((id) => ({ id })), padding: 0.6, maxZoom: 1.1, duration: 400 });
+  };
   const selFlows = selNode ? flows.filter((f) => f.steps.some((s) => s.nodeId === selNode.id)) : [];
 
   // ── histórico (desfazer/refazer): cada gesto concluído vira um passo; arrastar/redimensionar conta como um só ──
@@ -1203,9 +1217,9 @@ function Lab() {
 
       <aside className="panel sidebar" aria-label={t("Ferramentas")} data-tour="palette">
         <div className="tabs" role="tablist">
-          {([["components", "widgets", "Componentes"], ["flows", "route", "Fluxos"], ["props", "tune", "Propriedades"]] as const).map(([k, icon, label]) => (
+          {([["components", "widgets", "Componentes"], ["flows", "route", "Fluxos"], ["props", "tune", "Propriedades"], ["review", "fact_check", "Revisão"]] as const).map(([k, icon, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)} data-tour={k === "flows" ? "flows" : undefined}>
-              <Icon name={icon} size={16} /> {t(label)}
+              <Icon name={icon} size={16} /> {t(label)}{k === "review" && reviewHigh > 0 && <i className="tab-count" aria-label={t("{n} importantes", { n: reviewHigh })}>{reviewHigh}</i>}
             </button>
           ))}
         </div>
@@ -1217,6 +1231,7 @@ function Lab() {
             onAddStep={(fid, s) => setFlows((fs) => fs.map((f) => (f.id === fid ? addStep(f, s) : f)))}
             onRemoveStep={(fid, sid) => setFlows((fs) => fs.map((f) => (f.id === fid ? removeStep(f, sid) : f)))} />
         )}
+        {tab === "review" && <ReviewPanel findings={findings} hasNodes={nodes.length > 0} onFocus={focusNodes} />}
         {tab === "props" && (sel && selNode && selHealth ? (
           <div className="inspector" key={selected}>
             <label className="name-field">
@@ -1288,6 +1303,7 @@ function Lab() {
             {selHealth.health === "unknown" && (
               <div className="hintbox"><Icon name="help" size={18} /><span>{t("O fluxo usa uma classe de operação que o perfil deste componente não define (ex.: mensagem em um banco). Ajuste a operação do passo na aba Fluxos.")}</span></div>
             )}
+            <ConceptCard type={sel.type} />
             {selFlows.length > 0 && (
               <p className="note">{t("Participa de:")} {selFlows.map((f) => meta[f.id]?.name ?? f.id).join(", ")}.</p>
             )}
