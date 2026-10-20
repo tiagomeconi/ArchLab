@@ -26,7 +26,8 @@ import { deleteVersion, loadVersions, saveVersion, type Version } from "./versio
 import { InterviewChip, InterviewPanel, InterviewResult, type Interview } from "./InterviewBar";
 import { PAYWALL, currentPlan } from "./plan";
 import { toDesignDoc, toMermaid, type DocEdge as ExportEdge, type DocNode as ExportNode } from "./exportDoc";
-import { SHAPES, shapeFactor, type Shape } from "./trafficShape";
+import { shapeFactor, type Shape } from "./trafficShape";
+import { ShapeMenu } from "./ShapeMenu";
 import { portFromHandle, sideOf, SIDES, type Side } from "./ports";
 import { Brief } from "./Brief";
 import { ChaosDialog } from "./ChaosDialog";
@@ -1197,13 +1198,10 @@ function Lab() {
           <small>{running ? t("{n} s simulado por s real", { n: speed }) : t("Ritmo do relógio")}</small>
         </div>
         <div className="hctl" style={{ minWidth: 146 }}>
-          <label><span>{t("Tráfego")}</span><b className="num">{traffic.toFixed(traffic < 1 ? 1 : traffic % 1 ? 1 : 0)}×</b></label>
+          <label><span>{t("Tráfego")}<ShapeMenu shape={shape} onChange={setShape} /></span><b className="num">{traffic.toFixed(traffic < 1 ? 1 : traffic % 1 ? 1 : 0)}×</b></label>
           <Range min={1} max={100} step={1} value={Math.round(traffic * 10)} aria-label={t("Multiplicador de tráfego")}
             onChange={(e) => setTraffic(+e.target.value / 10)} />
           <small className="num">{fmt(rpsTween)} req/s{traffic === 1 ? (blank ? ` · ${t("pico do caso")}` : ` · ${t("pico do desafio")}`) : ""}</small>
-          <select className="shape-sel" value={shape} aria-label={t("Formato do tráfego na simulação")} title={t("Formato do tráfego na simulação")} onChange={(e) => setShape(e.target.value as Shape)}>
-            {SHAPES.map((sh) => <option key={sh.id} value={sh.id}>{t(sh.label)}</option>)}
-          </select>
         </div>
         <div className="hctl" style={{ minWidth: 168 }}>
           <label><span>{t("Leituras vs escritas")}</span><b className="num">{readPct}% read</b></label>

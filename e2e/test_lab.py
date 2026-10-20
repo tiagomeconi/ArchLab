@@ -606,8 +606,9 @@ def test_caos_oferece_queda_do_grupo_e_o_formato_do_trafego_muda_a_carga(page):
     assert page.locator(".chaos-card", has_text="Queda do grupo").count() == 1
     page.keyboard.press("Escape")
     # o seletor de formato existe e aceita o pico repentino
-    sel = page.get_by_label("Formato do tráfego na simulação")
-    sel.select_option("spike"); assert sel.input_value() == "spike"
+    page.get_by_role("button", name=re.compile("Formato do tráfego na simulação")).click()
+    page.get_by_role("menuitemradio", name=re.compile("Pico repentino")).click()
+    assert "Pico repentino" in page.get_by_role("button", name=re.compile("Formato do tráfego na simulação")).get_attribute("aria-label")
 
 
 def test_exporta_documento_de_design_e_diagrama_mermaid(page):

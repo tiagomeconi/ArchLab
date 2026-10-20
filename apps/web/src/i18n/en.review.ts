@@ -369,4 +369,5 @@ export const review: Record<string, string> = {
   "Antes de restaurar": "Before restoring",
   "Versão restaurada: {nome}": "Version restored: {nome}",
   "Ações": "Actions",
+  "Formato do tráfego": "Traffic shape",
 };
