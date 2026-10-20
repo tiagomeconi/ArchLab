@@ -81,7 +81,7 @@ Os fluxos de requisição são **derivados das conexões** que você desenha: li
 - **Revisão automática:** a aba *Revisão* aponta ponto único de falha, banco sem réplica, leitura sem cache, cadeia síncrona longa e mais, explicando o porquê e como corrigir.
 - **Cartões de conceito** em cada componente (o que é, quando usar, o que custa) e **dicas progressivas** nos requisitos que falham.
 - **Modo entrevista:** relógio de 30, 45 ou 60 minutos, cinco fases típicas e um resumo no fim.
-- **Desafio da semana** e **turmas**: quem ensina atribui casos e acompanha o progresso; quem estuda entra por código (exige Supabase).
+- **Desafio da semana** na home: um caso novo a cada segunda-feira.
 
 ## Desenhe do seu jeito
 

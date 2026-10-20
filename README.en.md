@@ -81,7 +81,7 @@ Request flows are **derived from the connections** you draw: connect it and it s
 - **Automatic review:** the *Review* tab flags single points of failure, databases without a replica, reads without a cache, long synchronous chains and more, explaining why and how to fix it.
 - **Concept cards** on every component (what it is, when to use it, what it costs) and **progressive hints** on failing requirements.
 - **Interview mode:** a 30, 45 or 60-minute clock, five typical phases and a summary at the end.
-- **Challenge of the week** and **classes**: teachers assign cases and follow progress; students join with a code (requires Supabase).
+- **Challenge of the week** on the home page: a new case every Monday.
 
 ## Draw your way
 

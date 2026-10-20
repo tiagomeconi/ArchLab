@@ -41,17 +41,3 @@ describe("migração do Supabase", () => {
     expect(sql).toContain("revoke all on function public.get_shared_design(uuid) from public, anon");
   });
 });
-
-describe("turmas", () => {
-  it("entrar só pela função, e o progresso só sai para quem criou a turma", () => {
-    expect(sql).not.toMatch(/create policy "[^"]*" on public\.class_members for insert/);
-    const join = /create or replace function public\.join_class[\s\S]*?end \$\$;/.exec(sql)![0];
-    expect(join).toContain("auth.uid() is null"); expect(join).toContain("join_code = upper(btrim(code))");
-    const prog = /create or replace function public\.class_progress[\s\S]*?end \$\$;/.exec(sql)![0];
-    expect(prog).toContain("is_class_owner(cid, auth.uid())"); expect(prog).toContain("a.class_id = cid"); expect(prog).not.toMatch(/birth_date|email|snap/);
-    for (const f of ["join_class(text)", "class_progress(uuid)", "is_class_owner(uuid, uuid)", "is_class_member(uuid, uuid)"]) {
-      expect(sql, f).toContain(`revoke all on function public.${f} from public, anon`);
-      expect(sql, f).toContain(`grant execute on function public.${f} to authenticated`);
-    }
-  });
-});

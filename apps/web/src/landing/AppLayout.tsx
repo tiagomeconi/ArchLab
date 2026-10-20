@@ -16,7 +16,6 @@ const ITEMS = [
   { to: "/start/trilhas", icon: "route", label: "Trilhas", on: (p: string) => p.startsWith("/start/trilhas") },
   { to: "/start/livre", icon: "draw", label: "Modo livre", on: (p: string) => p.startsWith("/start/livre") },
   { to: "/desenhos", icon: "folder_open", label: "Meus desenhos", on: (p: string) => p === "/desenhos" },
-  { to: "/turmas", icon: "groups", label: "Turmas", on: (p: string) => p === "/turmas", account: true },
   { to: "/ranking", icon: "leaderboard", label: "Ranking", on: (p: string) => p === "/ranking", account: true },
   { to: "/perfil", icon: "person", label: "Perfil", on: (p: string) => p === "/perfil" || p === "/configuracoes", account: true },
 ].filter((i) => authEnabled || !i.account);
