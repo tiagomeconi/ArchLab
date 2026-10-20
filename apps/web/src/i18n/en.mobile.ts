@@ -1,0 +1,19 @@
+/** Interface do laboratório em celular e tablet. */
+export const mobile: Record<string, string> = {
+  "Navegação do laboratório": "Lab navigation",
+  "Reduzir o painel": "Shrink the panel",
+  "Expandir o painel": "Expand the panel",
+  "Fechar o painel": "Close the panel",
+  "Toque no destino": "Tap the destination",
+  "de {nome}": "from {nome}",
+  "Ações de {nome}": "Actions for {nome}",
+  "Conectar": "Connect",
+  "Abrir a aula: passo {a} de {b}": "Open the lesson: step {a} of {b}",
+  "Ver": "View",
+  "Mais opções": "More options",
+  "Esses dois componentes não se conectam nessa direção": "Those two components can't connect in that direction",
+  "Enquadrar o desenho": "Fit the design to the screen",
+  "Cenário da simulação": "Simulation scenario",
+  "Preferências": "Preferences",
+  "Links curtos": "Short links",
+};

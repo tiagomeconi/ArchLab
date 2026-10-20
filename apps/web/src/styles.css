@@ -1,5 +1,5 @@
 /* Ícones: Material Symbols Rounded em subconjunto (só os ícones usados). Regerar com: pnpm --filter @archlab/web gen:icons */
-@font-face { font-family: "Material Symbols Rounded Variable"; font-style: normal; font-display: block; font-weight: 100 700; src: url("/src/fonts/material-symbols-subset.woff2?v=7bbec014") format("woff2"); }
+@font-face { font-family: "Material Symbols Rounded Variable"; font-style: normal; font-display: block; font-weight: 100 700; src: url("/src/fonts/material-symbols-subset.woff2?v=b4817499") format("woff2"); }
 :root {
   --bg: #f4f6fb; --surface: rgba(255,255,255,.82); --surface-solid: #ffffff; --text: #0f172a; --text-2: #526079;
   --border: rgba(15,23,42,.10); --border-strong: #b6c2d6; --accent: #0369a1; --accent-soft: rgba(3,105,161,.10); --on-accent: #fff;
@@ -904,3 +904,111 @@ dialog.patterns { width: min(720px, calc(100vw - 32px)); }
 @media (max-width: 1860px) { .topbar .lbl { display: none; } .topbar .chip { padding: 8px 10px; } }
 @media (max-width: 1620px) { .hctl { max-width: 120px; } .dn { flex-basis: 140px; width: 140px; } .brand > div { display: none; } .topbar { gap: 10px; } }
 @media (max-width: 1420px) { .ovr-lbl { display: none; } .ovr-chip { padding: 0 10px; } .hctl { max-width: 100px; } .dn { flex-basis: 110px; width: 110px; } }
+
+/* ═══════════ layout compacto: celular e tablet em pé (< 1024 px) ═══════════
+   Tela toda é o canvas; os painéis viram gavetas que sobem de baixo, com navegação inferior e uma barra de ações do bloco selecionado.
+   Tudo aqui fica sob .lab.ly-sheet, então o layout de computador não muda. */
+.lab.ly-sheet { --bar-h: 56px; --dock-h: calc(62px + env(safe-area-inset-bottom, 0px)); --safe-top: env(safe-area-inset-top, 0px);
+  --sheet-half: 50dvh; --sheet-full: calc(100dvh - var(--bar-h) - var(--dock-h) - var(--safe-top) - 16px); height: 100vh; height: 100dvh; -webkit-tap-highlight-color: transparent; }
+.lab.ly-sheet .react-flow { user-select: none; -webkit-user-select: none; touch-action: none; }
+
+/* barra superior */
+.lab.ly-sheet .topbar.compact { top: calc(var(--safe-top) + 8px); left: 8px; right: 8px; height: var(--bar-h); padding: 0 6px; gap: 4px; flex-wrap: nowrap; display: flex; align-items: center; border-radius: 18px; animation: none; }
+.lab.ly-sheet .topbar.compact .icon-btn { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 14px; color: var(--text); position: relative; }
+.lab.ly-sheet .topbar.compact .dn { flex: 1 1 0; width: auto; min-width: 0; max-width: none; margin: 0; }
+.lab.ly-sheet .topbar.compact .cb-title { flex: 1 1 0; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lab.ly-sheet .topbar.compact .spacer { display: none; }
+.lab.ly-sheet .topbar.compact .ovr-chip { height: 44px; padding: 0 10px; flex: none; } .lab.ly-sheet .topbar.compact .ovr-lbl { display: none; }
+.lab.ly-sheet .topbar.compact .simbtn { height: 44px; min-width: 44px; padding: 0 14px; border-radius: 14px; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; }
+.lab.ly-phone .topbar.compact .simbtn { padding: 0; width: 44px; } .lab.ly-phone .topbar.compact .lbl-sim { display: none; }
+.lab.ly-sheet .more-dot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); border: 2px solid var(--surface-solid); }
+.lab.ly-sheet .topbar.compact .dn-status span { display: none; }
+
+/* o que é de computador some: controles de zoom, minimapa, legenda de protocolos, dica de rodapé e o botão de reabrir o enunciado */
+.lab.ly-sheet .react-flow__controls, .lab.ly-sheet .mm-wrap, .lab.ly-sheet .proto-legend, .lab.ly-sheet .hint, .lab.ly-sheet .brief-open-btn, .lab.ly-sheet .react-flow__attribution { display: none !important; }
+.lab.ly-sheet .react-flow__panel.top { margin-top: calc(var(--bar-h) + var(--safe-top) + 20px); margin-left: 8px; }
+.lab.ly-sheet .notes-panel, .lab.ly-sheet.brief-open .notes-panel { margin-left: 8px !important; }
+.lab.ly-sheet .fit-fab { position: fixed; z-index: 18; top: calc(var(--bar-h) + var(--safe-top) + 20px); right: 8px; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: var(--surface-solid); border: 1px solid var(--border); box-shadow: var(--shadow); color: var(--text); }
+
+/* navegação inferior */
+.dock { position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; height: var(--dock-h); display: flex; gap: 2px; padding: 6px 6px env(safe-area-inset-bottom, 0px); background: color-mix(in srgb, var(--surface-solid) 94%, transparent); border-top: 1px solid var(--border); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.dock button { all: unset; box-sizing: border-box; flex: 1 1 0; min-width: 0; height: 100%; display: grid; place-items: center; align-content: center; gap: 2px; border-radius: 14px; color: var(--text-2); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .2s, color .2s; }
+.dock button.on { color: var(--accent); background: var(--accent-soft); }
+.dock button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.dock-ico { position: relative; display: grid; place-items: center; }
+.dock-lbl { font-size: 11px; font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
+.dock-badge { position: absolute; top: -4px; right: -9px; min-width: 16px; height: 16px; padding: 0 4px; display: grid; place-items: center; border-radius: 999px; background: var(--danger); color: #fff; font: 700 10px/1 var(--mono); font-style: normal; }
+
+/* gavetas */
+.lab.ly-sheet .sheet { position: fixed !important; left: 0 !important; right: 0 !important; top: auto !important; bottom: var(--dock-h) !important; width: min(760px, calc(100% - 0px)) !important; margin-inline: auto; height: var(--sheet-half); max-height: var(--sheet-full);
+  border-radius: 22px 22px 0 0 !important; z-index: 25; animation: none !important; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -12px 40px rgba(0, 0, 0, .35);
+  transition: transform .36s cubic-bezier(.2, .8, .2, 1), height .36s cubic-bezier(.2, .8, .2, 1), visibility 0s; }
+.lab.ly-sheet .sheet[data-snap="full"] { height: var(--sheet-full); }
+.lab.ly-sheet .sheet[data-snap="closed"] { transform: translateY(calc(100% + 32px)); visibility: hidden; pointer-events: none; transition: transform .3s cubic-bezier(.4, 0, 1, 1), visibility 0s .3s; }
+.lab.ly-sheet .sidebar .tabs, .lab.ly-sheet .brief-bar > .icon-btn { display: none; }
+.lab.ly-sheet .brief-bar { padding-left: 14px; }
+.sheet-grip { position: relative; flex: none; height: 30px; display: flex; align-items: center; }
+.grip-hit { flex: 1; height: 30px; display: grid; place-items: center; touch-action: none; cursor: grab; -webkit-tap-highlight-color: transparent; }
+.grip-hit i { width: 46px; height: 5px; border-radius: 3px; background: var(--border-strong); }
+.grip-hit:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: 12px; }
+.grip-hit.static { cursor: default; height: 26px; }
+.sheet-grip .grip-close { position: absolute; right: 6px; top: -4px; width: 40px; height: 38px; display: grid; place-items: center; }
+.lab.ly-sheet .sheet > :not(.sheet-grip):not(.brief-bar) { min-height: 0; }
+.lab.ly-sheet .sidebar .pad, .lab.ly-sheet .sidebar .inspector, .lab.ly-sheet .sidebar .palette, .lab.ly-sheet .sidebar .review { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.lab.ly-sheet .brief-body { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding-bottom: 24px; }
+
+/* barra de ações do bloco selecionado e faixa da aula */
+.action-bar { position: fixed; z-index: 24; left: 8px; right: 8px; bottom: calc(var(--dock-h) + 10px); max-width: 560px; margin-inline: auto; display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 20px; background: var(--surface-solid); border: 1px solid var(--border-strong); box-shadow: var(--shadow-lg); animation: pop .25s var(--ease) both; }
+.action-bar .ab { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 48px; height: 48px; padding: 0 12px; border-radius: 14px; color: var(--text); font-size: 14px; font-weight: 650; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.action-bar .ab.primary { flex: 1; background: var(--accent); color: var(--on-accent); }
+.action-bar .ab.danger { color: var(--danger); } .action-bar .ab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.action-bar .ab-step { display: inline-flex; align-items: center; background: var(--track); border-radius: 14px; }
+.action-bar .ab-step button { all: unset; box-sizing: border-box; width: 44px; height: 48px; display: grid; place-items: center; cursor: pointer; border-radius: 14px; } .action-bar .ab-step button:disabled { opacity: .35; }
+.action-bar .ab-step b { min-width: 34px; text-align: center; font-size: 14px; }
+.action-bar.connecting { justify-content: space-between; padding-left: 14px; background: var(--accent-soft); border-color: var(--accent); }
+.action-bar.connecting span { display: inline-flex; align-items: center; gap: 8px; min-width: 0; } .action-bar.connecting small { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lesson-strip { all: unset; box-sizing: border-box; position: fixed; z-index: 22; left: 8px; right: 8px; bottom: calc(var(--dock-h) + 10px); max-width: 560px; margin-inline: auto; display: flex; align-items: center; gap: 10px; padding: 8px 10px; min-height: 54px; border-radius: 18px; background: var(--surface-solid); border: 1px solid var(--accent); box-shadow: var(--shadow-lg); cursor: pointer; -webkit-tap-highlight-color: transparent; animation: pop .25s var(--ease) both; }
+.lesson-strip.ok { border-color: var(--ok); background: var(--ok-bg); }
+.lesson-strip .ls-ico { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); flex: none; } .lesson-strip.ok .ls-ico { background: transparent; color: var(--ok); }
+.lesson-strip .ls-txt { flex: 1; min-width: 0; display: grid; } .lesson-strip small { font-size: 11px; color: var(--text-2); } .lesson-strip b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lesson-strip .ls-go { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 700; color: var(--accent); }
+.lesson-strip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* resultado da simulação: faixa no topo, entre o lápis de notas e o botão de enquadrar */
+.lab.ly-sheet .simpanel { top: calc(var(--bar-h) + var(--safe-top) + 20px) !important; bottom: auto !important; left: 8px !important; right: 8px !important; width: auto !important; max-width: none !important; max-height: 46dvh; overflow: auto; }
+.lab.ly-sheet .simpanel.min { left: 64px !important; right: 64px !important; }
+.lab.ly-sheet .simpanel .sim-grid { grid-template-columns: 1fr; }
+
+/* menu "Mais" (folha de baixo) */
+dialog.more-sheet { position: fixed; inset: auto 0 0 0; margin: 0 auto; padding: 0; width: min(560px, 100%); max-width: 100%; max-height: 92dvh; border: none; border-radius: 24px 24px 0 0; background: var(--surface-solid); color: var(--text); transform: translateY(100%); transition: transform .34s cubic-bezier(.2, .8, .2, 1); overflow: hidden; }
+dialog.more-sheet.in { transform: none; }
+dialog.more-sheet::backdrop { background: rgba(3, 8, 18, .55); }
+.more-body { overflow: auto; -webkit-overflow-scrolling: touch; max-height: calc(92dvh - 28px); padding: 0 14px calc(22px + env(safe-area-inset-bottom, 0px)); }
+.more-sec h3 { margin: 18px 4px 6px; font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); }
+.more-row { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 6px 8px; border-radius: 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.more-row:active, .more-row:focus-visible { background: var(--accent-soft); } .more-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.more-row .mr-ico { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; background: var(--track); color: var(--accent); flex: none; }
+.more-row .mr-txt { flex: 1; min-width: 0; display: grid; } .more-row .mr-txt b { font-size: 15px; font-weight: 600; } .more-row .mr-txt small { font-size: 12px; color: var(--text-2); }
+.more-row .mr-badge { min-width: 22px; height: 22px; padding: 0 6px; display: grid; place-items: center; border-radius: 999px; background: var(--danger); color: #fff; font: 700 11px/1 var(--mono); font-style: normal; }
+.more-scn { display: grid; gap: 14px; padding: 6px 6px 2px; }
+.more-scn .hctl { max-width: none !important; min-width: 0 !important; width: 100%; }
+.more-scn .hctl small { display: block !important; white-space: normal; }
+.more-prefs { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 4px 6px; }
+
+/* toque: alvos grandes, nada que dependa de passar o mouse, campos com 16 px (o iOS não amplia a página) */
+.touch input, .touch select, .touch textarea { font-size: 16px; }
+.touch .react-flow__node-arch .react-flow__handle { width: 22px; height: 22px; }
+.touch .react-flow__node-arch .react-flow__handle-top { margin-top: -11px; } .touch .react-flow__node-arch .react-flow__handle-bottom { margin-bottom: -11px; }
+.touch .react-flow__node-arch .react-flow__handle-left { margin-left: -11px; } .touch .react-flow__node-arch .react-flow__handle-right { margin-right: -11px; }
+.touch .react-flow__edge-interaction { stroke-width: 44px; }
+.touch .node-step button { width: 30px; height: 30px; }
+.touch .edge-label .cut, .touch .edge-label .edge-type { min-height: 34px; }
+.touch input[type=range] { height: 34px; }
+.lab.ly-phone .edge-traffic .traffic-dot { display: none; }
+.lab.ly-phone dialog.dialog { margin: auto 0 0; width: 100%; max-width: 100%; max-height: 92dvh; border-radius: 22px 22px 0 0; overflow: auto; }
+.lab.ly-sheet .ver-form input, .lab.ly-sheet .group-name { font-size: 16px; }
+
+.touch .pitem { min-height: 60px; cursor: pointer; } .touch .pitem .add { opacity: 1; width: 44px; height: 44px; }
+.dock-lbl { font-size: 10.5px; letter-spacing: -.01em; padding: 0; }
+.lab.ly-sheet .brief-bar:not(:has(.seg)) { display: none; }
+.action-bar.raised { bottom: calc(var(--dock-h) + 74px); }

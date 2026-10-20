@@ -7,6 +7,7 @@ import { loadLessons, saveLesson } from "./lessonProgress";
 import { lessonLocked } from "./plan";
 import { nextLesson } from "./lessonNav";
 import { recordToday } from "./activity";
+import type { LessonSummary } from "./CompactUI";
 
 /** Texto com **negrito** e *itálico* simples. */
 export function Rich({ text }: { text: string }) {
@@ -15,7 +16,7 @@ export function Rich({ text }: { text: string }) {
 }
 
 /** Painel da aula guiada: explica um passo, pede uma ação no canvas e confere sozinho se ela foi feita antes de liberar o próximo. */
-export function LessonPanel({ lesson, state, onExit, onNext }: { lesson: Lesson; state: LessonState; onExit: () => void; onNext: (l: Lesson) => void }) {
+export function LessonPanel({ lesson, state, onExit, onNext, onSummary }: { lesson: Lesson; state: LessonState; onExit: () => void; onNext: (l: Lesson) => void; onSummary?: (s: LessonSummary | null) => void }) {
   useLang();
   const [step, setStep] = useState(() => Math.min(loadLessons()[lesson.id]?.step ?? 0, lesson.steps.length - 1));
   const [finished, setFinished] = useState(false);
@@ -29,6 +30,13 @@ export function LessonPanel({ lesson, state, onExit, onNext }: { lesson: Lesson;
   const top = useRef<HTMLDivElement>(null);
   useEffect(() => { seen.current = new Set(); setShowHint(false); top.current?.scrollIntoView?.({ block: "nearest" }); }, [step, lesson.id]);
 
+  // avisa o laboratório do passo atual (a faixa da aula, no celular, mostra isso com o painel fechado)
+  const metKey = met.join(",");
+  useEffect(() => {
+    onSummary?.(finished ? null : { step: step + 1, total: lesson.steps.length, title: t(s.title), done: met.filter(Boolean).length, tasks: s.tasks.length, complete: allMet });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, allMet, metKey, finished, lesson.id]);
+  useEffect(() => () => onSummary?.(null), []); // eslint-disable-line react-hooks/exhaustive-deps
   const advance = () => {
     if (step + 1 >= lesson.steps.length) { saveLesson(lesson.id, { step: step, done: true }); recordToday(); setFinished(true); return; }
     saveLesson(lesson.id, { step: step + 1, done: false }); setStep(step + 1);

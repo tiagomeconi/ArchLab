@@ -21,6 +21,8 @@ import { ReviewPanel, ConceptCard } from "./ReviewPanel";
 import { lintArchitecture } from "./lint";
 import { estimateCost } from "./cost";
 import { LessonPanel } from "./LessonPanel";
+import { useLayout } from "./useLayout";
+import { Dock, LessonStrip, MoreRow, MoreSheet, NodeActionBar, SheetGrip, type LessonSummary, type Snap } from "./CompactUI";
 import { lessonById, openLesson } from "./lessonNav";
 import type { LessonState } from "./lessonGoals";
 import { PatternsDialog, VersionsDialog } from "./LibraryDialogs";
@@ -333,6 +335,7 @@ function ProviderDialog({ type, current, onPick, onClose }: {
 }
 
 function Palette({ onAdd, inCase }: { onAdd: (item: PaletteItem) => void; inCase?: Set<string> }) {
+  const touch = useLayout().touch; // em toque, tocar na linha inteira adiciona ao canvas (arrastar da lista não existe no dedo)
   const [q, setQ] = useState("");
   const [closed, setClosed] = useState<Set<string>>(() => new Set());
   const query = q.trim().toLowerCase();
@@ -348,11 +351,11 @@ function Palette({ onAdd, inCase }: { onAdd: (item: PaletteItem) => void; inCase
             onClick={() => setClosed((c) => { const n = new Set(c); if (n.has(g.cat)) n.delete(g.cat); else n.add(g.cat); return n; })}>
             <i className="dot" />{t(g.title)}<small>{g.items.length}</small><Icon name="expand_more" size={16} /></button></h3>
           {(!!query || !closed.has(g.cat)) && g.items.map((i) => (
-            <div key={i.type} className="pitem" draggable
+            <div key={i.type} className="pitem" draggable={!touch} onClick={touch ? () => onAdd(i) : undefined}
               onDragStart={(e) => { e.dataTransfer.setData("application/archlab", i.type); e.dataTransfer.effectAllowed = "move"; }}>
               <span className="icon"><Icon name={i.icon} size={18} /></span>
               <span className="pitem-text"><b>{t(i.label)}{inCase?.has(i.type) && <span className="sugg" title={t("A arquitetura de referência deste caso costuma usar")}>{t("No caso")}</span>}</b><small>{t(i.desc)}</small></span>
-              <button className="add" aria-label={`${t("Adicionar")} ${t(i.label)}`} title={t("Adicionar ao canvas")} onClick={() => onAdd(i)}>
+              <button className="add" aria-label={`${t("Adicionar")} ${t(i.label)}`} title={t("Adicionar ao canvas")} onClick={(e) => { e.stopPropagation(); onAdd(i); }}>
                 <Icon name="add" size={18} />
               </button>
             </div>
@@ -408,6 +411,15 @@ function Lab() {
   const [traffic, setTraffic] = useState(1); // × a carga de pico do caso
   const [interview, setInterview] = usePref<Interview | null>(`interview:${session?.caseId ?? "livre"}`, null);
   const [interviewOpen, setInterviewOpen] = useState(false);
+  // layout do aparelho: em celular e tablet em pé os painéis viram gavetas (ver CompactUI e a seção "layout compacto" do styles.css)
+  const lay = useLayout(); const compact = lay.sheet;
+  const [view, setView] = useState<"brief" | "tools">("tools");
+  const [sheetSnap, setSheetSnap] = useState<Snap>("closed");
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [connectFrom, setConnectFrom] = useState<string | null>(null);
+  const [lessonSum, setLessonSum] = useState<LessonSummary | null>(null);
+  const [simOpenC, setSimOpenC] = useState(false);
+  const briefRef = useRef<HTMLElement>(null); const toolsRef = useRef<HTMLElement>(null);
   const [patternsOpen, setPatternsOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [versions, setVersions] = useState<Version[]>([]);
@@ -427,18 +439,18 @@ function Lab() {
   const [flows, setFlows] = useState<Flow[]>(blank ? [] : original.traffic.flows);
   const [workloads, setWorkloads] = useState<any[]>(blank ? [] : original.traffic.workloads);
   const [meta, setMeta] = useState<Record<string, FlowMeta>>(blank ? {} : { "flow-redirect": { name: "Redirecionar link", weight: 1 } });
-  const [briefPref, setBriefOpen] = usePref("briefOpen", true);
+  const [briefPref, setBriefOpen] = usePref("briefOpen", !(lay.touch && typeof innerWidth !== "undefined" && innerWidth < 1400));
   const [chaos, setChaos] = useState<Set<string>>(new Set());
   const [chaosOpen, setChaosOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   // primeira visita ao laboratório: passeio guiado (nunca em link compartilhado nem com modal aberto)
-  useEffect(() => { if (sharedMode || tourDone()) return; const id = setTimeout(() => { if (!document.querySelector("dialog[open]")) setTourOpen(true); }, 1200); return () => clearTimeout(id); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { if (sharedMode || tourDone() || compact) return; const id = setTimeout(() => { if (!document.querySelector("dialog[open]")) setTourOpen(true); }, 1200); return () => clearTimeout(id); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   // o enunciado do encurtador só vale para o desenho de referência; no canvas em branco o painel mostra os requisitos da sessão (ou some)
   const caseTypes = useMemo(() => (blank && session?.checks ? new Set(session.checks.needs.flatMap((n) => n.any)) : undefined), [blank, session]);
   const chaosHints = useMemo(() => (blank && session?.checks?.chaos ? new Set(session.checks.chaos) : undefined), [blank, session]);
   const hasPanel = !blank || !!session;
-  const briefOpen = hasPanel && briefPref;
+  const briefOpen = hasPanel && briefPref && !compact;
   const [toast, setToast] = useState<string | null>(null);
   const [simMin, setSimMin] = usePref("resultCollapsed", false);
   const [mapOpen, setMapOpen] = usePref("minimapOpen", true);
@@ -1168,7 +1180,7 @@ function Lab() {
     };
     alignAnim.current = requestAnimationFrame(step);
   };
-  const doFit = () => fitView({ padding: { top: "110px", bottom: "60px", left: briefOpen ? "420px" : "80px", right: "400px" }, duration: 400 });
+  const doFit = () => fitView({ padding: compact ? { top: "76px", bottom: "150px", left: "24px", right: "24px" } : { top: "110px", bottom: "60px", left: briefOpen ? "420px" : "80px", right: "400px" }, duration: 400 });
 
   const keys = useRef<(e: KeyboardEvent) => void>(() => {});
   keys.current = (e) => {
@@ -1214,23 +1226,37 @@ function Lab() {
   const mixLabel = readPct >= 80 ? "Read-heavy" : readPct >= 45 ? "Equilibrado" : "Write-heavy";
   const running = run.status === "running";
 
-  return (
-    <div className={`lab${briefOpen ? " brief-open" : ""}`}>
-      <header className="panel topbar">
-        <a className="brand" href="/start" title={t("Voltar ao início")} onClick={(e) => { e.preventDefault(); go("/start"); }}>
-          <span className="logo"><Logo size={30} /></span>
-          <div>{t("ArchLab")}{!blank && <small>{original.metadata.title ?? "Links curtos"}</small>}</div>
-        </a>
-        {blank && <DesignName value={designName} editable={freeEditable} onCommit={setDesignTitle} status={sharedMode ? null : save} />}
-        <span className="sep" />
-        {running ? (
-          <button className="simbtn stop" onClick={() => setRun((r) => ({ ...r, status: "stopped" }))}><Icon name="stop" size={20} />{" "}{t("Parar")}</button>
-        ) : (
-          <button className="simbtn play" data-tour="simulate" onClick={() => { if (flows.length === 0 && !(blank && syncFlows(true) > 0)) { setTab("flows"); if (!blank) say(t("Antes de simular, crie um fluxo: o caminho que a requisição percorre.")); return; } setRun({ status: "running", t: 0, series: [] }); }} disabled={issues.length > 0}
-            title={issues.length ? t("Corrija os problemas do modelo antes de simular") : t("Simular 300 s com a carga configurada")}>
-            <Icon name="play_arrow" size={20} /> {run.status === "idle" ? t("Simular") : t("Simular de novo")}
-          </button>
-        )}
+  /** Inicia a simulação (ou leva ao que falta antes dela). */
+  // aula no celular: o passo a passo abre sozinho na primeira vez
+  useEffect(() => { if (lesson && compact) { setView("brief"); setSheetSnap("half"); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const startSim = () => {
+    if (flows.length === 0 && !(blank && syncFlows(true) > 0)) { showTab("flows"); if (!blank) say(t("Antes de simular, crie um fluxo: o caminho que a requisição percorre.")); return; }
+    setRun({ status: "running", t: 0, series: [] });
+  };
+  /** Mostra uma aba das ferramentas; no celular isso abre a gaveta. */
+  const showTab = (tb: "components" | "flows" | "props" | "review") => { setTab(tb); if (compact) { setView("tools"); setSheetSnap((x) => (x === "closed" ? "half" : x)); } };
+  const dockActive = !compact || sheetSnap === "closed" ? null : view === "brief" ? "brief" : tab;
+  const pickDock = (id: "brief" | "components" | "flows" | "props" | "review") => {
+    if (dockActive === id) { setSheetSnap("closed"); return; }
+    if (id === "brief") setView("brief"); else { setView("tools"); setTab(id); }
+    setSheetSnap((x) => (x === "closed" ? "half" : x));
+  };
+  /** Conectar por toque: com um bloco escolhido como origem, o próximo toque em outro bloco é o destino (lados escolhidos pela posição relativa). */
+  const onNodeClick = (_: unknown, node: Node) => {
+    if (!connectFrom || node.type !== "arch") return;
+    if (node.id === connectFrom) { setConnectFrom(null); return; }
+    const a = nodesRef.current.find((n) => n.id === connectFrom), b = nodesRef.current.find((n) => n.id === node.id); if (!a || !b) return;
+    if (!isValidConnection({ source: a.id, target: b.id } as Connection)) { say(t("Esses dois componentes não se conectam nessa direção")); return; }
+    const dx = b.position.x - a.position.x, dy = b.position.y - a.position.y;
+    const horizontal = Math.abs(dx) >= Math.abs(dy);
+    const sp: Side = horizontal ? (dx >= 0 ? "right" : "left") : (dy >= 0 ? "bottom" : "top");
+    const tp: Side = horizontal ? (dx >= 0 ? "left" : "right") : (dy >= 0 ? "top" : "bottom");
+    setPending({ source: a.id, target: b.id, sp, tp, options: connectionOptions(typeOf(a.id), typeOf(b.id)) });
+    setConnectFrom(null);
+  };
+
+  const scenario = (
+    <>
         <div className="hctl" style={{ minWidth: 128 }}>
           <label><span>{t("Velocidade")}</span><b className="num">{speed}×</b></label>
           <Range min={0} max={4} step={1} value={[0.5, 1, 2, 5, 10].indexOf(speed)} aria-label={t("Velocidade da simulação")}
@@ -1249,6 +1275,44 @@ function Lab() {
             onChange={(e) => setReadPct(+e.target.value)} />
           <small title={flows.some((f) => f.steps.some((s) => s.operationClass === "write")) ? undefined : t("Ainda não há fluxo de escrita: toda a carga vai para leitura")}>{mixLabel} · {writePct}% write{flows.some((f) => f.steps.some((s) => s.operationClass === "write")) ? "" : ` · ${t("só leitura")}`}</small>
         </div>
+    </>
+  );
+  return (
+    <div className={`lab${briefOpen ? " brief-open" : ""}${compact ? " ly-sheet" : " ly-dock"}${lay.phone ? " ly-phone" : ""}${lay.touch ? " touch" : ""}`}>
+      {compact ? (
+        <header className="panel topbar compact">
+          <a className="icon-btn back" href="/start" aria-label={t("Voltar ao início")} onClick={(e) => { e.preventDefault(); go(lesson ? "/start/aulas" : "/start"); }}><Icon name="arrow_back" size={24} /></a>
+          {blank ? <DesignName value={designName} editable={freeEditable} onCommit={setDesignTitle} status={sharedMode ? null : save} /> : <b className="cb-title">{original.metadata.title ?? t("Links curtos")}</b>}
+          <span className="spacer" />
+          <RatingChip rating={rating} title={blank ? designName : (session?.title ?? t("Encurtador de links"))} />
+          {running ? (
+            <button className="simbtn stop" onClick={() => setRun((r) => ({ ...r, status: "stopped" }))} aria-label={t("Parar")}><Icon name="stop" size={22} /><span className="lbl-sim">{t("Parar")}</span></button>
+          ) : (
+            <button className="simbtn play" data-tour="simulate" onClick={startSim} disabled={issues.length > 0} aria-label={run.status === "idle" ? t("Simular") : t("Simular de novo")}>
+              <Icon name="play_arrow" size={22} /><span className="lbl-sim">{run.status === "idle" ? t("Simular") : t("Simular de novo")}</span>
+            </button>
+          )}
+          <button className="icon-btn more-btn" aria-label={t("Mais opções")} aria-haspopup="dialog" onClick={() => setMoreOpen(true)}>
+            <Icon name="more_vert" size={24} />{chaos.size + down.size + issues.length > 0 && <i className="more-dot" aria-hidden />}
+          </button>
+        </header>
+      ) : (
+      <header className="panel topbar">
+        <a className="brand" href="/start" title={t("Voltar ao início")} onClick={(e) => { e.preventDefault(); go("/start"); }}>
+          <span className="logo"><Logo size={30} /></span>
+          <div>{t("ArchLab")}{!blank && <small>{original.metadata.title ?? "Links curtos"}</small>}</div>
+        </a>
+        {blank && <DesignName value={designName} editable={freeEditable} onCommit={setDesignTitle} status={sharedMode ? null : save} />}
+        <span className="sep" />
+        {running ? (
+          <button className="simbtn stop" onClick={() => setRun((r) => ({ ...r, status: "stopped" }))}><Icon name="stop" size={20} />{" "}{t("Parar")}</button>
+        ) : (
+          <button className="simbtn play" data-tour="simulate" onClick={startSim} disabled={issues.length > 0}
+            title={issues.length ? t("Corrija os problemas do modelo antes de simular") : t("Simular 300 s com a carga configurada")}>
+            <Icon name="play_arrow" size={20} /> {run.status === "idle" ? t("Simular") : t("Simular de novo")}
+          </button>
+        )}
+        {scenario}
         <button className={`chip chaos-btn${chaos.size ? " on" : ""}`} data-tour="chaos" onClick={() => setChaosOpen(true)} title={t("Injetar falhas no desenho")}>
           <Icon name="local_fire_department" size={16} /><span className="lbl">{t("Modo caos")}</span>{chaos.size ? <b className="count">{chaos.size}</b> : null}
         </button>
@@ -1264,7 +1328,6 @@ function Lab() {
         <span className="spacer" />
         <RatingChip rating={rating} title={blank ? designName : (session?.title ?? t("Encurtador de links"))} />
         <ExportMenu onLink={copyLink} onJson={exportDesign} onMermaid={exportMermaid} onDoc={exportDoc} onReport={exportReport} onCard={exportCard} onImport={() => fileRef.current?.click()} busy={reporting} />
-        <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) importDesign(f); e.target.value = ""; }} />
         <LangToggle />
         <ThemeToggle className="theme-btn" />
         <AccountMenu onShortcuts={() => setHelpOpen(true)} onTour={() => setTourOpen(true)} />
@@ -1276,13 +1339,16 @@ function Lab() {
           </span>
         )}
       </header>
+      )}
+      <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) importDesign(f); e.target.value = ""; }} />
 
       <ReactFlow
         data-tour="canvas" nodes={[...groupNodes, ...shownNodes] as Node[]} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} isValidConnection={isValidConnection}
-        deleteKeyCode={["Backspace", "Delete"]} connectionMode={ConnectionMode.Loose} connectionRadius={36} connectionLineComponent={ConnectionLine}
-        fitView={!blank} defaultViewport={{ x: 0, y: 0, zoom: 1 }} fitViewOptions={{ padding: { top: "110px", bottom: "60px", left: "420px", right: "400px" } }} minZoom={0.25} maxZoom={2}
-        onPaneClick={() => { setSelected(null); setGroupSel(new Set()); }} onDrop={onDrop}
+        deleteKeyCode={["Backspace", "Delete"]} connectionMode={ConnectionMode.Loose} connectionRadius={lay.touch ? 56 : 36} connectionLineComponent={ConnectionLine}
+        onNodeClick={onNodeClick} zoomOnDoubleClick={!lay.touch} nodeDragThreshold={lay.touch ? 5 : 1} panOnScroll={false}
+        fitView={!blank} defaultViewport={{ x: 0, y: 0, zoom: 1 }} fitViewOptions={{ padding: compact ? { top: "76px", bottom: "150px", left: "24px", right: "24px" } : { top: "110px", bottom: "60px", left: "420px", right: "400px" } }} minZoom={0.25} maxZoom={2}
+        onPaneClick={() => { setSelected(null); setGroupSel(new Set()); setConnectFrom(null); }} onDrop={onDrop}
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
       >
         <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} color="var(--dot)" />
@@ -1318,12 +1384,13 @@ function Lab() {
         </div>
       </ReactFlow>
 
-      {run.status !== "idle" && <SimPanel collapsed={simMin} onToggle={() => setSimMin((v) => !v)} status={run.status} t={run.t} series={run.series} chaos={chaosItems.filter((c) => chaos.has(c.id)).map((c) => (c.label ? `${t(c.title)}: ${c.label}` : c.title))} />}
+      {run.status !== "idle" && <SimPanel collapsed={compact ? !simOpenC : simMin} onToggle={() => (compact ? setSimOpenC((v) => !v) : setSimMin((v) => !v))} status={run.status} t={run.t} series={run.series} chaos={chaosItems.filter((c) => chaos.has(c.id)).map((c) => (c.label ? `${t(c.title)}: ${c.label}` : c.title))} />}
 
       {run.status === "idle" && <p className="hint panel" role="region" aria-label={t("Dica")}><Icon name="info" size={15} />{" "}{t("Arraste da lateral · ligue pelas bolinhas · defina o caminho em Fluxos ·")}{" "}<kbd>?</kbd> {t("atalhos")}</p>}
 
-      {!hasPanel ? null : briefOpen ? (
-        <aside className="panel brief" aria-label={blank ? t("Requisitos") : t("Enunciado do desafio")} data-tour="brief">
+      {!hasPanel ? null : (briefOpen || compact) ? (
+        <aside ref={briefRef} className={`panel brief${compact ? " sheet" : ""}`} data-snap={compact ? (view === "brief" ? sheetSnap : "closed") : undefined} aria-label={blank ? t("Requisitos") : t("Enunciado do desafio")} data-tour="brief">
+          {compact && <SheetGrip asideRef={briefRef} snap={sheetSnap} setSnap={setSheetSnap} title={lesson ? t("Aula") : t("Requisitos")} />}
           <div className="brief-bar">
             {blank && session?.mode === "study" ? (
               <span className="seg" role="tablist" aria-label={t("Painel do caso")}>
@@ -1333,7 +1400,7 @@ function Lab() {
             ) : <span><Icon name={lesson ? "school" : blank ? "checklist" : "assignment"} size={17} /> {lesson ? t("Aula") : blank ? t("Requisitos") : t("Desafio")}</span>}
             <button className="icon-btn" aria-label={t("Recolher enunciado")} title={t("Recolher")} onClick={() => setBriefOpen(false)}><Icon name="left_panel_close" size={18} /></button>
           </div>
-          {lesson && lessonState ? <LessonPanel lesson={lesson} state={lessonState} onExit={() => go("/start/aulas")} onNext={(l) => openLesson(l, true)} /> : blank && session ? (leftTab === "guide" && session.mode === "study"
+          {lesson && lessonState ? <LessonPanel lesson={lesson} state={lessonState} onExit={() => go("/start/aulas")} onNext={(l) => openLesson(l, true)} onSummary={setLessonSum} /> : blank && session ? (leftTab === "guide" && session.mode === "study"
             ? <Guide session={session} checks={checks} onStages={setStagesDone} />
             : <RequirementsView session={session} checks={checks} reference={refSnap ? { ...compare, viewing: viewingRef, hasBackup: backupAt === 1, onLoad: loadReference, onBack: backToMine } : undefined} />) : <Brief nodes={docNodes} flows={flows} loads={loads} rps={rps} down={down} p95Ms={readP95} />}
         </aside>
@@ -1341,7 +1408,8 @@ function Lab() {
         <button className="chip brief-open-btn" onClick={() => setBriefOpen(true)}><Icon name={blank ? "checklist" : "assignment"} size={16} /> {blank ? t("Ver requisitos") : t("Ver enunciado")}</button>
       )}
 
-      <aside className="panel sidebar" aria-label={t("Ferramentas")} data-tour="palette">
+      <aside ref={toolsRef} className={`panel sidebar${compact ? " sheet" : ""}`} data-snap={compact ? (view === "tools" ? sheetSnap : "closed") : undefined} aria-label={t("Ferramentas")} data-tour="palette">
+        {compact && <SheetGrip asideRef={toolsRef} snap={sheetSnap} setSnap={setSheetSnap} title={t("Ferramentas")} />}
         <div className="tabs" role="tablist">
           {([["components", "widgets", "Componentes"], ["flows", "route", "Fluxos"], ["props", "tune", "Propriedades"], ["review", "fact_check", "Revisão"]] as const).map(([k, icon, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)} data-tour={k === "flows" ? "flows" : undefined}>
@@ -1349,7 +1417,7 @@ function Lab() {
             </button>
           ))}
         </div>
-        {tab === "components" && <Palette onAdd={(i) => addNode(i)} inCase={caseTypes} />}
+        {tab === "components" && <Palette onAdd={(i) => { addNode(i); if (compact) setSheetSnap("closed"); }} inCase={caseTypes} />}
         {tab === "flows" && (
           <FlowsPanel flows={flows} meta={meta} nodes={panelNodes} edges={docEdges} selectedId={flowSel} onSelect={setFlowSel}
             auto={blank} onCreate={createFlowFrom} onAuto={() => syncFlows(true)} onDelete={deleteFlow}
@@ -1445,6 +1513,54 @@ function Lab() {
         ) : <p className="note pad">{t("Selecione um componente no canvas para ver as propriedades.")}</p>)}
       </aside>
 
+      {compact && (
+        <>
+          {lesson && lessonSum && (sheetSnap === "closed" || view !== "brief") && <LessonStrip s={lessonSum} onOpen={() => { setView("brief"); setSheetSnap("half"); }} />}
+          {(selNode || connectFrom) && (sheetSnap === "closed" || view !== "tools") && (() => {
+            const n = nodes.find((x) => x.id === (connectFrom ?? selNode?.id)); if (!n) return null;
+            return (
+              <NodeActionBar raised={!!(lesson && lessonSum && (sheetSnap === "closed" || view !== "brief"))} name={n.data.name} replicas={n.data.replicas} maxReplicas={MAX_REPLICAS} connecting={!!connectFrom}
+                onConnect={() => { setConnectFrom(n.id); setSheetSnap("closed"); }} onReplicas={(r) => setReplicas(n.id, r)}
+                onProps={() => showTab("props")} onRemove={() => { deleteElements({ nodes: [{ id: n.id }] }); setConnectFrom(null); }} onCancel={() => setConnectFrom(null)} />
+            );
+          })()}
+          <Dock active={dockActive} onPick={pickDock} items={[
+            ...(hasPanel ? [{ id: "brief" as const, icon: lesson ? "school" : "checklist", label: lesson ? t("Aula") : t("Requisitos") }] : []),
+            { id: "components" as const, icon: "widgets", label: t("Componentes") },
+            { id: "flows" as const, icon: "route", label: t("Fluxos") },
+            { id: "props" as const, icon: "tune", label: t("Propriedades") },
+            { id: "review" as const, icon: "fact_check", label: t("Revisão"), badge: reviewHigh },
+          ]} />
+          <button type="button" className="fit-fab icon-btn" aria-label={t("Enquadrar o desenho")} onClick={doFit}><Icon name="fit_screen" size={22} /></button>
+          {moreOpen && (
+            <MoreSheet onClose={() => setMoreOpen(false)}>
+              <section className="more-sec"><h3>{t("Cenário da simulação")}</h3><div className="more-scn">{scenario}</div></section>
+              <section className="more-sec"><h3>{t("Ferramentas")}</h3>
+                <MoreRow icon="local_fire_department" label={t("Modo caos")} hint={t("Injetar falhas no desenho")} badge={chaos.size} onClick={() => { setMoreOpen(false); setChaosOpen(true); }} />
+                {session?.mode === "study" && <MoreRow icon="timer" label={t("Modo entrevista")} hint={interview ? t("Abrir o painel da entrevista") : t("Simule uma entrevista com relógio e fases")}
+                  onClick={() => { setMoreOpen(false); if (interview) { setInterviewOpen(true); return; } if (PAYWALL && currentPlan() !== "pro") { go("/planos"); return; } setInterview({ startedAt: Date.now(), minutes: 45 }); setInterviewOpen(true); }} />}
+                <MoreRow icon="extension" label={t("Padrões prontos")} onClick={() => { setMoreOpen(false); setPatternsOpen(true); }} />
+                <MoreRow icon="history" label={t("Versões do desenho")} onClick={() => { setMoreOpen(false); openVersions(); }} />
+                <MoreRow icon="workspaces" label={t("Agrupar blocos")} onClick={() => { setMoreOpen(false); addGroup(); }} />
+                <MoreRow icon="auto_fix_high" label={t("Organizar automaticamente")} onClick={() => { setMoreOpen(false); autoAlign(); }} />
+                {down.size > 0 && <MoreRow icon="restart_alt" label={t("{n} fora do ar · restaurar", { n: down.size })} onClick={() => { setDown(new Set()); setMoreOpen(false); }} />}
+              </section>
+              <section className="more-sec"><h3>{t("Compartilhar e exportar")}</h3>
+                <MoreRow icon="link" label={t("Copiar link do desenho")} onClick={() => { setMoreOpen(false); copyLink(); }} />
+                <MoreRow icon="description" label={t("Documento de design (.md)")} onClick={() => { setMoreOpen(false); exportDoc(); }} />
+                <MoreRow icon="schema" label={t("Diagrama Mermaid (.mmd)")} onClick={() => { setMoreOpen(false); exportMermaid(); }} />
+                <MoreRow icon="image" label={t("Relatório em imagem")} onClick={() => { setMoreOpen(false); exportReport(); }} />
+                <MoreRow icon="badge" label={t("Cartão da nota para redes sociais")} onClick={() => { setMoreOpen(false); exportCard(); }} />
+                <MoreRow icon="data_object" label={t("Desenho (.json)")} onClick={() => { setMoreOpen(false); exportDesign(); }} />
+                <MoreRow icon="upload" label={t("Abrir arquivo (.json)")} onClick={() => { setMoreOpen(false); fileRef.current?.click(); }} />
+              </section>
+              <section className="more-sec"><h3>{t("Preferências")}</h3>
+                <div className="more-prefs"><LangToggle /><ThemeToggle className="theme-btn" /><AccountMenu onShortcuts={() => setHelpOpen(true)} onTour={() => setTourOpen(true)} /></div>
+              </section>
+            </MoreSheet>
+          )}
+        </>
+      )}
       {patternsOpen && <PatternsDialog onPick={insertPattern} onClose={() => setPatternsOpen(false)} />}
       {versionsOpen && <VersionsDialog versions={versions} onSave={saveNow} onRestore={restoreVersion} onDelete={(v) => setVersions(deleteVersion(storeKey, v.id))} onClose={() => setVersionsOpen(false)} />}
       {interviewOpen && interview && (

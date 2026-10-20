@@ -146,17 +146,6 @@ def test_termos_e_privacidade_sao_publicos_e_traduzidos(make_page):
     assert "LGPD" in pg.locator("article").inner_text()
 
 
-def test_celular_mostra_o_resumo_e_deixa_abrir_o_editor(make_page):
-    pg = make_page(width=390, height=844)
-    pg.goto(pg.base + "/app?blank=1"); pg.wait_for_timeout(1200)
-    pg.get_by_role("heading", name="Edite no computador").wait_for()
-    assert pg.locator(".react-flow").count() == 0
-    sobra = pg.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
-    assert sobra <= 1
-    pg.get_by_role("button", name="Abrir o editor mesmo assim").click()
-    pg.wait_for_selector(".react-flow")
-
-
 def test_aviso_de_conta_excluida_aparece_na_landing_e_some_ao_fechar(page):
     page.goto(page.base + "/?conta=excluida")
     page.get_by_text("Sua conta e todos os seus dados foram excluídos.").wait_for()
