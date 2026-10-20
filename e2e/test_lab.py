@@ -282,7 +282,7 @@ def test_caminho_do_fluxo_e_uma_arvore_recolhivel(page):
     page.get_by_role("button", name="Ver a referência").click()
     page.wait_for_timeout(1000)
     page.locator(".tabs button").nth(1).click()
-    page.locator(".flow-pill").first.click()
+    page.locator(".flow-pill", has_text="Leitura").first.click()   # o fluxo de leitura é o mais profundo (cliente, balanceador, backend, cache e banco)
     arvore = page.get_by_role("tree")
     assert arvore.is_visible()
     itens = arvore.get_by_role("treeitem")
