@@ -75,6 +75,21 @@ Os fluxos de requisição são **derivados das conexões** que você desenha: li
 
 <p align="center"><img src="docs/img/06-modo-caos.jpg" alt="Modo caos" width="880" /></p>
 
+## Estude com método
+
+- **Trilhas de estudo:** seis temas (fundamentos, tempo real, mídia, dinheiro, dados e busca, geolocalização) com os casos em ordem de dificuldade.
+- **Revisão automática:** a aba *Revisão* aponta ponto único de falha, banco sem réplica, leitura sem cache, cadeia síncrona longa e mais, explicando o porquê e como corrigir.
+- **Cartões de conceito** em cada componente (o que é, quando usar, o que custa) e **dicas progressivas** nos requisitos que falham.
+- **Modo entrevista:** relógio de 30, 45 ou 60 minutos, cinco fases típicas e um resumo no fim.
+- **Desafio da semana** e **turmas**: quem ensina atribui casos e acompanha o progresso; quem estuda entra por código (exige Supabase).
+
+## Desenhe do seu jeito
+
+- **Conexões por qualquer lado** do bloco, com setas que mostram o sentido e a opção de **dois sentidos**.
+- **Grupos** para marcar zonas, clusters ou domínios; arrastar o grupo leva os blocos junto, e o modo caos pode derrubar o grupo inteiro.
+- **Padrões prontos** (API com cache, fila e workers, CQRS, mídia com CDN, duas zonas…) e **versões** do desenho para voltar atrás.
+- **Exportar** como documento de design (`.md`), diagrama Mermaid (`.mmd`), imagem ou `.json`.
+
 ## A nota geral (OVR)
 
 Inspirada nos atributos de um card de jogo: **seis atributos** com peso, explicação e uma dica de como melhorar. Nada de nota misteriosa.

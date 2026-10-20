@@ -75,6 +75,21 @@ Request flows are **derived from the connections** you draw: connect it and it s
 
 <p align="center"><img src="docs/img/06-modo-caos.jpg" alt="Chaos mode" width="880" /></p>
 
+## Study with a method
+
+- **Learning paths:** six themes (fundamentals, real time, media, money, data and search, geolocation) with cases ordered by difficulty.
+- **Automatic review:** the *Review* tab flags single points of failure, databases without a replica, reads without a cache, long synchronous chains and more, explaining why and how to fix it.
+- **Concept cards** on every component (what it is, when to use it, what it costs) and **progressive hints** on failing requirements.
+- **Interview mode:** a 30, 45 or 60-minute clock, five typical phases and a summary at the end.
+- **Challenge of the week** and **classes**: teachers assign cases and follow progress; students join with a code (requires Supabase).
+
+## Draw your way
+
+- **Connections from any side** of a block, with arrows showing direction and a **two-way** option.
+- **Groups** to mark zones, clusters or domains; dragging a group moves its blocks, and chaos mode can take a whole group down.
+- **Ready-made patterns** (cached API, queue and workers, CQRS, media with CDN, two zones…) and design **versions** to go back.
+- **Export** as a design document (`.md`), Mermaid diagram (`.mmd`), image or `.json`.
+
 ## The overall score (OVR)
 
 Inspired by a game card's attributes: **six attributes** with weight, explanation and a tip on how to improve. No mystery grade.
