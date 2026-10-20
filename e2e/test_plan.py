@@ -10,5 +10,5 @@ def test_plano_gratuito_bloqueia_casos_intermediarios_e_avancados(page):
     assert page.get_by_title("Disponível na assinatura").count() > 0  # cadeado nos casos fechados
     page.get_by_role("heading", name="Rate limiter", exact=True).click()  # nível Intermediário
     page.wait_for_url("**/planos")
-    assert page.get_by_role("heading", name="Planos", exact=True).count() == 1
+    page.get_by_role("heading", name="Planos", exact=True).wait_for()  # a página carrega sob demanda
     assert page.get_by_role("region", name="Plano Pro").count() == 1
