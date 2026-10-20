@@ -899,3 +899,8 @@ dialog.patterns { width: min(720px, calc(100vw - 32px)); }
 .lesson-foot .link { font-size: 12.5px; color: var(--text-2); }
 .lesson-actions { display: grid; gap: 8px; margin-top: 18px; } .lesson-actions .chip { justify-content: center; }
 .recap li { margin: 8px 0; line-height: 1.5; }
+
+/* header do laboratório: uma linha só de 1280 px para cima, com os rótulos e o nome da marca saindo por etapas (os ícones ficam, com title) */
+@media (max-width: 1860px) { .topbar .lbl { display: none; } .topbar .chip { padding: 8px 10px; } }
+@media (max-width: 1620px) { .hctl { max-width: 120px; } .dn { flex-basis: 140px; width: 140px; } .brand > div { display: none; } .topbar { gap: 10px; } }
+@media (max-width: 1420px) { .ovr-lbl { display: none; } .ovr-chip { padding: 0 10px; } .hctl { max-width: 100px; } .dn { flex-basis: 110px; width: 110px; } }

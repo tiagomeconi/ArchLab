@@ -1269,9 +1269,12 @@ function Lab() {
         <ThemeToggle className="theme-btn" />
         <AccountMenu onShortcuts={() => setHelpOpen(true)} onTour={() => setTourOpen(true)} />
         {!authEnabled && <button className="chip icon-only" aria-label={t("Atalhos de teclado")} title={t("Atalhos de teclado (?)")} onClick={() => setHelpOpen(true)}><Icon name="keyboard" size={18} /></button>}
-        <span className={`status${issues.length ? " bad" : ""}`} role="status" title={issues.map((i) => i.message).join("\n")}>
-          <Icon name={issues.length === 0 ? "verified" : "error"} size={15} /> <span className="lbl">{issues.length === 0 ? t("Modelo válido") : t("{n} problema(s)", { n: issues.length })}</span>
-        </span>
+        {/* a validação interna do modelo só aparece quando há problema: o normal é estar tudo certo e não precisa ocupar o header */}
+        {issues.length > 0 && (
+          <span className="status bad" role="status" title={issues.map((i) => i.message).join("\n")}>
+            <Icon name="error" size={15} /> <span className="lbl">{t("{n} problema(s)", { n: issues.length })}</span>
+          </span>
+        )}
       </header>
 
       <ReactFlow
