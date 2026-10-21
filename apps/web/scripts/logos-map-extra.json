@@ -1,0 +1,802 @@
+{
+"aurora": [
+"logos",
+"aws-aurora"
+],
+"rds": [
+"logos",
+"aws-rds"
+],
+"cloudsql": [
+"logos",
+"google-cloud"
+],
+"azure-sql": [
+"logos",
+"microsoft-azure"
+],
+"sqlserver": [
+"si",
+"microsoftsqlserver"
+],
+"oracle-db": [
+"logos",
+"oracle"
+],
+"planetscale": [
+"logos",
+"planetscale"
+],
+"tidb": [
+"si",
+"tidb"
+],
+"vitess": [
+"logos",
+"vitess"
+],
+"spanner": [
+"logos",
+"google-cloud"
+],
+"turso": [
+"si",
+"turso"
+],
+"cosmosdb": [
+"si",
+"microsoftazure"
+],
+"firestore": [
+"logos",
+"firebase"
+],
+"scylladb": [
+"si",
+"scylladb"
+],
+"hbase": [
+"si",
+"apachehbase"
+],
+"documentdb": [
+"logos",
+"aws-documentdb"
+],
+"foundationdb": [
+"logos",
+"foundationdb"
+],
+"elasticache": [
+"logos",
+"aws-elasticache"
+],
+"keydb": [
+"logos",
+"keydb"
+],
+"azure-redis": [
+"logos",
+"microsoft-azure"
+],
+"aerospike": [
+"logos",
+"aerospike"
+],
+"msk": [
+"logos",
+"aws-msk"
+],
+"azure-eventhubs": [
+"logos",
+"microsoft-azure"
+],
+"rocketmq": [
+"logos",
+"apache"
+],
+"sns": [
+"logos",
+"aws-sns"
+],
+"ibmmq": [
+"logos",
+"ibm"
+],
+"zeromq": [
+"si",
+"zeromq"
+],
+"redis-streams": [
+"logos",
+"redis"
+],
+"azure-queue": [
+"logos",
+"microsoft-azure"
+],
+"knative": [
+"si",
+"knative"
+],
+"java": [
+"logos",
+"java"
+],
+"kotlin": [
+"logos",
+"kotlin-icon"
+],
+"php": [
+"logos",
+"php"
+],
+"elixir": [
+"si",
+"elixir"
+],
+"bun": [
+"logos",
+"bun"
+],
+"deno": [
+"logos",
+"deno"
+],
+"flask": [
+"logos",
+"flask"
+],
+"aspnet": [
+"logos",
+"dotnet"
+],
+"quarkus": [
+"logos",
+"quarkus-icon"
+],
+"gin": [
+"logos",
+"go"
+],
+"hono": [
+"logos",
+"hono"
+],
+"fastify": [
+"logos",
+"fastify"
+],
+"symfony": [
+"logos",
+"symfony"
+],
+"scala": [
+"logos",
+"scala"
+],
+"cpp": [
+"logos",
+"c-plusplus"
+],
+"resque": [
+"logos",
+"ruby"
+],
+"rq": [
+"logos",
+"python"
+],
+"hangfire": [
+"logos",
+"dotnet"
+],
+"dramatiq": [
+"logos",
+"python"
+],
+"asynq": [
+"logos",
+"go"
+],
+"aws-lambda-worker": [
+"logos",
+"aws-lambda"
+],
+"apigee": [
+"logos",
+"google-cloud"
+],
+"azure-apim": [
+"logos",
+"microsoft-azure"
+],
+"cloudflare-gw": [
+"logos",
+"cloudflare-icon"
+],
+"caddy": [
+"si",
+"caddy"
+],
+"apache": [
+"logos",
+"apache"
+],
+"aws-nlb": [
+"logos",
+"aws-elb"
+],
+"gcp-lb": [
+"logos",
+"google-cloud"
+],
+"azure-lb": [
+"logos",
+"microsoft-azure"
+],
+"cloudflare-lb": [
+"logos",
+"cloudflare-icon"
+],
+"azure-cdn": [
+"logos",
+"microsoft-azure"
+],
+"gcp-cdn": [
+"logos",
+"google-cloud"
+],
+"stackpath": [
+"si",
+"stackpath"
+],
+"azure-blob": [
+"logos",
+"microsoft-azure"
+],
+"r2": [
+"logos",
+"cloudflare-icon"
+],
+"do-spaces": [
+"logos",
+"digital-ocean"
+],
+"ceph": [
+"si",
+"ceph"
+],
+"oci-storage": [
+"logos",
+"oracle"
+],
+"hdfs": [
+"logos",
+"hadoop"
+],
+"algolia": [
+"logos",
+"algolia"
+],
+"vespa": [
+"si",
+"vespa"
+],
+"azure-search": [
+"logos",
+"microsoft-azure"
+],
+"lucene": [
+"logos",
+"apache"
+],
+"firebase-rtdb": [
+"logos",
+"firebase-icon"
+],
+"aws-apigw-ws": [
+"logos",
+"aws-api-gateway"
+],
+"signalr": [
+"logos",
+"dotnet"
+],
+"phoenix-channels": [
+"si",
+"elixir"
+],
+"ws": [
+"logos",
+"nodejs-icon"
+],
+"azure-dns": [
+"logos",
+"microsoft-azure"
+],
+"godaddy": [
+"si",
+"godaddy"
+],
+"cognito": [
+"logos",
+"aws-cognito"
+],
+"entra": [
+"logos",
+"microsoft-azure"
+],
+"authentik": [
+"si",
+"authentik"
+],
+"firebase-auth": [
+"logos",
+"firebase-icon"
+],
+"passport": [
+"si",
+"passport"
+],
+"timestream": [
+"si",
+"amazonwebservices"
+],
+"druid": [
+"si",
+"apachedruid"
+],
+"mimir": [
+"logos",
+"grafana"
+],
+"cosmos-gremlin": [
+"logos",
+"microsoft-azure"
+],
+"atlas-vector": [
+"logos",
+"mongodb-icon"
+],
+"redis-vector": [
+"logos",
+"redis"
+],
+"trino": [
+"si",
+"trino"
+],
+"doris": [
+"si",
+"apachedoris"
+],
+"duckdb": [
+"si",
+"duckdb"
+],
+"hive": [
+"si",
+"apachehive"
+],
+"glue": [
+"logos",
+"aws-glue"
+],
+"dataflow": [
+"logos",
+"google-cloud"
+],
+"dask": [
+"si",
+"dask"
+],
+"airbyte": [
+"si",
+"airbyte"
+],
+"storm": [
+"si",
+"apachestorm"
+],
+"azure-sa": [
+"logos",
+"microsoft-azure"
+],
+"logic-apps": [
+"logos",
+"microsoft-azure"
+],
+"n8n": [
+"logos",
+"n8n"
+],
+"celery-beat": [
+"si",
+"celery"
+],
+"cloud-scheduler": [
+"logos",
+"google-cloud"
+],
+"jenkins": [
+"logos",
+"jenkins"
+],
+"github-actions": [
+"logos",
+"github-actions"
+],
+"rancher": [
+"logos",
+"rancher"
+],
+"doks": [
+"logos",
+"digital-ocean"
+],
+"lke": [
+"si",
+"akamai"
+],
+"oke": [
+"logos",
+"oracle"
+],
+"fargate": [
+"logos",
+"aws-fargate"
+],
+"cloud-run": [
+"logos",
+"google-cloud"
+],
+"deno-deploy": [
+"logos",
+"deno"
+],
+"supabase-edge": [
+"logos",
+"supabase-icon"
+],
+"fly": [
+"si",
+"flydotio"
+],
+"render": [
+"si",
+"render"
+],
+"aws-amplify": [
+"si",
+"awsamplify"
+],
+"hetzner": [
+"si",
+"hetzner"
+],
+"vultr": [
+"logos",
+"vultr"
+],
+"linode": [
+"si",
+"akamai"
+],
+"oci": [
+"logos",
+"oracle"
+],
+"ovh": [
+"si",
+"ovh"
+],
+"openstack": [
+"si",
+"openstack"
+],
+"ollama": [
+"si",
+"ollama"
+],
+"anthropic": [
+"si",
+"anthropic"
+],
+"azure-openai": [
+"logos",
+"microsoft-azure"
+],
+"bedrock": [
+"si",
+"amazonwebservices"
+],
+"bentoml": [
+"si",
+"bentoml"
+],
+"onnx": [
+"si",
+"onnx"
+],
+"replicate": [
+"si",
+"replicate"
+],
+"gemini": [
+"si",
+"googlegemini"
+],
+"loki": [
+"logos",
+"grafana"
+],
+"tempo": [
+"logos",
+"grafana"
+],
+"cloudwatch": [
+"si",
+"amazoncloudwatch"
+],
+"azure-monitor": [
+"logos",
+"microsoft-azure"
+],
+"dynatrace": [
+"logos",
+"dynatrace"
+],
+"fluentd": [
+"si",
+"fluentd"
+],
+"logstash": [
+"logos",
+"logstash"
+],
+"pagerduty": [
+"logos",
+"pagerduty"
+],
+"gcp-secrets": [
+"logos",
+"google-cloud"
+],
+"bitwarden": [
+"si",
+"bitwarden"
+],
+"cilium": [
+"si",
+"cilium"
+],
+"aws-appmesh": [
+"si",
+"amazonwebservices"
+],
+"kubernetes-dns": [
+"logos",
+"kubernetes"
+],
+"aws-cloudmap": [
+"si",
+"amazonwebservices"
+],
+"azure-waf": [
+"logos",
+"microsoft-azure"
+],
+"gcp-armor": [
+"logos",
+"google-cloud"
+],
+"square": [
+"si",
+"square"
+],
+"razorpay": [
+"si",
+"razorpay"
+],
+"klarna": [
+"si",
+"klarna"
+],
+"pix": [
+"si",
+"pix"
+],
+"brevo": [
+"si",
+"brevo"
+],
+"vonage": [
+"si",
+"vonage"
+],
+"fcm": [
+"logos",
+"firebase-icon"
+],
+"apns": [
+"si",
+"apple"
+],
+"expo": [
+"si",
+"expo"
+],
+"novu": [
+"si",
+"novu"
+],
+"telegram": [
+"si",
+"telegram"
+],
+"whatsapp": [
+"si",
+"whatsapp"
+],
+"mapbox": [
+"si",
+"mapbox"
+],
+"shopify": [
+"logos",
+"shopify"
+],
+"discord": [
+"si",
+"discord"
+],
+"google-oauth": [
+"logos",
+"google-icon"
+],
+"spotify": [
+"si",
+"spotify"
+],
+"twitter": [
+"si",
+"x"
+],
+"notion": [
+"si",
+"notion"
+],
+"zendesk": [
+"si",
+"zendesk"
+],
+"mainframe": [
+"si",
+"ibm"
+],
+"edge": [
+"si",
+"microsoftedge"
+],
+"brave": [
+"si",
+"brave"
+],
+"postman": [
+"si",
+"postman"
+],
+"desktop-app": [
+"si",
+"electron"
+],
+"nuxt": [
+"si",
+"nuxt"
+],
+"astro": [
+"si",
+"astro"
+],
+"remix": [
+"si",
+"remix"
+],
+"solidjs": [
+"si",
+"solid"
+],
+"htmx": [
+"si",
+"htmx"
+],
+"wordpress": [
+"si",
+"wordpress"
+],
+"blazor": [
+"si",
+"blazor"
+],
+"sveltekit": [
+"logos",
+"svelte-icon"
+],
+"react-native": [
+"logos",
+"react"
+],
+"kmp": [
+"logos",
+"kotlin-icon"
+],
+"swiftui": [
+"si",
+"swift"
+],
+"compose": [
+"si",
+"jetpackcompose"
+],
+"maui": [
+"logos",
+"dotnet"
+],
+"ionic": [
+"si",
+"ionic"
+],
+"esp8266": [
+"si",
+"espressif"
+],
+"jetson": [
+"si",
+"nvidia"
+],
+"pico": [
+"si",
+"raspberrypi"
+],
+"zigbee": [
+"si",
+"zigbee"
+],
+"aws-iot-mqtt": [
+"si",
+"amazonwebservices"
+],
+"activemq-mqtt": [
+"si",
+"apache"
+],
+"fastly-compute": [
+"logos",
+"fastly"
+],
+"vercel-edge": [
+"logos",
+"vercel-icon"
+],
+"lambda-edge": [
+"logos",
+"aws-lambda"
+],
+"akamai-edgeworkers": [
+"logos",
+"akamai"
+],
+"gcp-iot": [
+"logos",
+"google-cloud"
+],
+"ibm-watson": [
+"si",
+"ibm"
+],
+"home-assistant": [
+"si",
+"homeassistant"
+]
+}

@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useId, useRef, useState } from "react";
 import { LANGUAGES, setLang, useLang, type Lang } from "./i18n";
 import { Flag } from "./flags";
@@ -53,7 +54,7 @@ export function LangMenu({ className = "" }: { className?: string }) {
         <Flag code={cur.flag} className="lm-flag" /><b className="lm-short">{cur.short}</b>
         <Icon name={busy ? "progress_activity" : "expand_more"} size={16} />
       </button>
-      {open && pos && (
+      {open && pos && createPortal(
         <ul ref={list} id={id} role="listbox" aria-label="Language / Idioma" className="lang-menu-list" onKeyDown={onKey}
           style={{ top: pos.up ? undefined : pos.top, bottom: pos.up ? innerHeight - pos.top : undefined, left: pos.left }}>
           {LANGUAGES.map((l, i) => (
@@ -63,8 +64,8 @@ export function LangMenu({ className = "" }: { className?: string }) {
               {l.code === lang && <Icon name="check" size={18} />}
             </li>
           ))}
-        </ul>
-      )}
+        </ul>,
+        document.body)}
     </>
   );
 }

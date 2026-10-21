@@ -79,6 +79,10 @@ def test_menu_de_idiomas_tem_bandeiras_e_troca_por_clique(make_page):
     pg.get_by_role("button", name=re.compile("^Language .+ Idioma")).first.click()
     opts = pg.get_by_role("option")
     assert opts.count() == 10
+    bb = pg.get_by_role("button", name=re.compile("^Language .+ Idioma")).first.bounding_box()
+    lb = pg.get_by_role("listbox").bounding_box()
+    assert lb["x"] >= 0 and lb["x"] + lb["width"] <= pg.viewport_size["width"]  # lista inteira na tela
+    assert abs((lb["x"] + lb["width"]) - (bb["x"] + bb["width"])) < 40 or abs(lb["x"] - bb["x"]) < 40  # colada no botão
     assert pg.locator("[role=listbox] svg").count() >= 10  # uma bandeira por idioma
     pg.get_by_role("option", name=re.compile("^Español")).click()
     pg.wait_for_function("document.documentElement.lang === 'es'")

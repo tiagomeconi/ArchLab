@@ -66,6 +66,8 @@ const MAP = {
   "azure-iot-edge": ["si", "microsoftazure"], "azure-sb": ["si", "microsoftazure"], activemq: ["si", "apache"], beam: ["si", "apache"],
   twilio: ["logos", "twilio-icon"], sendgrid: ["logos", "sendgrid-icon"], mailgun: ["logos", "mailgun-icon"], resend: ["logos", "resend-icon"],
 };
+const EXTRA = JSON.parse(readFileSync(new URL("./logos-map-extra.json", import.meta.url), "utf8"));
+for (const [id, v] of Object.entries(EXTRA)) if (!(id in MAP)) MAP[id] = v;
 const HEX = { linkedin: "#0A66C2", amazon: "#FF9900" }; // removidos/renomeados no pacote simple-icons: cor oficial fixa
 const siHex = (name) => { if (HEX[name]) return HEX[name]; const k = Object.keys(si).find((x) => x.toLowerCase() === "si" + name.toLowerCase()); return k ? "#" + si[k].hex : "#888888"; };
 const lum = (hex) => { let h = hex.replace("#", ""); if (h.length === 3) h = [...h].map((c) => c + c).join(""); const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);

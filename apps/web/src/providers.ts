@@ -1,5 +1,6 @@
 /** Provedores por tipo de componente. Os logos vetoriais ficam em logos.generated.ts (gerado por scripts/gen-logos.mjs). */
 export interface Provider { id: string; name: string; note?: string; /** cor do monograma quando a marca não tem logo */ hex: string }
+import { MORE, FALLBACK_MORE } from "./providers.more";
 const P = (id: string, name: string, note?: string, hex = "#64748b"): Provider => ({ id, name, note, hex });
 
 const SQL = [
@@ -93,6 +94,11 @@ export const PROVIDERS: Record<string, Provider[]> = {
     P("sendgrid", "SendGrid"), P("mailgun", "Mailgun"), P("resend", "Resend")],
 };
 
+for (const [type, more] of Object.entries(MORE)) {
+  const list = (PROVIDERS[type] ??= []);
+  for (const p of more) if (!list.some((x) => x.id === p.id)) list.push(p);
+}
+
 export const providerOf = (type: string, id?: string) => PROVIDERS[type]?.find((p) => p.id === id);
 
 /** Marcas sem logo vetorial disponível: um ícone que lembra o papel da tecnologia, em vez de só a inicial. */
@@ -100,3 +106,4 @@ export const FALLBACK_ICON: Record<string, string> = {
   cron: "schedule", quartz: "schedule", modsecurity: "shield", imperva: "shield", bullmq: "stacks", redpanda: "swap_horiz", ably: "bolt",
   particle: "sensors", janusgraph: "hub", tigergraph: "hub", solace: "cable",
 };
+Object.assign(FALLBACK_ICON, FALLBACK_MORE);
