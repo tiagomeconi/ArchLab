@@ -89,6 +89,7 @@ Os fluxos de requisição são **derivados das conexões** que você desenha: li
 - **Grupos** para marcar zonas, clusters ou domínios; arrastar o grupo leva os blocos junto, e o modo caos pode derrubar o grupo inteiro.
 - **Padrões prontos** (API com cache, fila e workers, CQRS, mídia com CDN, duas zonas…) e **versões** do desenho para voltar atrás.
 - **Exportar** como documento de design (`.md`), diagrama Mermaid (`.mmd`), imagem ou `.json`.
+- **Celular e tablet** com interface própria: o canvas ocupa a tela, os painéis sobem de baixo como gavetas, e dá para **conectar por toque** (escolhe a origem, toca no destino). As aulas guiadas funcionam do mesmo jeito. Dá para instalar na tela inicial.
 
 ## A nota geral (OVR)
 

@@ -129,7 +129,7 @@ function Header() {
     <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4">
       <div className="relative mx-auto flex max-w-5xl items-center justify-between rounded-2xl border border-line bg-surface/70 py-2.5 pl-4 pr-2.5 shadow-[0_8px_32px_-12px_rgba(0,0,0,.35)] backdrop-blur-xl">
         <a href="/" className="flex items-center gap-2.5 font-semibold tracking-tight" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
-          <Logo size={34} />{t("ArchLab")}</a>
+          <Logo size={34} /><span className="max-[430px]:sr-only">{t("ArchLab")}</span></a>
         <nav className="hidden items-center gap-1 md:flex" aria-label={t("Seções")}>
           {links.map(([label, h]) => {
             const on = active === h.slice(1);
