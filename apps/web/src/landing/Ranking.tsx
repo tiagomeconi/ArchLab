@@ -33,7 +33,7 @@ export function Ranking() {
         {me ? (
           <>
             <span aria-hidden className="grid size-16 shrink-0 place-items-center rounded-2xl bg-accent text-on-accent"><b className="text-2xl tabular-nums">#{me.rank}</b></span>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-[13rem] flex-1">
               <h2 className="text-lg font-semibold">{t("Você está em {n}º lugar", { n: me.rank })}</h2>
               <p className="text-text-2">{t("de {total} pessoas no ranking · {pts} pontos", { total: me.total, pts: me.points })}</p>
             </div>
@@ -42,7 +42,7 @@ export function Ranking() {
         ) : (
           <>
             <span aria-hidden className="grid size-14 shrink-0 place-items-center rounded-2xl bg-track text-text-2"><Icon name="leaderboard" size={28} /></span>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-[13rem] flex-1">
               <h2 className="text-lg font-semibold">{t("Você ainda não está no ranking")}</h2>
               <p className="text-text-2">{t("Ligue o seu perfil público e termine ao menos um caso com nota para aparecer aqui. Você pode sair quando quiser.")}</p>
             </div>
@@ -61,7 +61,7 @@ export function Ranking() {
           <p className="mt-1 max-w-md text-text-2">{t("Seja a primeira pessoa: ligue o perfil público e conclua um caso.")}</p>
         </div>
       ) : (
-        <ol className="mt-6 grid gap-2.5" aria-label={t("Classificação")}>
+        <ol className="mt-6 grid grid-cols-1 gap-2.5" aria-label={t("Classificação")}>
           {rows.map((r, i) => {
             const mine = r.uid === auth.user?.id;
             return (

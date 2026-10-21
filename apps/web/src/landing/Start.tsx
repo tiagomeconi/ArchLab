@@ -60,14 +60,15 @@ function ProgressMark({ p }: { p?: CaseProgress }) {
 const LEVELS: StudyCase["level"][] = ["Iniciante", "Intermediário", "Avançado"];
 
 /** Dificuldade como três barrinhas (sem cor de alerta): o rótulo só aparece para leitores de tela e no hover. */
-export function Level({ level }: { level: StudyCase["level"] }) {
+/** `short`: em telas estreitas só as barrinhas (o nome do nível some, mas segue para leitores de tela). */
+export function Level({ level, short = false }: { level: StudyCase["level"]; short?: boolean }) {
   const n = LEVELS.indexOf(level) + 1;
   return (
     <span className="inline-flex items-center gap-2 text-xs text-text-2" title={t("Dificuldade: {nivel}", { nivel: t(level) })}>
       <span className="flex items-end gap-[3px]" aria-hidden>
         {[1, 2, 3].map((i) => <i key={i} className={cn("block w-[3px] rounded-full", i <= n ? "bg-text" : "bg-line-strong/60")} style={{ height: 5 + i * 3 }} />)}
       </span>
-      {t(level)}
+      <span className={short ? "max-sm:sr-only" : undefined}>{t(level)}</span>
     </span>
   );
 }

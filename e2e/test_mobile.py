@@ -207,3 +207,19 @@ def test_barra_de_baixo_logada_tem_quatro_abas_e_mais_sem_nomes_cortados(conta):
     menu.get_by_role("menuitem", name="Perfil").click()
     pg.wait_for_url("**/perfil"); pg.wait_for_timeout(300); assert pg.get_by_role("menu", name="Mais seções").count() == 0       # o menu fecha ao navegar
     assert nav.get_by_role("button", name="Mais").evaluate("e => getComputedStyle(e).color") != nav.get_by_role("link", name="Aulas").evaluate("e => getComputedStyle(e).color")   # "Mais" fica destacado quando a página atual é uma das dele
+
+
+_ESTOURA = """() => { const vw = innerWidth, out = [];
+  // só vale como "cortado de propósito" quem tem um contêiner com rolagem/corte DENTRO do conteúdo da página (o contêiner da página em si esconde o excesso, e é isso que queremos pegar)
+  const cortado = (el, raiz) => { for (let a = el.parentElement; a && a !== raiz; a = a.parentElement) { if (getComputedStyle(a).overflowX !== 'visible' && a.getBoundingClientRect().right <= vw + 1) return true; } return false; };
+  for (const raiz of document.querySelectorAll('main, #conteudo')) for (const el of raiz.querySelectorAll('*')) { const r = el.getBoundingClientRect(); if (r.width > 0 && r.right > vw + 1 && !cortado(el, raiz)) out.push(el.tagName + '.' + String(el.className).slice(0, 60)); }
+  return [...new Set(out)].slice(0, 6); }"""
+
+
+@pytest.mark.parametrize("largura", [360, 390, 820])
+def test_nenhum_elemento_passa_da_borda_da_tela_nas_paginas_logadas(conta, largura):
+    """Pega o que a rolagem horizontal da página não pega: cartões que ficam cortados à direita em vez de caber."""
+    pg = conta(width=largura, height=800)
+    for path in ("/start", "/start/aulas", "/start/estudo", "/start/trilhas", "/start/livre", "/desenhos", "/ranking", "/perfil", "/perfil#conquistas", "/perfil#casos", "/perfil#desenhos", "/perfil#atividade", "/configuracoes", "/planos", "/u/tiagomeconi"):
+        pg.goto(pg.base + path); pg.wait_for_selector("h1"); pg.wait_for_timeout(900)
+        assert pg.evaluate(_ESTOURA) == [], (largura, path)
