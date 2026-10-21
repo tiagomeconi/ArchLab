@@ -16,4 +16,5 @@ export const mobile: Record<string, string> = {
   "Cenário da simulação": "Simulation scenario",
   "Preferências": "Preferences",
   "Links curtos": "Short links",
+  "Desenhos": "Designs",
 };

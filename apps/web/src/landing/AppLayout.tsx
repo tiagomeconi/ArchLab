@@ -16,7 +16,7 @@ const ITEMS = [
   { to: "/start/estudo", icon: "school", label: "Casos", on: (p: string) => p.startsWith("/start/estudo") },
   { to: "/start/trilhas", icon: "route", label: "Trilhas", on: (p: string) => p.startsWith("/start/trilhas") },
   { to: "/start/livre", icon: "draw", label: "Modo livre", on: (p: string) => p.startsWith("/start/livre") },
-  { to: "/desenhos", icon: "folder_open", label: "Meus desenhos", on: (p: string) => p === "/desenhos" },
+  { to: "/desenhos", icon: "folder_open", label: "Meus desenhos", short: "Desenhos", on: (p: string) => p === "/desenhos" },
   { to: "/ranking", icon: "leaderboard", label: "Ranking", on: (p: string) => p === "/ranking", account: true },
   { to: "/perfil", icon: "person", label: "Perfil", on: (p: string) => p === "/perfil" || p === "/configuracoes", account: true },
 ].filter((i) => authEnabled || !i.account);
@@ -64,7 +64,7 @@ export function AppLayout({ path, children }: { path: string; children: ReactNod
           return (
             <a key={i.to} {...link(i.to)} aria-current={on ? "page" : undefined} className={cn("relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors", on ? "text-accent" : "text-text-2")}>
               {on && <motion.span layoutId="tab-bar" className="absolute inset-x-5 top-0 h-[3px] rounded-b-full bg-accent" transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }} />}
-              <Icon name={i.icon} size={22} /><span className="max-w-full truncate px-1">{t(i.label)}</span>
+              <Icon name={i.icon} size={22} /><span className="max-w-full truncate px-1">{t(("short" in i && i.short) || i.label)}</span>
             </a>
           );
         })}

@@ -83,7 +83,7 @@ export function Home() {
         <BlurFade delay={0.085}>
           <section aria-label={t("Aulas guiadas")} className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl border border-accent/40 bg-accent/10 px-5 py-4">
             <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent text-on-accent"><Icon name="auto_stories" size={24} /></span>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-[13rem] flex-1">
               <p className="font-semibold">{lessonNext.first ? t("Nunca fez system design? Comece pelas aulas.") : t("Continue suas aulas.")}</p>
               <p className="truncate text-sm text-text-2">{t(lessonNext.l.title)} · {t("{n} min", { n: lessonNext.l.minutes })}</p>
             </div>
@@ -96,7 +96,7 @@ export function Home() {
         <BlurFade delay={0.09}>
           <section aria-label={t("Desafio da semana")} className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl border border-line bg-surface px-5 py-4">
             <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent"><Icon name="emoji_events" size={24} /></span>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-[13rem] flex-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-text-2">{t("Desafio da semana")}</p>
               <p className="truncate font-semibold">{t(challenge.case.company?.name ?? challenge.case.title)} <span className="font-normal text-text-2">· {t(challenge.case.level)}</span></p>
               <p className="text-sm text-text-2">{challengeDone ? t("Concluído nesta semana. Volte na segunda para o próximo.") : t("Termina em {n} dias.", { n: challenge.daysLeft })}</p>
