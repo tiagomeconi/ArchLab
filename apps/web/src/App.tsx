@@ -729,7 +729,7 @@ function Lab() {
       data: { name: t(item.label), type: item.type, replicas: 1, hitRate: item.type === "redis" ? DEFAULT_CACHE.hitRate : undefined, health: "idle" as Health },
     }]);
     setSelected(id); setTab("props");
-    if (PROVIDERS[item.type]?.length) setProviderFor(id);
+    if (PROVIDERS[item.type]?.length && !lesson) setProviderFor(id); // na aula a escolha de tecnologia só atrapalha o passo a passo
   };
   const onDrop = (e: React.DragEvent) => {
     const item = ITEM_BY_TYPE.get(e.dataTransfer.getData("application/archlab"));

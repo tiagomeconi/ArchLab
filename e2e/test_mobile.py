@@ -42,7 +42,7 @@ def test_celular_aula_1_inteira_so_com_toques_inclusive_conectar(make_page):
     def pega_componente(nome):
         pg.get_by_role("button", name="Componentes").tap(); pg.wait_for_timeout(500)
         pg.locator(".pitem", has_text=nome).first.tap(); pg.wait_for_timeout(600)   # tocar na linha adiciona e fecha a gaveta
-        if pg.locator("dialog[open]").count(): pg.keyboard.press("Escape"); pg.wait_for_timeout(300)   # escolha de provedor: dispensável
+        assert pg.locator("dialog[open]").count() == 0   # na aula a escolha de provedor não interrompe o passo a passo
     def continua(depois=None):
         pg.locator(".lesson-strip").tap(); pg.wait_for_timeout(500)
         painel.get_by_role("button", name=re.compile("^(Continuar|Concluir aula)")).tap(); pg.wait_for_timeout(400)
