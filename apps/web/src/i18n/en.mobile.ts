@@ -17,4 +17,7 @@ export const mobile: Record<string, string> = {
   "Preferências": "Preferences",
   "Links curtos": "Short links",
   "Desenhos": "Designs",
+  "Mais": "More",
+  "Mais seções": "More sections",
+  "Livre": "Free",
 };

@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import "./landing.css";
 import { link } from "../nav";
@@ -15,7 +15,7 @@ const ITEMS = [
   { to: "/start/aulas", icon: "auto_stories", label: "Aulas", on: (p: string) => p.startsWith("/start/aulas") },
   { to: "/start/estudo", icon: "school", label: "Casos", on: (p: string) => p.startsWith("/start/estudo") },
   { to: "/start/trilhas", icon: "route", label: "Trilhas", on: (p: string) => p.startsWith("/start/trilhas") },
-  { to: "/start/livre", icon: "draw", label: "Modo livre", on: (p: string) => p.startsWith("/start/livre") },
+  { to: "/start/livre", icon: "draw", label: "Modo livre", short: "Livre", on: (p: string) => p.startsWith("/start/livre") },
   { to: "/desenhos", icon: "folder_open", label: "Meus desenhos", short: "Desenhos", on: (p: string) => p === "/desenhos" },
   { to: "/ranking", icon: "leaderboard", label: "Ranking", on: (p: string) => p === "/ranking", account: true },
   { to: "/perfil", icon: "person", label: "Perfil", on: (p: string) => p === "/perfil" || p === "/configuracoes", account: true },
@@ -58,17 +58,54 @@ export function AppLayout({ path, children }: { path: string; children: ReactNod
         </main>
       </div>
 
-      <nav aria-label={t("Navegação inferior")} className="fixed inset-x-0 bottom-0 z-40 grid border-t border-line bg-surface/90 backdrop-blur-xl lg:hidden" style={{ gridTemplateColumns: `repeat(${ITEMS.length}, minmax(0, 1fr))`, paddingBottom: "env(safe-area-inset-bottom)" }}>
-        {ITEMS.map((i) => {
+      <BottomBar path={path} reduced={!!reduced} />
+    </div>
+  );
+}
+
+const PRIMARY = ["/start", "/start/aulas", "/start/estudo", "/start/livre"];
+
+/** Barra de baixo do celular: as quatro abas principais e "Mais" com o resto (oito abas lado a lado cortavam os nomes). */
+function BottomBar({ path, reduced }: { path: string; reduced: boolean }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => { setOpen(false); }, [path]);
+  useEffect(() => {
+    if (!open) return;
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("keydown", key); return () => document.removeEventListener("keydown", key);
+  }, [open]);
+  const main = ITEMS.filter((i) => PRIMARY.includes(i.to)), more = ITEMS.filter((i) => !PRIMARY.includes(i.to));
+  const moreOn = more.some((i) => i.on(path));
+  const tab = "relative flex flex-col items-center justify-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors";
+  const mark = (on: boolean) => on && <motion.span layoutId="tab-bar" className="absolute inset-x-5 top-0 h-[3px] rounded-b-full bg-accent" transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }} />;
+  return (
+    <>
+      {open && <button type="button" aria-label={t("Fechar")} tabIndex={-1} className="fixed inset-0 z-40 cursor-default bg-black/30 lg:hidden" onClick={() => setOpen(false)} />}
+      {open && (
+        <div role="menu" aria-label={t("Mais seções")} className="fixed bottom-[calc(4.4rem+env(safe-area-inset-bottom,0px))] right-3 z-50 grid min-w-52 gap-1 rounded-2xl border border-line bg-surface p-2 shadow-2xl lg:hidden">
+          {more.map((i) => (
+            <a key={i.to} role="menuitem" {...link(i.to)} aria-current={i.on(path) ? "page" : undefined}
+              className={cn("flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-medium", i.on(path) ? "bg-accent-soft text-accent" : "text-text hover:bg-track")}>
+              <Icon name={i.icon} size={22} />{t(i.label)}
+            </a>
+          ))}
+        </div>
+      )}
+      <nav aria-label={t("Navegação inferior")} className="fixed inset-x-0 bottom-0 z-40 grid border-t border-line bg-surface/90 backdrop-blur-xl lg:hidden" style={{ gridTemplateColumns: `repeat(${main.length + (more.length ? 1 : 0)}, minmax(0, 1fr))`, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        {main.map((i) => {
           const on = i.on(path);
           return (
-            <a key={i.to} {...link(i.to)} aria-current={on ? "page" : undefined} className={cn("relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors", on ? "text-accent" : "text-text-2")}>
-              {on && <motion.span layoutId="tab-bar" className="absolute inset-x-5 top-0 h-[3px] rounded-b-full bg-accent" transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }} />}
-              <Icon name={i.icon} size={22} /><span className="max-w-full truncate px-1">{t(("short" in i && i.short) || i.label)}</span>
+            <a key={i.to} {...link(i.to)} aria-current={on ? "page" : undefined} className={cn(tab, on ? "text-accent" : "text-text-2")}>
+              {mark(on)}<Icon name={i.icon} size={22} /><span className="max-w-full truncate px-1">{t(("short" in i && i.short) || i.label)}</span>
             </a>
           );
         })}
+        {more.length > 0 && (
+          <button type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className={cn(tab, moreOn || open ? "text-accent" : "text-text-2")}>
+            {mark(moreOn)}<Icon name="more_horiz" size={22} /><span className="max-w-full truncate px-1">{t("Mais")}</span>
+          </button>
+        )}
       </nav>
-    </div>
+    </>
   );
 }

@@ -189,3 +189,21 @@ def test_interface_de_toque_em_ingles_nao_deixa_texto_em_portugues(make_page):
     pg.locator(".react-flow__pane").tap(); pg.get_by_role("button", name="More options").tap(); pg.wait_for_timeout(500)
     corpo = pg.locator("dialog[open]").inner_text()
     assert "simulation scenario" in corpo.lower() and not pt.search(corpo), corpo[:300]
+
+
+from test_conta import auth_url, conta  # noqa: E402,F401  (fixtures: sessão simulada com o Supabase falso)
+
+
+def test_barra_de_baixo_logada_tem_quatro_abas_e_mais_sem_nomes_cortados(conta):
+    pg = conta(width=390, height=800); pg.goto(pg.base + "/start"); pg.wait_for_selector("h1")
+    nav = pg.get_by_role("navigation", name="Navegação inferior")
+    itens = nav.locator("a, button")
+    assert itens.count() == 5
+    cortados = nav.locator("span.truncate").evaluate_all("els => els.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent)")
+    assert cortados == [], cortados                                   # nenhum rótulo com reticências
+    nav.get_by_role("button", name="Mais").click()
+    menu = pg.get_by_role("menu", name="Mais seções")
+    for nome in ("Trilhas", "Meus desenhos", "Ranking", "Perfil"): assert menu.get_by_role("menuitem", name=nome).count() == 1, nome
+    menu.get_by_role("menuitem", name="Perfil").click()
+    pg.wait_for_url("**/perfil"); pg.wait_for_timeout(300); assert pg.get_by_role("menu", name="Mais seções").count() == 0       # o menu fecha ao navegar
+    assert nav.get_by_role("button", name="Mais").evaluate("e => getComputedStyle(e).color") != nav.get_by_role("link", name="Aulas").evaluate("e => getComputedStyle(e).color")   # "Mais" fica destacado quando a página atual é uma das dele
