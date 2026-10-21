@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Icon } from "../ui";
-import { t, useLang } from "../i18n";
+import { localeOf, t, useLang } from "../i18n";
 
 /** Seletor de data no padrão do sistema (substitui o `<input type="date">` do navegador). Valor em `YYYY-MM-DD`; vazio = sem data válida. */
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -16,7 +16,7 @@ const daysIn = (y: number, m: number) => new Date(y, m + 1, 0).getDate();
 interface Props { id: string; value: string; onChange: (v: string) => void; min?: string; max?: string; autoComplete?: string; invalid?: boolean }
 
 export function DatePicker({ id, value, onChange, min = "1900-01-01", max, autoComplete, invalid }: Props) {
-  const lang = useLang(); const en = lang === "en"; const loc = en ? "en-US" : "pt-BR";
+  const lang = useLang(); const en = lang === "en"; const loc = localeOf(lang); // o formato digitado é mês/dia/ano em inglês e dia/mês/ano nos demais
   const today = useMemo(() => { const d = new Date(); return iso(d.getFullYear(), d.getMonth(), d.getDate()); }, []);
   const hi = max ?? today;
   const [text, setText] = useState(show(value, en));

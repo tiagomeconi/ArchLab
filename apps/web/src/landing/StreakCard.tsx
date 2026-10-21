@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { streakOf, weekStrip } from "../activity";
 import { Icon } from "../ui";
-import { t, useLang } from "../i18n";
+import { localeOf, t, useLang } from "../i18n";
 import { cn } from "./lib/utils";
 
 /** Sequência de dias praticando: número grande, melhor marca e os últimos 7 dias. */
@@ -9,7 +9,7 @@ export function StreakCard({ days, compact = false }: { days: string[]; compact?
   const lang = useLang();
   const s = useMemo(() => streakOf(days), [days]);
   const week = useMemo(() => weekStrip(days), [days]);
-  const wd = useMemo(() => new Intl.DateTimeFormat(lang === "pt" ? "pt-BR" : "en-US", { weekday: "narrow" }), [lang]);
+  const wd = useMemo(() => new Intl.DateTimeFormat(localeOf(lang), { weekday: "narrow" }), [lang]);
   const msg = s.practicedToday ? t("Você já praticou hoje.") : s.current > 0 ? t("Pratique hoje para manter a sequência.") : t("Pratique hoje para começar uma sequência.");
   return (
     <div>

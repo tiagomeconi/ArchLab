@@ -3,7 +3,7 @@ import { badgeInner } from "./leagueSvg";
 import { LOGOS } from "./logos.generated";
 import { INVERT_ON_DARK, SOFT_INVERT_ON_DARK, logoBox } from "./ProviderLogo";
 import { protoOf } from "./protocols";
-import { t } from "./i18n";
+import { localeOf, t } from "./i18n";
 import type { Rating } from "./rating";
 
 /** `ctx.filter` não existe em Safari antigo; nele os logos escuros são recoloridos pixel a pixel num canvas auxiliar. */
@@ -54,7 +54,7 @@ const HEALTH: Record<string, { fg: string; bg: string }> = {
 };
 const CAT_COLOR: Record<string, string> = { origin: "#22d3ee", iot: "#a3e635", network: "#a78bfa", compute: "#60a5fa", data: "#e879f9", messaging: "#fb923c", support: "#2dd4bf" };
 export const SANS = `"Inter Variable", Inter, -apple-system, "Segoe UI", system-ui, sans-serif`;
-const num = (n: number) => (n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1).replace(".", ",")}k` : Math.round(n).toLocaleString("pt-BR"));
+const num = (n: number) => (n >= 10000 ? `${new Intl.NumberFormat(localeOf(), { maximumFractionDigits: n >= 100000 ? 0 : 1 }).format(n / 1000)}k` : Math.round(n).toLocaleString(localeOf()));
 
 export const svgImage = (logo: { w: number; h: number; body: string }, color?: string): Promise<HTMLImageElement | null> =>
   new Promise((resolve) => {
@@ -171,7 +171,7 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
 
   // ── coluna lateral: marca, caso, liga, requisitos, radar de atributos e destaques ──
   const lgDraw = lg ?? LEAGUES[0]!;
-  const lang = document.documentElement.lang === "en" ? "en-US" : "pt-BR";
+  const lang = localeOf();
   let y = PAD;
   if (brandImg) ctx.drawImage(brandImg, PAD, y, 40, 40);
   ctx.fillStyle = C.text; ctx.font = `700 22px ${SANS}`; ctx.fillText("ArchLab", PAD + 52, y + 19);

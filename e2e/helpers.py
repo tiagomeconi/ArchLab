@@ -24,3 +24,10 @@ def add_component(pg, label):
 
 def nodes(pg):
     return pg.locator(".react-flow__node").count()
+
+
+def set_language(pg, nome):
+    """Troca o idioma pelo seletor (bandeira + sigla): abre a lista e clica no idioma pelo nome no próprio idioma."""
+    pg.get_by_role("button", name=re.compile("^Language .+ Idioma")).first.click()
+    pg.get_by_role("option", name=re.compile(f"^{nome}")).click()
+    pg.wait_for_timeout(400)

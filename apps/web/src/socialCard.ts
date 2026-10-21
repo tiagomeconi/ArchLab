@@ -2,7 +2,7 @@ import { LEAGUES, leagueOf } from "./leagues";
 import { LOGOS } from "./logos.generated";
 import { badgeImage, C, drawIcon, fit, pngImage, rr, SANS, svgImage, wrap } from "./report";
 import { initials } from "./account";
-import { t } from "./i18n";
+import { localeOf, t } from "./i18n";
 
 /** Cartão vertical (1080×1350, o formato do feed do LinkedIn e do Instagram) com a liga, a nota e o caso ou o perfil. */
 export interface CardInput {
@@ -163,7 +163,7 @@ export async function renderSocialCard(c: CardInput): Promise<Blob> {
   if (who) ctx.fillText(fit(ctx, who, W - 128), 64, H - 96);
   ctx.fillStyle = C.dim; ctx.font = `500 21px ${SANS}`;
   ctx.fillText(fit(ctx, t("Modelo pedagógico com perfis fictícios, não são benchmarks"), W - 340), 64, H - 56);
-  ctx.textAlign = "right"; ctx.fillText(new Date().toLocaleDateString(document.documentElement.lang === "en" ? "en-US" : "pt-BR", { day: "2-digit", month: "short", year: "numeric" }), W - 64, H - 56);
+  ctx.textAlign = "right"; ctx.fillText(new Date().toLocaleDateString(localeOf(), { day: "2-digit", month: "short", year: "numeric" }), W - 64, H - 56);
 
   return await new Promise<Blob>((resolve, reject) => cv.toBlob((b) => (b ? resolve(b) : reject(new Error("png"))), "image/png"));
 }

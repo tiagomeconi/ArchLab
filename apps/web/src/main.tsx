@@ -9,6 +9,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "./auth";
 import { needsProfile } from "./account";
 import { firstSync, initCloudSync } from "./cloudSync";
+import { initLang } from "./i18n";
 
 initCloudSync();
 
@@ -82,4 +83,5 @@ function Root() {
     : <Visitor><Landing /></Visitor>;
   return <div key={area} className="route-fade"><Suspense fallback={blank}>{page}</Suspense></div>;
 }
-createRoot(document.getElementById("root")!).render(<Root />);
+// idiomas além do português e do inglês vêm de um arquivo à parte: espera o dicionário antes da primeira tela, para não piscar em outro idioma
+initLang().finally(() => createRoot(document.getElementById("root")!).render(<Root />));

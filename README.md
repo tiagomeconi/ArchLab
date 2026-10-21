@@ -16,7 +16,7 @@ Laboratório visual de System Design para estudar, treinar entrevistas e discuti
 ![Tailwind](https://img.shields.io/badge/Tailwind-4-38bdf8?logo=tailwindcss&logoColor=white)
 ![Testes](https://img.shields.io/badge/testes-320%2B-34d399)
 ![Acessibilidade](https://img.shields.io/badge/axe-0%20viola%C3%A7%C3%B5es-34d399)
-![Idiomas](https://img.shields.io/badge/PT%20%7C%20EN-a78bfa)
+![Idiomas](https://img.shields.io/badge/10%20idiomas-a78bfa)
 
 [**Experimentar agora →**](https://archlab-six.vercel.app) · [English](README.en.md) · [Arquitetura](docs/ARQUITETURA.md) · [Como estender](docs/EXTENDENDO.md)
 

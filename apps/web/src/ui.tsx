@@ -1,10 +1,11 @@
 import { LOGOS } from "./logos.generated";
 import { useEffect, useState, type CSSProperties, type InputHTMLAttributes } from "react";
+import { localeOf } from "./i18n";
 
 export const Icon = ({ name, size = 18 }: { name: string; size?: number }) => (
   <span className="msr" aria-hidden style={{ fontSize: size }}>{name}</span>
 );
-export const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
+export const fmt = (n: number) => Math.round(n).toLocaleString(localeOf());
 
 /** Preferência de interface guardada no navegador (por visualizador). Falha de armazenamento nunca quebra a tela. */
 export function usePref<T>(key: string, initial: T) {

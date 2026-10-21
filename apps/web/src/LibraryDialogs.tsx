@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "./ui";
-import { t } from "./i18n";
+import { localeOf, t } from "./i18n";
 import { ITEM_BY_TYPE } from "./catalog";
 import { PATTERNS, type Pattern } from "./patterns";
 import type { Version } from "./versions";
@@ -32,7 +32,7 @@ export function VersionsDialog({ versions, onSave, onRestore, onDelete, onClose 
   const ref = useRef<HTMLDialogElement>(null);
   const [name, setName] = useState("");
   useEffect(() => { ref.current?.showModal(); }, []);
-  const fmt = (at: number) => new Date(at).toLocaleString();
+  const fmt = (at: number) => new Date(at).toLocaleString(localeOf());
   return (
     <dialog ref={ref} className="dialog interview versions" onClose={onClose} aria-label={t("Versões do desenho")}>
       <div className="chaos-head"><h2><Icon name="history" size={22} />{" "}{t("Versões do desenho")}</h2>

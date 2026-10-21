@@ -1,5 +1,5 @@
 import re
-from helpers import open_case
+from helpers import open_case, set_language
 
 
 def test_landing_leva_a_escolha_de_modo(page):
@@ -141,7 +141,7 @@ def test_termos_e_privacidade_sao_publicos_e_traduzidos(make_page):
     pg.get_by_role("link", name="Política de privacidade").click()
     pg.get_by_role("heading", name="Política de privacidade", exact=True).wait_for()
     assert "/privacidade" in pg.url and pg.get_by_role("heading", level=2).count() >= 8
-    pg.get_by_label("Mudar idioma para inglês (English)").click()
+    set_language(pg, "English")
     pg.get_by_role("heading", name="Privacy policy", exact=True).wait_for()
     assert "LGPD" in pg.locator("article").inner_text()
 

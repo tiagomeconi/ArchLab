@@ -9,6 +9,7 @@ import { NumberTicker } from "./ui/number-ticker";
 import { cn } from "./lib/utils";
 import { AnimatedGridPattern } from "./ui/animated-grid-pattern";
 import { t } from "../i18n";
+import { tx } from "../tx";
 
 /** "O ciclo": seis passos à esquerda; à direita, o produto do passo ativo (números vindos do motor real). */
 const STEP_MS = 7000;
@@ -262,7 +263,7 @@ export function Cycle() {
               </li>
             );
           })}
-          <li className="mt-2 flex items-center gap-2.5 pl-4 text-sm text-text-2"><Icon name="autorenew" size={18} /><span>{t("Melhorou?")}{" "}<b className="font-semibold text-text">{t("Volte ao passo 3")}</b>{" "}{t("e rode de novo, sob a mesma carga.")}</span></li>
+          <li className="mt-2 flex items-center gap-2.5 pl-4 text-sm text-text-2"><Icon name="autorenew" size={18} /><span>{tx("Melhorou? **Volte ao passo 3** e rode de novo, sob a mesma carga.")}</span></li>
         </ol>
 
         <div className="relative flex min-h-[36rem] flex-col justify-center overflow-hidden rounded-3xl border border-line-strong bg-bg shadow-[0_30px_90px_-40px_rgba(0,0,0,.6)] lg:min-h-[34rem]">

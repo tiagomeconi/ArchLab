@@ -4,6 +4,7 @@ import { birthError, fullNameOk, passwordOk } from "../account";
 import { go } from "../nav";
 import { DatePicker } from "./DatePicker";
 import { t, useLang } from "../i18n";
+import { tx } from "../tx";
 import { Icon } from "../ui";
 import { AuthShell, field, PasswordChecklist, PasswordInput } from "./AuthShell";
 
@@ -121,7 +122,7 @@ export function Login({ embedded = false, initial = "signin" }: { embedded?: boo
         {m === "signup" && (
           <label className="flex items-start gap-2.5 text-sm text-text-2">
             <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[var(--accent)]" />
-            <span>{t("Li e aceito os")} <a href="/termos" target="_blank" rel="noopener" className="font-semibold text-text underline">{t("Termos de uso")}</a> {t("e a")} <a href="/privacidade" target="_blank" rel="noopener" className="font-semibold text-text underline">{t("Política de privacidade")}</a>.</span>
+            <span>{tx("Li e aceito os {termos} e a {priv}.", { termos: <a href="/termos" target="_blank" rel="noopener" className="font-semibold text-text underline">{t("Termos de uso")}</a>, priv: <a href="/privacidade" target="_blank" rel="noopener" className="font-semibold text-text underline">{t("Política de privacidade")}</a> })}</span>
           </label>
         )}
         <div aria-live="polite" className="min-h-5 text-sm">

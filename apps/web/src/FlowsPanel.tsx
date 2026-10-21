@@ -4,6 +4,7 @@ import { depthOf, displayOrder, type Flow, type FlowMeta, type NewStep, type Ste
 import { Icon, Range } from "./ui";
 import { CATEGORY_OF } from "./catalog";
 import { t } from "./i18n";
+import { tx } from "./tx";
 
 export interface PanelNode { id: string; name: string; type: string; profileId: string; icon: string }
 export interface PanelEdge { id: string; source: string; target: string }
@@ -60,7 +61,7 @@ export function FlowsPanel(props: {
         </div>
       )}
       {!flow && !creating && !props.auto && (
-        <p className="note pad">{t("Um")}{" "}<b>{t("fluxo")}</b>{" "}{t("é o caminho que uma requisição percorre (ex.: cliente → lb → backend → banco). Só os componentes dentro de um fluxo recebem carga e são calculados. Crie um fluxo ou selecione um acima.")}</p>
+        <p className="note pad">{tx("Um **fluxo** é o caminho que uma requisição percorre (ex.: cliente → lb → backend → banco). Só os componentes dentro de um fluxo recebem carga e são calculados. Crie um fluxo ou selecione um acima.")}</p>
       )}
       {!flow && !creating && props.auto && flows.length === 0 && <p className="note pad">{t("Ainda não há conexões saindo de uma origem de carga. Ligue o cliente a outro componente no canvas.")}</p>}
 

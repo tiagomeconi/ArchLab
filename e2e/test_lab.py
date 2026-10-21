@@ -313,7 +313,7 @@ def _referencia(page):
 def test_overall_sem_desenho_nao_inventa_nota(page):
     open_case(page, "Netflix")
     chip = page.locator(".ovr-chip")
-    assert "sem nota" in chip.inner_text() and chip.locator(".ovr-num").inner_text() == "—"
+    assert "monte e simule" in chip.get_attribute("title") and chip.locator(".ovr-num").inner_text() == "—"   # o rótulo "sem nota" some em larguras menores (header de uma linha); o título sempre diz
 
 
 def test_overall_da_referencia_e_cartao_com_seis_atributos(page):

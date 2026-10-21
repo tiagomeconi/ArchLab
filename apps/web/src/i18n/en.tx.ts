@@ -1,0 +1,11 @@
+/** Frases inteiras (antes montadas por pedaços), para a ordem das palavras poder mudar em cada idioma. */
+export const txs: Record<string, string> = {
+  "Injete falhas no seu desenho e veja como ele se comporta. As falhas **direcionadas** atingem o componente selecionado ({nome}); os eventos **globais** afetam tudo. Combine várias: fatores de capacidade multiplicam, latências somam e “indisponível” prevalece.": "Inject failures into your design and see how it behaves. **Targeted** failures hit the selected component ({nome}); **global** events affect everything. Combine several: capacity factors multiply, latencies add up and “unavailable” prevails.",
+  "Injete falhas no seu desenho e veja como ele se comporta. As falhas **direcionadas** atingem o componente gargalo (nenhum selecionado); os eventos **globais** afetam tudo. Combine várias: fatores de capacidade multiplicam, latências somam e “indisponível” prevalece.": "Inject failures into your design and see how it behaves. **Targeted** failures hit the bottleneck component (none selected); **global** events affect everything. Combine several: capacity factors multiply, latencies add up and “unavailable” prevails.",
+  "Um **fluxo** é o caminho que uma requisição percorre (ex.: cliente → lb → backend → banco). Só os componentes dentro de um fluxo recebem carga e são calculados. Crie um fluxo ou selecione um acima.": "A **flow** is the path a request takes (e.g. client → lb → backend → database). Only components inside a flow receive load and are calculated. Create a flow or select one above.",
+  "Isso **substitui o canvas** pela referência. O seu desenho fica guardado e você pode voltar a ele.": "This **replaces the canvas** with the reference. Your design is kept and you can go back to it.",
+  "Melhorou? **Volte ao passo 3** e rode de novo, sob a mesma carga.": "Better? **Go back to step 3** and run again, under the same load.",
+  "Demanda excede a capacidade em {n} ops/s (modelado).": "Demand exceeds capacity by {n} ops/s (modeled).",
+  "Nenhum fluxo passa por aqui, então não há carga para calcular. {abrir} e adicione este componente a um caminho.": "No flow passes through here, so there is no load to calculate. {abrir} and add this component to a path.",
+  "Li e aceito os {termos} e a {priv}.": "I have read and accept the {termos} and the {priv}.",
+};

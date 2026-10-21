@@ -8,7 +8,8 @@ import { useAuth } from "../auth";
 /** Termos de uso e Política de privacidade (públicas, sem login). */
 export function Legal({ kind }: { kind: LegalKind }) {
   const lang = useLang(); const auth = useAuth();
-  const doc = LEGAL[kind][lang];
+  const docLang = lang === "pt" ? "pt" : "en"; // os textos legais existem em português e inglês; os demais idiomas mostram a versão em inglês
+  const doc = LEGAL[kind][docLang];
   const other: LegalKind = kind === "termos" ? "privacidade" : "termos";
   useEffect(() => { document.title = `${doc.title} · ArchLab`; }, [doc.title]);
   return (
@@ -24,7 +25,7 @@ export function Legal({ kind }: { kind: LegalKind }) {
             {s.ul && <ul className="mt-3 grid list-disc gap-2 pl-5 leading-relaxed text-text-2 marker:text-text-2/60">{s.ul.map((x) => <li key={x}>{x}</li>)}</ul>}
           </section>
         ))}
-        <p className="mt-12 border-t border-line pt-6 text-sm text-text-2">{t("Leia também:")} <a {...link(`/${other}`)} className="font-semibold text-accent hover:underline">{LEGAL[other][lang].title}</a></p>
+        <p className="mt-12 border-t border-line pt-6 text-sm text-text-2">{t("Leia também:")} <a {...link(`/${other}`)} className="font-semibold text-accent hover:underline">{LEGAL[other][docLang].title}</a></p>
       </article>
     </AuthShell>
   );

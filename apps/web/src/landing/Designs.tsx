@@ -8,7 +8,7 @@ import { go, link } from "../nav";
 import { loadProgress } from "../progress";
 import { clearSession, newDesignId, saveSession } from "../session";
 import { BrandMark, Icon } from "../ui";
-import { t, useLang } from "../i18n";
+import { localeOf, t, useLang } from "../i18n";
 import { cn } from "./lib/utils";
 import { DesignThumb } from "./DesignThumb";
 import { DESIGN_PREFIX as PREFIX, useMyDesigns, type DesignItem as Item } from "./useMyDesigns";
@@ -29,7 +29,7 @@ export function Designs() {
   const [confirm, setConfirm] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null); const [draft, setDraft] = useState("");
   const progress = useMemo(loadProgress, []);
-  const rtf = useMemo(() => new Intl.RelativeTimeFormat(lang === "pt" ? "pt-BR" : "en-US", { numeric: "auto" }), [lang]);
+  const rtf = useMemo(() => new Intl.RelativeTimeFormat(localeOf(lang), { numeric: "auto" }), [lang]);
 
   const ago = (ts: number) => {
     if (!ts) return "";

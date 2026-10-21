@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CHAOS, CHAOS_CATEGORIES, type ChaosItem } from "./chaos";
 import { Icon } from "./ui";
 import { t } from "./i18n";
+import { tx } from "./tx";
 
 export interface TargetInfo { id: string; name: string; why: string }
 
@@ -29,8 +30,7 @@ export function ChaosDialog({ items = CHAOS, active, suggested, targetOf, select
         <h2><Icon name="local_fire_department" size={22} />{" "}{t("Modo caos")}</h2>
         <button className="icon-btn" aria-label={t("Fechar")} onClick={() => ref.current?.close()}><Icon name="close" size={18} /></button>
       </div>
-      <p className="sub">{t("Injete falhas no seu desenho e veja como ele se comporta. As falhas")}{" "}<b>{t("direcionadas")}</b>{" "}{t("atingem o componente")}{" "}
-        {selectedName ? <>{t("selecionado")} (<b>{selectedName}</b>)</> : t("gargalo (nenhum selecionado)")}; {t("os eventos")}{" "}<b>{t("globais")}</b>{" "}{t("afetam tudo. Combine várias: fatores de capacidade multiplicam, latências somam e “indisponível” prevalece.")}</p>
+      <p className="sub">{tx(selectedName ? "Injete falhas no seu desenho e veja como ele se comporta. As falhas **direcionadas** atingem o componente selecionado ({nome}); os eventos **globais** afetam tudo. Combine várias: fatores de capacidade multiplicam, latências somam e “indisponível” prevalece." : "Injete falhas no seu desenho e veja como ele se comporta. As falhas **direcionadas** atingem o componente gargalo (nenhum selecionado); os eventos **globais** afetam tudo. Combine várias: fatores de capacidade multiplicam, latências somam e “indisponível” prevalece.", { nome: <b>{selectedName}</b> })}</p>
       <div className="chaos-body">
         {CHAOS_CATEGORIES.map((cat) => (
           <section key={cat.id}>

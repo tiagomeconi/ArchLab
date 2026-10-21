@@ -61,6 +61,7 @@ import { DEFAULT_LOAD, loadSession } from "./session";
 import { ThemeToggle } from "./ThemeToggle";
 import { AccountMenu } from "./AccountMenu";
 import { t, useLang } from "./i18n";
+import { tx } from "./tx";
 import { LangToggle } from "./LangToggle";
 import { protoOf } from "./protocols";
 import { RatingChip } from "./Rating";
@@ -1480,7 +1481,7 @@ function Lab() {
                     : t("Os consumidores acompanham a entrada: sem backlog.")}</span>
               </div>
             )}
-            {rejected > 0.5 && !selLoad?.queue && <div className="alert"><Icon name="warning" size={18} />{" "}{t("Demanda excede a capacidade em")}{" "}<b className="num">{fmt(rejected)}</b>{" "}{t("ops/s (modelado).")}</div>}
+            {rejected > 0.5 && !selLoad?.queue && <div className="alert"><Icon name="warning" size={18} />{" "}{tx("Demanda excede a capacidade em {n} ops/s (modelado).", { n: <b className="num">{fmt(rejected)}</b> })}</div>}
             {down.has(sel.id) && <div className="alert"><Icon name="flash_off" size={18} />{" "}{t("Componente fora do ar neste cenário. Tudo que depende dele reage no canvas.")}</div>}
 
             {selHealth.health === "idle" && SIDE_TYPES.has(sel.type) && (
@@ -1488,7 +1489,7 @@ function Lab() {
             )}
             {selHealth.health === "idle" && !SIDE_TYPES.has(sel.type) && (
               <div className="hintbox"><Icon name="route" size={18} />
-                <span>{t("Nenhum fluxo passa por aqui, então não há carga para calcular.")}{" "}<button className="link" onClick={() => setTab("flows")}>{t("Abrir Fluxos")}</button>{" "}{t("e adicione este componente a um caminho.")}</span></div>
+                <span>{tx("Nenhum fluxo passa por aqui, então não há carga para calcular. {abrir} e adicione este componente a um caminho.", { abrir: <button className="link" onClick={() => setTab("flows")}>{t("Abrir Fluxos")}</button> })}</span></div>
             )}
             {selHealth.health === "noprofile" && (
               <div className="hintbox"><Icon name="rule" size={18} />

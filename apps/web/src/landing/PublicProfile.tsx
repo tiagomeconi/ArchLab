@@ -3,7 +3,7 @@ import { authEnabled, avatarUrl, useAuth } from "../auth";
 import { getPublicProfile, type PublicProfile as PP } from "../cloud";
 import { link } from "../nav";
 import { Icon } from "../ui";
-import { t, useLang } from "../i18n";
+import { localeOf, t, useLang } from "../i18n";
 import type { CaseProgress } from "../progress";
 import { AuthShell } from "./AuthShell";
 import { ProfileView } from "./ProfileView";
@@ -35,7 +35,7 @@ export function PublicProfile({ handle }: { handle: string }) {
           <ProfileView
             data={{
               name: data.name || `@${data.handle}`, handle: data.handle, photo: avatarUrl(data.uid, data.avatarV), bio: data.bio || undefined, progress, days: data.days, owner: false,
-              since: data.since ? new Date(data.since).toLocaleDateString(lang === "pt" ? "pt-BR" : "en-US", { month: "long", year: "numeric" }) : undefined,
+              since: data.since ? new Date(data.since).toLocaleDateString(localeOf(lang), { month: "long", year: "numeric" }) : undefined,
             }}
             actions={auth.status !== "in" ? <a {...link("/cadastro")} className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90">{t("Criar minha conta")}</a> : undefined}
           />

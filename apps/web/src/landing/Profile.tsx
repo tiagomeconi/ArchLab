@@ -7,7 +7,7 @@ import { go, link } from "../nav";
 import { loadProgress } from "../progress";
 import { renderSocialCard } from "../socialCard";
 import { Icon } from "../ui";
-import { t, useLang } from "../i18n";
+import { localeOf, t, useLang } from "../i18n";
 import { journeyOf } from "./useJourney";
 import { ProfileView } from "./ProfileView";
 import { useMyDesigns } from "./useMyDesigns";
@@ -27,7 +27,7 @@ export function Profile() {
   const progress = useMemo(loadProgress, []); const days = useMemo(loadDays, []);
   const name = prof?.fullName || String(meta.name ?? "") || t("Minha conta");
   const photo = avatarOf(user);
-  const since = useMemo(() => { const d = user?.created_at ? new Date(user.created_at) : null; return d && !isNaN(+d) ? d.toLocaleDateString(lang === "pt" ? "pt-BR" : "en-US", { month: "long", year: "numeric" }) : ""; }, [user?.created_at, lang]);
+  const since = useMemo(() => { const d = user?.created_at ? new Date(user.created_at) : null; return d && !isNaN(+d) ? d.toLocaleDateString(localeOf(lang), { month: "long", year: "numeric" }) : ""; }, [user?.created_at, lang]);
   if (!user) return null;
 
   const downloadCard = async () => {

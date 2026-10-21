@@ -16,7 +16,7 @@ A visual System Design lab to study, practice interviews and discuss architectur
 ![Tailwind](https://img.shields.io/badge/Tailwind-4-38bdf8?logo=tailwindcss&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-320%2B-34d399)
 ![Accessibility](https://img.shields.io/badge/axe-0%20violations-34d399)
-![Languages](https://img.shields.io/badge/PT%20%7C%20EN-a78bfa)
+![Languages](https://img.shields.io/badge/10%20languages-a78bfa)
 
 [**Try it now →**](https://archlab-six.vercel.app) · [Português](README.md) · [Architecture](docs/ARQUITETURA.md) · [Extending](docs/EXTENDENDO.md) *(docs in Portuguese)*
 

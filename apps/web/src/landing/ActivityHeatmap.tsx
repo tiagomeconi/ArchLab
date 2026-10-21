@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef } from "react";
 import { heatmapWeeks, monthStarts } from "../heatmap";
-import { t, useLang } from "../i18n";
+import { localeOf, t, useLang } from "../i18n";
 import { cn } from "./lib/utils";
 
 const GAP = 3, MIN = 12;
 /** Calendário dos dias praticados: um quadradinho por dia, em colunas de semana; as colunas se esticam para ocupar a largura (e rolam no celular). */
 export function ActivityHeatmap({ days, weeks = 26 }: { days: string[]; weeks?: number }) {
-  const lang = useLang(); const loc = lang === "pt" ? "pt-BR" : "en-US";
+  const lang = useLang(); const loc = localeOf(lang);
   const grid = useMemo(() => heatmapWeeks(days, weeks), [days, weeks]);
   const months = useMemo(() => monthStarts(grid), [grid]);
   const fmtM = useMemo(() => new Intl.DateTimeFormat(loc, { month: "short" }), [loc]);

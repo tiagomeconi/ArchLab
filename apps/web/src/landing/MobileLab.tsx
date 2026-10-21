@@ -6,7 +6,7 @@ import { Icon, Logo } from "../ui";
 import { ProviderLogo } from "../ProviderLogo";
 import { Iphone } from "./ui/iphone";
 import { cn } from "./lib/utils";
-import { t } from "../i18n";
+import { localeOf, t } from "../i18n";
 
 /** O laboratório visto no celular: o mesmo motor de simulação, num roteiro que se repete (normal → pico → cache cai → banco lento → recuperado). */
 const STEPS = [
@@ -25,7 +25,7 @@ const INFO: Record<string, { name: string; sub: string; provider: string }> = {
 };
 const TONE = { ok: "var(--ok)", warn: "var(--warn)", bad: "var(--danger)" } as const;
 const toneOf = (u: number | null | undefined, down: boolean) => (down || (u != null && u > 1) ? "bad" : u != null && u > 0.8 ? "warn" : "ok") as keyof typeof TONE;
-const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
+const fmt = (n: number) => Math.round(n).toLocaleString(localeOf());
 
 function useScenario() {
   const doc = fixture as any;

@@ -5,6 +5,7 @@ import { BrandMark, Icon, usePref } from "./ui";
 import { caseById } from "./cases";
 import type { Session } from "./session";
 import { t, useLang } from "./i18n";
+import { tx } from "./tx";
 import { hintFor } from "./hints";
 
 function Group({ title, icon, children, note }: { title: string; icon: string; children: ReactNode; note?: string }) {
@@ -39,7 +40,7 @@ function ReferenceBox({ info: r }: { info: ReferenceProps }) {
           </div>
           {confirm ? (
             <div className="refconfirm" role="alertdialog" aria-label={t("Confirmar troca de desenho")}>
-              <p>{t("Isso")}{" "}<b>{t("substitui o canvas")}</b>{" "}{t("pela referência. O seu desenho fica guardado e você pode voltar a ele.")}</p>
+              <p>{tx("Isso **substitui o canvas** pela referência. O seu desenho fica guardado e você pode voltar a ele.")}</p>
               <span className="row"><button className="chip primary" onClick={() => { setConfirm(false); r.onLoad(); }}>{t("Ver a referência")}</button><button className="chip" onClick={() => setConfirm(false)}>{t("Cancelar")}</button></span>
             </div>
           ) : (

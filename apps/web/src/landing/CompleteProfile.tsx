@@ -3,6 +3,7 @@ import { authMessage, completeProfile, signOut, useAuth } from "../auth";
 import { birthError, fullNameOk, suggestedName } from "../account";
 import { DatePicker } from "./DatePicker";
 import { t } from "../i18n";
+import { tx } from "../tx";
 import { AuthShell, field } from "./AuthShell";
 
 /** Quem entrou com Google/GitHub passa por aqui uma vez: o provedor não informa nascimento nem aceite dos termos. */
@@ -31,7 +32,7 @@ export function CompleteProfile() {
         </div>
         <label className="flex items-start gap-2.5 text-sm text-text-2">
           <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[var(--accent)]" />
-          <span>{t("Li e aceito os")} <a href="/termos" target="_blank" rel="noopener" className="font-semibold text-text underline">{t("Termos de uso")}</a> {t("e a")} <a href="/privacidade" target="_blank" rel="noopener" className="font-semibold text-text underline">{t("Política de privacidade")}</a>.</span>
+          <span>{tx("Li e aceito os {termos} e a {priv}.", { termos: <a href="/termos" target="_blank" rel="noopener" className="font-semibold text-text underline">{t("Termos de uso")}</a>, priv: <a href="/privacidade" target="_blank" rel="noopener" className="font-semibold text-text underline">{t("Política de privacidade")}</a> })}</span>
         </label>
         <div aria-live="polite" className="min-h-5 text-sm">{err && <p role="alert" className="text-danger">{err}</p>}</div>
         <button type="submit" disabled={busy} className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90 disabled:opacity-60">{busy ? t("Aguarde…") : t("Continuar")}</button>

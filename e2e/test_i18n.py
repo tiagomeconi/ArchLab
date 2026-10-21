@@ -1,5 +1,5 @@
 import re
-from helpers import open_case
+from helpers import open_case, set_language
 
 PT = re.compile(r"[áàâãéêíóôõúç]|\b(você|não|uma|seu|sua|está|são|pelo|pela|sobre|quando|também|ainda|cada|desenho|requisitos|falhas?|carga|leitura|escrita)\b", re.I)
 JS = """() => { const out=[]; const w=document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -17,7 +17,7 @@ def test_alternar_idioma_persiste(make_page):
     pg.goto(pg.base + "/start")
     pg.wait_for_selector("h1")
     assert pg.evaluate("document.documentElement.lang") == "pt-BR"
-    pg.get_by_label("Mudar idioma para inglês (English)").click()
+    set_language(pg, "English")
     pg.get_by_role("heading", name=re.compile(r"^Good (morning|afternoon|evening)")).wait_for()
     assert pg.evaluate("document.documentElement.lang") == "en"
     pg.reload()
@@ -66,7 +66,36 @@ def test_trocar_idioma_no_lab_preserva_o_desenho(make_page):
     open_case(pg, "Netflix", lang="en")
     from helpers import add_component, nodes
     add_component(pg, "CDN")
-    pg.get_by_label("Switch language to Portuguese").click()
+    set_language(pg, "Português")
     pg.wait_for_timeout(500)
     assert nodes(pg) == 1
     assert pg.get_by_text("Verificado pelo laboratório").is_visible()
+
+
+def test_menu_de_idiomas_tem_bandeiras_e_troca_por_clique(make_page):
+    pg = make_page(lang="pt")
+    pg.goto(pg.base + "/start")
+    pg.wait_for_selector("h1")
+    pg.get_by_role("button", name=re.compile("^Language .+ Idioma")).first.click()
+    opts = pg.get_by_role("option")
+    assert opts.count() == 10
+    assert pg.locator("[role=listbox] svg").count() >= 10  # uma bandeira por idioma
+    pg.get_by_role("option", name=re.compile("^Español")).click()
+    pg.wait_for_function("document.documentElement.lang === 'es'")
+    pg.reload()
+    pg.wait_for_selector("h1")
+    assert pg.evaluate("document.documentElement.lang") == "es"
+    assert "ES" in pg.get_by_role("button", name=re.compile("^Language .+ Idioma")).first.inner_text()
+
+
+def test_menu_de_idiomas_teclado(make_page):
+    pg = make_page(lang="pt")
+    pg.goto(pg.base + "/start")
+    pg.wait_for_selector("h1")
+    pg.get_by_role("button", name=re.compile("^Language .+ Idioma")).first.click()
+    pg.keyboard.press("ArrowDown")
+    pg.keyboard.press("Enter")
+    pg.wait_for_function("document.documentElement.lang !== 'pt-BR'")
+    pg.get_by_role("button", name=re.compile("^Language .+ Idioma")).first.click()
+    pg.keyboard.press("Escape")
+    assert pg.get_by_role("option").count() == 0
