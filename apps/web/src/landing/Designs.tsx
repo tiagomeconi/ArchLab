@@ -2,8 +2,6 @@ import { useMemo, useState } from "react";
 import { authEnabled, useAuth } from "../auth";
 import { caseById, sessionFor } from "../cases";
 import { deleteDesign, renameDesign } from "../cloud";
-import { leagueOf } from "../leagues";
-import { LeagueBadge } from "../LeagueBadge";
 import { go, link } from "../nav";
 import { loadProgress } from "../progress";
 import { clearSession, newDesignId, saveSession } from "../session";
@@ -93,7 +91,7 @@ export function Designs() {
                       <h2 className="min-w-0 flex-1 truncate text-base font-semibold tracking-tight" title={title}>{title}</h2>
                     )}
                     {free && renaming !== it.key && <button type="button" onClick={() => { setDraft(title); setRenaming(it.key); }} aria-label={t("Renomear {nome}", { nome: title })} title={t("Renomear")} className="grid size-7 shrink-0 place-items-center rounded-lg text-text-2 transition-colors hover:bg-track hover:text-text"><Icon name="edit" size={16} /></button>}
-                    {ovr ? <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line py-0.5 pl-1 pr-2 text-xs tabular-nums text-text-2" title={t("Melhor nota: {n} ({liga})", { n: ovr, liga: t(leagueOf(ovr).name) })}><LeagueBadge league={leagueOf(ovr)} size={16} label={false} /><b className="text-text">{ovr}</b></span> : null}
+                    {ovr ? <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line py-0.5 pl-1 pr-2 text-xs tabular-nums text-text-2" title={t("Nota de prática: {n}", { n: ovr })}><span>{t("Prática")}</span><b className="text-text">{ovr}</b></span> : null}
                   </div>
                   <p className="mt-2 text-sm text-text-2">{t("{n} componentes · {m} conexões", { n: it.snap.n.length, m: it.snap.e.length })}</p>
                   <p className="text-sm text-text-2">{t("Editado {quando}", { quando: ago(it.updatedAt) })}</p>

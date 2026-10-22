@@ -7,7 +7,7 @@ export const GROUP_COLORS = ["sky", "green", "amber", "rose", "violet", "slate"]
 const COLOR_LABEL: Record<string, string> = { sky: "Azul", green: "Verde", amber: "Âmbar", rose: "Rosa", violet: "Violeta", slate: "Cinza" };
 export interface GroupDoc { id: string; name: string; color: string; x: number; y: number; w: number; h: number }
 export interface GroupData extends Record<string, unknown> {
-  name: string; color: string;
+  name: string; color: string; readOnly?: boolean;
   onRename: (id: string, name: string) => void; onColor: (id: string, color: string) => void; onDelete: (id: string) => void;
 }
 /** O bloco pertence ao grupo quando o seu centro está dentro da moldura. */
@@ -39,13 +39,13 @@ export function cleanGroups(raw: unknown): GroupDoc[] {
 export function GroupNode({ id, data, selected }: NodeProps<Node<GroupData>>) {
   return (
     <div className={`grp c-${data.color}${selected ? " sel" : ""}`}>
-      <NodeResizer isVisible={selected} minWidth={GROUP_MIN.w} minHeight={GROUP_MIN.h} lineClassName="grp-line" handleClassName="grp-grip" />
+      <NodeResizer isVisible={selected && !data.readOnly} minWidth={GROUP_MIN.w} minHeight={GROUP_MIN.h} lineClassName="grp-line" handleClassName="grp-grip" />
       <div className="group-head">
         <Icon name="workspaces" size={15} />
-        <input key={data.name} className="group-name nodrag" defaultValue={data.name} maxLength={60} aria-label={t("Nome do grupo")} spellCheck={false}
+        <input key={data.name} className="group-name nodrag" defaultValue={data.name} readOnly={data.readOnly} maxLength={60} aria-label={t("Nome do grupo")} spellCheck={false}
           onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== data.name) data.onRename(id, v); else e.target.value = data.name; }}
           onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); e.stopPropagation(); }} />
-        {selected && (
+        {selected && !data.readOnly && (
           <span className="group-tools nodrag">
             {GROUP_COLORS.map((c) => (
               <button key={c} type="button" className={`sw c-${c}${c === data.color ? " on" : ""}`} aria-label={t(COLOR_LABEL[c]!)} aria-pressed={c === data.color} title={t(COLOR_LABEL[c]!)} onClick={() => data.onColor(id, c)} />

@@ -73,13 +73,13 @@ export async function fetchShare(id: string): Promise<SharePayload | null> {
   } catch { return null; }
 }
 
-export interface Profile { fullName: string; birthDate: string; createdAt: string; handle: string; isPublic: boolean; bio: string }
+export interface Profile { fullName: string; birthDate: string; createdAt: string; handle: string; isPublic: boolean; bio: string; country?: string }
 export async function fetchProfile(): Promise<Profile | null> {
   try {
     const sb = await getClient();
-    const { data, error } = await sb.from("profiles").select("full_name,birth_date,created_at,handle,is_public,bio").maybeSingle();
+    const { data, error } = await sb.from("profiles").select("full_name,birth_date,created_at,handle,is_public,bio,country").maybeSingle();
     if (error || !data) return null;
-    return { fullName: data.full_name ?? "", birthDate: data.birth_date ?? "", createdAt: data.created_at ?? "", handle: data.handle ?? "", isPublic: !!data.is_public, bio: data.bio ?? "" };
+    return { fullName: data.full_name ?? "", birthDate: data.birth_date ?? "", createdAt: data.created_at ?? "", handle: data.handle ?? "", isPublic: !!data.is_public, bio: data.bio ?? "", country: data.country ?? "" };
   } catch { return null; }
 }
 
@@ -151,15 +151,15 @@ export async function exportMyData(): Promise<Record<string, unknown> | null> {
   try {
     const sb = await getClient();
     const { data: u } = await sb.auth.getUser(); const user = u.user; if (!user) return null;
-    const [profile, progress, designs, days, shares] = await Promise.all([
+    const [profile, progress, designs, days, shares, assessments] = await Promise.all([
       sb.from("profiles").select("*").maybeSingle(), sb.from("case_progress").select("*"), sb.from("designs").select("*"),
-      sb.from("activity_days").select("day").order("day"), sb.from("shared_designs").select("id,case_id,title,created_at,snap"),
+      sb.from("activity_days").select("day").order("day"), sb.from("shared_designs").select("id,case_id,title,created_at,snap"), sb.from("assessment_attempts").select("*"),
     ]);
     if (profile.error || progress.error || designs.error) return null;
     return {
       format: "archlab-export", exportedAt: new Date().toISOString(),
       account: { id: user.id, email: user.email, createdAt: user.created_at, metadata: user.user_metadata },
-      profile: profile.data, progress: progress.data, designs: designs.data, activityDays: (days.data ?? []).map((d: { day: string }) => d.day), sharedLinks: shares.data ?? [],
+      profile: profile.data, progress: progress.data, designs: designs.data, activityDays: (days.data ?? []).map((d: { day: string }) => d.day), sharedLinks: shares.data ?? [], assessments: assessments.data ?? [],
     };
   } catch { return null; }
 }
@@ -178,4 +178,9 @@ export async function deleteAccount(): Promise<boolean> {
 /** Renomeia um desenho já salvo (só o título, sem mexer na data de edição). */
 export async function renameDesign(caseKey: string, title: string): Promise<boolean> {
   try { const sb = await getClient(); const { error } = await sb.from("designs").update({ title: title.slice(0, 120) }).eq("case_key", caseKey); return !error; } catch { return false; }
+}
+
+
+export async function saveCountry(country: string): Promise<boolean> {
+  try { const sb = await getClient(); const { data: { user } } = await sb.auth.getUser(); if (!user) return false; const { error } = await sb.from("profiles").update({ country }).eq("id",user.id); return !error; } catch { return false; }
 }

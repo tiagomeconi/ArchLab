@@ -1,3 +1,4 @@
+import { assessments } from "./en.assessments";
 import { start } from "./en.start";
 import { cases } from "./en.cases";
 import { lab } from "./en.lab";
@@ -21,4 +22,4 @@ import { paletteUi } from "./en.palette";
 import { mobile } from "./en.mobile";
 import { txs } from "./en.tx";
 
-export const EN: Record<string, string> = { ...newcases, ...components, ...rating, ...landing, ...cases, ...lab, ...extra, ...start, ...auth, ...auth2, ...home, ...leagues, ...audit, ...social, ...safety, ...names, ...profile, ...review, ...docsUi, ...paletteUi, ...mobile, ...txs };
+export const EN: Record<string, string> = { ...newcases, ...components, ...rating, ...landing, ...cases, ...lab, ...extra, ...start, ...auth, ...auth2, ...home, ...leagues, ...audit, ...social, ...safety, ...names, ...profile, ...review, ...docsUi, ...paletteUi, ...mobile, ...txs, ...assessments };

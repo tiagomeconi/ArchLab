@@ -53,4 +53,12 @@ export const home: Record<string, string> = {
   "Gera um link para abrir este desenho": "Creates a link to open this design",
   "Carrega um arquivo salvo antes": "Loads a file you saved earlier",
   "Pressione ? em qualquer lugar do laboratório": "Press ? anywhere in the lab",
+  "Retome sua arquitetura, teste novas ideias e acompanhe sua evolução.": "Return to your architecture, test new ideas and track your progress.",
+  "Explorar casos": "Explore cases",
+  "Seu progresso": "Your progress",
+  "Caso guiado": "Guided case",
+  "Retomar desenho de {caso}": "Resume design for {caso}",
+  "Seu desenho salvo": "Your saved design",
+  "Sua jornada": "Your journey",
+  "Aprender system design": "Learn system design",
 };

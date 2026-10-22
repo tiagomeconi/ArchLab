@@ -49,10 +49,32 @@ Os vídeos e imagens da landing ficam em `apps/web/public/shots` (≈ 9 MB). Se 
 ## 3. Login e banco de dados (Supabase)
 
 1. Crie um projeto em https://supabase.com.
-2. No **SQL Editor**, rode, **em ordem**, os arquivos de `supabase/migrations/`: `0001_init.sql` (progresso, desenhos e links, com RLS: cada usuário só vê os próprios dados), `0002_profiles.sql` (perfil e data de nascimento), `0003_avatars.sql` (fotos de perfil) e `0004_social.sql` (dias praticados e perfil público opt-in) e `0005_ranking_and_delete.sql` (ranking e exclusão da própria conta). Todos podem ser rodados de novo sem erro.
+2. No **SQL Editor**, rode, **em ordem**, os arquivos de `supabase/migrations/`: `0001_init.sql` (progresso, desenhos e links, com RLS: cada usuário só vê os próprios dados), `0002_profiles.sql` (perfil e data de nascimento), `0003_avatars.sql` (fotos de perfil), `0004_social.sql` (dias praticados e perfil público opt-in), `0005_ranking_and_delete.sql` (ranking e exclusão da própria conta), `0006_bio.sql` (biografia), `0007_profile_showcase.sql` (vitrine de soluções), `0008_assessments.sql` (avaliações, pontos e temporadas), `0009_assessment_companies.sql` (catálogo de empresas) e `0010_assessment_countries.sql` (catálogo de países). Execute cada migração uma vez, em ordem. A vitrine só publica as cópias que o autor escolher; o perfil precisa estar público para visitantes acessarem. A migração `0008` substitui a classificação antiga por avaliações competitivas; o progresso de prática permanece preservado e não gera pontos retroativos.
 3. Em **Authentication → Providers**, deixe *Email* ligado. Em **Authentication → URL Configuration**, ponha o domínio publicado em *Site URL* e adicione `https://SEU-DOMINIO/**` (e `http://localhost:5173/**`) em *Redirect URLs*. **Se o *Site URL* ficar em `http://localhost:3000`, o link do e-mail de confirmação leva a pessoa para o localhost.** Defina também `VITE_SITE_URL=https://SEU-DOMINIO` na hospedagem: o link do e-mail abre `/confirmado`, a página que avisa que a conta foi validada.
 4. Em **Project Settings → API**, copie a *Project URL* e a chave **anon** para as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (Vercel/Netlify → *Environment Variables*; local: `apps/web/.env.local`). Nunca use a chave `service_role` no front-end.
-5. Refaça o deploy. Com as variáveis definidas, `/start` e `/app` exigem login; a landing continua pública.
+5. Publique a função de avaliação no mesmo projeto Supabase, após aplicar as migrações:
+
+   ```bash
+   # no diretório raiz; substitua pelo identificador do projeto
+   supabase login
+   supabase link --project-ref SEU_PROJECT_REF
+   supabase functions deploy assessment
+   ```
+
+   Preserve a verificação JWT em `supabase/config.toml`. A função usa `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` disponíveis no ambiente das Edge Functions. A chave de serviço permanece exclusivamente no servidor. O cliente precisa apenas das duas variáveis `VITE_` citadas acima.
+
+6. Refaça o deploy da aplicação. Com as variáveis definidas, `/start`, `/app` e as tentativas de avaliação exigem login; a landing continua pública. Verifique, com uma conta de teste, iniciar uma avaliação, salvar/retomar um rascunho, entregar e consultar o resultado no perfil e no ranking. A função ausente ou indisponível não gera resultados locais: a tentativa fica preservada para reenviar.
+
+A função inclui um avaliador compilado e versionado em `supabase/functions/_shared/evaluator-v1.generated.mjs`. Antes de publicar, `pnpm --filter @archlab/web gen:assessments` verifica se esse artefato corresponde às fontes. Avaliadores publicados devem permanecer congelados; alterações de critérios exigem nova versão e migrações correspondentes. O argumento `--update-unreleased` é reservado ao desenvolvimento antes da primeira publicação.
+
+Para conferir permissões e operações do banco em um PostgreSQL local em memória, sem tocar no ambiente hospedado:
+
+```bash
+npm --prefix supabase/tests ci --ignore-scripts
+npm run test:db
+```
+
+O fechamento de temporadas vencidas ocorre nas operações de avaliação, perfil e ranking, e antes de alterações de visibilidade do perfil. Não há agendamento externo obrigatório para esta versão.
 
 A CSP (`vercel.json` e `netlify.toml`) já libera `*.supabase.co` em `connect-src`.
 

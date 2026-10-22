@@ -3,17 +3,25 @@ import { readdirSync, readFileSync } from "node:fs";
 
 const dir = new URL("../../../supabase/migrations/", import.meta.url);
 const sql = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort().map((f) => readFileSync(new URL(f, dir), "utf8")).join("\n");
-const tables = [...sql.matchAll(/create table if not exists public\.(\w+)/g)].map((m) => m[1]!);
+const tables = [...sql.matchAll(/create table (?:if not exists )?public\.(\w+)/g)].map((m) => m[1]!);
 
 describe("migração do Supabase", () => {
-  it("toda tabela tem RLS ligada e nenhuma policy para anon", () => {
-    expect(tables.length).toBeGreaterThanOrEqual(5);
-    for (const t of tables) expect(new RegExp(`alter table public\\.${t}\\s+enable row level security`).test(sql), t).toBe(true);
-    expect(/\bto\s+(anon|public)\b(?!\.)/.test(sql.replace(/revoke all on function[^;]*;/g, "").replace(/grant execute on function public\.get_public_profile\(text\) to anon, authenticated;/g, ""))).toBe(false);
-  });
-  it("toda policy compara com o usuário logado", () => {
-    const policies = sql.split("create policy").slice(1);
-    for (const p of policies) expect(p).toContain("auth.uid()");
+  it("toda tabela tem RLS e apenas catálogos públicos permitem leitura anônima direta", () => {
+    expect(tables.length).toBeGreaterThanOrEqual(10);
+    for (const table of tables) expect(new RegExp(`alter table public\\.${table}\\s+enable row level security`).test(sql),table).toBe(true);
+    const publicCatalogs = new Set(["assessment_countries","assessment_companies","assessment_seasons"]);
+    const policies = [...sql.matchAll(/create policy[^;]*;/g)].map((m) => m[0]);
+    for (const policy of policies) {
+      const table=/on public\.(\w+)/.exec(policy)?.[1];
+      if (table && publicCatalogs.has(table)) {
+        expect(policy).toMatch(/for select using \(true\)/);
+        expect(policy).not.toMatch(/for (all|insert|update|delete)/);
+      } else {
+        expect(policy).toContain("auth.uid()");
+        expect(policy).not.toMatch(/to\s+(anon|public)\b/);
+      }
+    }
+    expect(sql).toContain("revoke insert,update,delete on public.assessment_attempts");
   });
   it("o perfil público só sai por função, desligado por padrão, sem e-mail nem nascimento", () => {
     expect(sql).toContain("is_public boolean not null default false");

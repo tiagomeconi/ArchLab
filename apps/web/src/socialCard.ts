@@ -10,7 +10,7 @@ export interface CardInput {
   title: string; subtitle?: string;
   /** id do logo da empresa (co-*) ou nome de um ícone Material quando o caso não é de empresa */
   logoId?: string; iconName?: string;
-  overall: number | null;
+  overall: number | null; competitive?: boolean; points?: number;
   /** caso: os seis atributos (radar) */
   attrs?: { label: string; score: number | null }[];
   /** perfil: três números de destaque */
@@ -34,7 +34,7 @@ const W = 1080, H = 1350, DPR = 2;
 
 export async function renderSocialCard(c: CardInput): Promise<Blob> {
   try { await Promise.all([document.fonts.load(`800 40px ${SANS}`), document.fonts.load(`600 20px ${SANS}`), document.fonts.load(`28px "Material Symbols Rounded Variable"`)]); } catch { /* usa a fonte do sistema */ }
-  const lg = c.overall === null ? null : leagueOf(c.overall);
+  const lg = !c.competitive || c.kind === "profile" || c.overall === null ? null : leagueOf(c.overall);
   const draw = lg ?? LEAGUES[0]!; const color = lg ? lg.c1 : C.dim;
   const logo = c.logoId ? LOGOS[c.logoId] : undefined;
   const [brand, badge, logoImg, photo] = await Promise.all([pngImage("/logo.png"), badgeImage(draw), logo ? svgImage(logo, "#f4f7fb") : Promise.resolve(null), c.kind === "profile" ? loadPhoto(c.photoUrl) : Promise.resolve(null)]);
@@ -61,7 +61,7 @@ export async function renderSocialCard(c: CardInput): Promise<Blob> {
     ctx.restore();
     const sw = 104, sh = Math.round((sw * 72) / 64), sx = cx + R * 0.62, sy = cy + R * 0.5;
     ctx.beginPath(); ctx.arc(sx + sw / 2, sy + sh / 2, sw * 0.62, 0, Math.PI * 2); ctx.fillStyle = C.bg0; ctx.fill();
-    ctx.save(); if (!lg) ctx.globalAlpha = 0.3; if (badge) ctx.drawImage(badge, sx, sy, sw, sh); ctx.restore();
+    ctx.save(); if (!lg) ctx.globalAlpha = 0.3; if (lg && badge) ctx.drawImage(badge, sx, sy, sw, sh); else drawIcon(ctx, "emoji_events", sx+sw/2, sy+sh/2, 50, C.accent); ctx.restore();
 
     ctx.textAlign = "center"; ctx.fillStyle = C.text; ctx.font = `800 68px ${SANS}`; ctx.fillText(fit(ctx, c.title, W - 128), cx, 600);
     if (c.handle) { ctx.fillStyle = C.sub; ctx.font = `600 32px ${SANS}`; ctx.fillText(`@${c.handle}`, cx, 648); }
@@ -69,7 +69,7 @@ export async function renderSocialCard(c: CardInput): Promise<Blob> {
 
     // liga e nota em uma linha, com a nota discreta
     const ly = c.handle || c.memberSince ? 780 : 740;
-    const name = (lg ? t(lg.name) : t("Sem nota")).toUpperCase();
+    const name = `${c.points ?? "—"} ${t("pontos")}`.toUpperCase();
     ctx.font = `800 50px ${SANS}`; const nw = ctx.measureText(name).width;
     const ovTxt = c.overall === null ? "" : `OVR ${c.overall}`; ctx.font = `700 36px ${SANS}`; const ow = ovTxt ? ctx.measureText(ovTxt).width : 0;
     const total = nw + (ovTxt ? 44 + ow : 0); const x0 = cx - total / 2;
@@ -109,9 +109,9 @@ export async function renderSocialCard(c: CardInput): Promise<Blob> {
   } else {
   // emblema, liga e nota
   const bW = 250, bH = Math.round((bW * 72) / 64);
-  ctx.save(); if (!lg) ctx.globalAlpha = 0.3; if (badge) ctx.drawImage(badge, (W - bW) / 2, 150, bW, bH); ctx.restore();
+  ctx.save(); if (!lg) ctx.globalAlpha = 0.3; if (lg && badge) ctx.drawImage(badge, (W - bW) / 2, 150, bW, bH); ctx.restore();
   ctx.textAlign = "center";
-  ctx.fillStyle = color; ctx.font = `800 62px ${SANS}`; ctx.fillText((lg ? t(lg.name) : t("Sem nota")).toUpperCase(), W / 2, 150 + bH + 78);
+  ctx.fillStyle = color; ctx.font = `800 62px ${SANS}`; ctx.fillText((lg ? t(lg.name) : t("Nota de prática")).toUpperCase(), W / 2, 150 + bH + 78);
   const ov = c.overall === null ? "—" : String(c.overall);
   ctx.fillStyle = C.text; ctx.font = `800 200px ${SANS}`; const ovw = ctx.measureText(ov).width;
   ctx.fillText(ov, W / 2 - 34, 150 + bH + 270);

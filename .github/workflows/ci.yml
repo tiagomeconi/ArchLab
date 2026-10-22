@@ -21,6 +21,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r typecheck
       - run: pnpm -r test
+      - run: npm --prefix supabase/tests ci --ignore-scripts
+      - run: npm --prefix supabase/tests test
+      - run: pnpm --filter @archlab/web gen:assessments
       - run: pnpm --filter @archlab/web build
 
   e2e:

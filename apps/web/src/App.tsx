@@ -1,17 +1,17 @@
+import { saveAssessmentDraft, type AssessmentAttempt } from "./assessments";
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  applyNodeChanges, Background, Panel, BackgroundVariant, BaseEdge, ConnectionMode, ControlButton, Controls, EdgeLabelRenderer, getBezierPath, Handle, MiniMap,
-  NodeResizeControl, Position, ReactFlow, ReactFlowProvider, ResizeControlVariant, useReactFlow,
-  type Connection, type ConnectionLineComponentProps, type Edge, type EdgeChange, type EdgeProps, type Node, type NodeChange, type NodeProps,
+  applyNodeChanges, Background, Panel, BackgroundVariant, ConnectionMode, ControlButton, Controls, getBezierPath, MiniMap,
+  ReactFlow, ReactFlowProvider, useReactFlow,
+  type Connection, type ConnectionLineComponentProps, type Edge, type EdgeChange, type Node, type NodeChange,
 } from "@xyflow/react";
 import {
   solveDemand, connectionOptions, DEFAULT_PROFILE_BY_TYPE, PROFILES, validateArchitecture, type ConnectionOption, type NodeLoad,
 } from "@archlab/domain";
 import fixture from "../../../fixtures/url-shortener-baseline.json";
 import { CATEGORY_OF, ITEM_BY_TYPE, PALETTE, type PaletteItem } from "./catalog";
-import { FALLBACK_ICON, PROVIDERS, providerOf, type Provider } from "./providers";
+import { PROVIDERS, providerOf, type Provider } from "./providers";
 import { LOGOS } from "./logos.generated";
-import { INVERT_ON_DARK, SOFT_INVERT_ON_DARK, logoBox } from "./ProviderLogo";
 import { NotesPad } from "./Notes";
 import { ExportMenu } from "./ExportMenu";
 import { renderReport } from "./report";
@@ -29,7 +29,7 @@ import { PAYWALL, currentPlan } from "./plan";
 import { toDesignDoc, toMermaid, type DocEdge as ExportEdge, type DocNode as ExportNode } from "./exportDoc";
 import { shapeFactor, type Shape } from "./trafficShape";
 import { ShapeMenu } from "./ShapeMenu";
-import { portFromHandle, sideOf, SIDES, type Side } from "./ports";
+import { portFromHandle, sideOf, type Side } from "./ports";
 import { Brief } from "./Brief";
 import { ChaosDialog } from "./ChaosDialog";
 import { ShortcutsDialog } from "./ShortcutsDialog";
@@ -63,56 +63,14 @@ import { protoOf } from "./protocols";
 import { RatingChip } from "./Rating";
 import { errorOf, lossErrors, rate } from "./rating";
 
-type Health = "healthy" | "degraded" | "saturated" | "unavailable" | "unknown" | "idle" | "origin" | "noprofile";
-interface NodeData extends Record<string, unknown> {
-  chaos?: boolean; name: string; type: string; replicas: number; providerId?: string; hitRate?: number; load?: NodeLoad; health: Health; badge?: string; dim?: boolean; note?: string;
-  /** ajusta o número de réplicas direto no card (injetado em shownNodes) */
-  onReplicas?: (id: string, n: number) => void;
-}
-interface EdgeData extends Record<string, unknown> { fault?: boolean; animate?: boolean; label: string; protocol: string; mode: string; flow: number; hot: boolean; unused: boolean; dim?: boolean; both?: boolean; onBoth?: () => void; onEdit: () => void }
+import { ArchNode, FlowEdge, ProviderMark, ICONS, HEALTH_LABEL, Num, useTween, type Health, type NodeData, type EdgeData } from "./CanvasElements";
+
 interface DocEdge {
   id: string; source: string; sourcePort: string; target: string; targetPort: string;
   configuration: { mode: string; protocol: string; [k: string]: unknown };
 }
 
-/** Material Symbols (Google), fonte empacotada localmente. */
-const ICONS: Record<string, string> = {
-  client: "language", "web-app": "web", "mobile-app": "smartphone", "load-balancer": "alt_route",
-  "api-gateway": "hub", backend: "dns", microservice: "deployed_code", redis: "memory",
-  "sql-database": "database", "nosql-database": "database", queue: "stacks", kafka: "stacks",
-  worker: "settings", cdn: "public", "object-storage": "hard_drive", "search-engine": "search",
-  websocket: "bolt", "authentication-service": "key", "notification-service": "notifications",
-  database: "database", "iot-device": "sensors", "external-system": "domain", "iot-gateway": "router", "mqtt-broker": "swap_vert",
-  "iot-platform": "memory_alt", "edge-compute": "developer_board", dns: "travel_explore", waf: "shield", "service-mesh": "grid_view",
-  "rate-limiter": "speed", container: "deployed_code_update", kubernetes: "lan", serverless: "function", vm: "computer",
-  scheduler: "schedule", "workflow-engine": "account_tree", "stream-processor": "stream", "batch-processor": "database_upload",
-  "ml-service": "psychology", "timeseries-db": "monitoring", "graph-db": "hub", "vector-db": "scatter_plot", "data-warehouse": "analytics",
-  "event-bus": "cable", "secrets-manager": "lock_person", "service-discovery": "radar", observability: "monitor_heart",
-  "payment-gateway": "credit_card", "third-party-api": "api",
-};
-/** Logo vetorial do provedor, sem fundo (SVG inline). Sem logo disponível: monograma na cor da marca. */
-function ProviderMark({ provider, size = 30, fit }: { provider: Provider; size?: number; /** caixa fixa (miniaturas e chips): o logo se ajusta dentro dela, inclusive os wordmarks largos */ fit?: { w: number; h: number } }) {
-  const logo = LOGOS[provider.id];
-  const box = fit ?? logoBox(provider.id, size);
-  return (
-    <span className={`pmark${logo && INVERT_ON_DARK.has(provider.id) ? " inv" : ""}${logo && SOFT_INVERT_ON_DARK.has(provider.id) ? " inv-soft" : ""}`} style={{ width: box.w, height: box.h }} title={provider.name}>
-      {logo ? (
-        <svg viewBox={`0 0 ${logo.w} ${logo.h}`} width={box.w} height={box.h} role="img" aria-label={provider.name} preserveAspectRatio="xMidYMid meet"
-          dangerouslySetInnerHTML={{ __html: logo.body }} />
-      ) : FALLBACK_ICON[provider.id] ? (
-        <b className="mono" style={{ color: provider.hex, borderColor: provider.hex }} aria-label={provider.name}><Icon name={FALLBACK_ICON[provider.id]!} size={Math.round(size * 0.58)} /></b>
-      ) : (
-        <b className="mono" style={{ color: provider.hex, borderColor: provider.hex, fontSize: size * 0.5 }} aria-label={provider.name}>{provider.name[0]}</b>
-      )}
-    </span>
-  );
-}
-/** Provedores iniciais da fixture, só para ilustrar o recurso. */
 const DEMO_PROVIDERS: Record<string, string> = { app: "nodejs", cache: "redis", db: "postgresql", lb: "nginx" };
-const HEALTH_LABEL: Record<Health, string> = {
-  healthy: "Saudável", degraded: "Degradado", saturated: "Saturado", unavailable: "Indisponível", unknown: "Desconhecido",
-  idle: "Sem fluxo", origin: "Origem de carga", noprofile: "Sem perfil",
-};
 
 // Precedência do spec §10.6: unavailable > saturated > degraded > healthy; sem dado nunca vira "saudável".
 function healthOf(load: NodeLoad | undefined, down: boolean, profileId: string, side = false): { health: Health; badge?: string } {
@@ -128,133 +86,6 @@ function healthOf(load: NodeLoad | undefined, down: boolean, profileId: string, 
   return { health: "healthy" };
 }
 
-/** Interpola suavemente entre valores (respeita reduced-motion). */
-function useTween(target: number, ms = 450) {
-  const [v, setV] = useState(target);
-  const from = useRef(target);
-  useEffect(() => {
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { setV(target); from.current = target; return; }
-    const start = performance.now(), a = from.current;
-    let raf = 0;
-    const tick = (t: number) => {
-      const p = Math.min(1, (t - start) / ms), e = 1 - Math.pow(1 - p, 3);
-      const cur = a + (target - a) * e;
-      from.current = cur; setV(cur);
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target, ms]);
-  return v;
-}
-const Num = ({ value, suffix = "" }: { value: number; suffix?: string }) => (
-  <span className="num">{fmt(useTween(value))}{suffix}</span>
-);
-
-/** Cada bloco aceita conexão pelos quatro lados; quem começa o arrasto é a origem (a seta aponta para onde terminar). */
-const HANDLE_POS: Record<Side, Position> = { top: Position.Top, right: Position.Right, bottom: Position.Bottom, left: Position.Left };
-function ArchNode({ id, data, selected }: NodeProps<Node<NodeData>>) {
-  const { load } = data;
-  const util = load?.utilization ?? null;
-  const width = util === null ? 0 : Math.min(100, util * 100);
-  const provider = providerOf(data.type, data.providerId);
-  return (
-    <div className={`node cat-${CATEGORY_OF.get(data.type) ?? "compute"} ${data.health}${selected ? " sel" : ""}${data.dim ? " dim" : ""}${data.chaos ? " chaos" : ""}`}>
-      {data.chaos && <span className="chaos-tag" title={t("Falha injetada neste componente")}><Icon name="local_fire_department" size={14} /></span>}
-      <NodeResizeControl position="right" variant={ResizeControlVariant.Line} resizeDirection="horizontal"
-        minWidth={176} maxWidth={520} className="resize-edge" aria-label={t("Redimensionar horizontalmente")} />
-      <div className="node-head">
-        <span className="icon"><Icon name={ICONS[data.type] ?? "dns"} size={20} /></span>
-        <div className="node-title"><div className="name">{data.name}</div><div className="type">{provider ? provider.name : data.type}</div></div>
-        {provider && <ProviderMark provider={provider} size={34} />}
-      </div>
-      {load && (
-        <>
-          <div className="meter" role="img" aria-label={util === null ? t("utilização desconhecida") : t("utilização {pct}%", { pct: Math.round(util * 100) })}>
-            <i style={{ width: `${width}%` }} />
-          </div>
-          <div className="node-foot">
-            <span><b><Num value={load.offered} /></b>/s</span>
-            <span>{util === null ? "—" : <b><Num value={util * 100} suffix="%" /></b>}</span>
-          </div>
-          {load.queue && load.queue.backlogGrowthPerSec > 0.5 && (
-            <div className="node-foot"><span>backlog</span><span><b>+<Num value={load.queue.backlogGrowthPerSec} /></b> msg/s</span></div>
-          )}
-        </>
-      )}
-      <div className="node-row">
-        <span className={`badge ${data.health}`} title={t(data.badge ?? HEALTH_LABEL[data.health])}>{t(data.badge ?? HEALTH_LABEL[data.health])}</span>
-        {data.note && <span className="node-note" title={data.note} aria-label={t("Tem observação")}><Icon name="sticky_note_2" size={14} /></span>}
-        <span className="node-step nodrag nopan" role="group" aria-label={t("Réplicas")} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
-          <button aria-label={t("Menos uma réplica")} title={t("Menos uma réplica")} disabled={data.replicas <= 1} onClick={() => data.onReplicas?.(id, data.replicas - 1)}><Icon name="remove" size={14} /></button>
-          <b className="num" title={t("Réplicas")}>×{data.replicas}</b>
-          <button aria-label={t("Mais uma réplica")} title={t("Mais uma réplica")} disabled={data.replicas >= MAX_REPLICAS} onClick={() => data.onReplicas?.(id, data.replicas + 1)}><Icon name="add" size={14} /></button>
-        </span>
-      </div>
-      {SIDES.map((sd) => <Handle key={sd} id={sd} type="source" position={HANDLE_POS[sd]} />)}
-    </div>
-  );
-}
-
-function FlowEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected }: EdgeProps<Edge<EdgeData>>) {
-  const { deleteElements } = useReactFlow();
-  const [path, lx, ly] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
-  const flow = data?.flow ?? 0, hot = data?.hot ?? false, unused = data?.unused ?? false;
-  const proto = protoOf(data?.protocol ?? "");
-  const async = data?.mode === "async";
-  const carrying = flow > 0 && !unused;
-  // intensidade do tráfego: mais carga = mais partículas e mais rápidas (escala logarítmica)
-  const level = carrying ? Math.log10(1 + flow) : 0;
-  const dots = carrying ? Math.min(5, 1 + Math.floor(level)) : 0;
-  const dur = Math.max(3.2, 8 - level * 0.9); // devagar: dá para acompanhar a requisição de um nó ao outro
-  const color = hot ? "var(--danger)" : proto.color;
-  const both = !!data?.both;
-  const stroke = selected ? "var(--accent)" : unused ? "var(--border-strong)" : `color-mix(in srgb, ${proto.color} 55%, var(--border-strong))`;
-  return (
-    <>
-      <defs>
-        <marker id={`arr-${id}`} viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
-          <path d="M1.5 1.5 L10.5 6 L1.5 10.5 Z" style={{ fill: stroke, stroke, strokeWidth: 1.4, strokeLinejoin: "round" }} />
-        </marker>
-      </defs>
-      <BaseEdge id={id} path={path} interactionWidth={24} markerEnd={`url(#arr-${id})`} markerStart={both ? `url(#arr-${id})` : undefined}
-        style={{ opacity: data?.dim ? 0.2 : 1, stroke, strokeWidth: selected ? 3 : 2, strokeDasharray: unused ? "6 6" : async ? "2 7" : undefined, strokeLinecap: "round" }} />
-      {carrying && (
-        <g className="edge-traffic" style={{ opacity: data?.dim ? 0.2 : 1, ["--c" as string]: color, ["--speed" as string]: `${dur * 0.55}s` }}>
-          <path d={path} fill="none" className="traffic-glow" />
-          <path d={path} fill="none" className="traffic-dash" />
-          {Array.from({ length: dots }, (_, i) => (
-            <circle key={i} r={hot ? 3.4 : 2.8} className="traffic-dot">
-              <animateMotion dur={`${dur}s`} begin={`${(-i * dur) / dots}s`} repeatCount="indefinite" path={path} />
-            </circle>
-          ))}
-        </g>
-      )}
-      <EdgeLabelRenderer>
-        <div className={`edge-label nodrag nopan${selected ? " on" : ""}${data?.fault ? " fault" : ""}`} style={{ transform: `translate(-50%,-135%) translate(${lx}px,${ly}px)`, ["--pc" as string]: proto.color, opacity: data?.dim ? 0.35 : 1 }}>
-          <button className="edge-type" title={t("Editar tipo de comunicação")} aria-label={`${t("Editar tipo de comunicação")}: ${proto.name} ${async ? "async" : "sync"}`}
-            onClick={() => data?.onEdit()}>
-            <span className="proto-ico"><Icon name={proto.icon} size={13} /></span>
-            <b className="proto-name">{t(proto.name)}</b>
-            <i className="proto-mode">{async ? "async" : "sync"}</i>
-            {unused && <em className="proto-unused">{t("sem fluxo")}</em>}
-            <span className="edge-extra"><Icon name="edit" size={13} /></span>
-          </button>
-          <span className="edge-extra">
-            <button className={`cut both${both ? " on" : ""}`} title={both ? t("Voltar para um sentido só") : t("Marcar como dois sentidos")} aria-pressed={both}
-              aria-label={`${both ? t("Voltar para um sentido só") : t("Marcar como dois sentidos")} ${proto.name}`} onClick={() => data?.onBoth?.()}>
-              <Icon name="swap_horiz" size={15} />
-            </button>
-            <button className="cut" title={t("Cortar conexão")} aria-label={`${t("Cortar conexão")} ${proto.name}`}
-              onClick={() => deleteElements({ edges: [{ id }] })}>
-              <Icon name="content_cut" size={14} />
-            </button>
-          </span>
-        </div>
-      </EdgeLabelRenderer>
-    </>
-  );
-}
 /** Linha de conexão própria: tolera posições inválidas (a padrão do React Flow derruba a tela inteira). */
 const VALID_POS = new Set(["left", "right", "top", "bottom"]);
 function ConnectionLine({ fromX, fromY, toX, toY, fromPosition, toPosition }: ConnectionLineComponentProps) {
@@ -428,25 +259,28 @@ function profileIdFor(type: string, providerId: string | undefined, original?: s
   return DEFAULT_PROFILE_BY_TYPE[type] ?? "unresolved";
 }
 
-function Lab() {
+interface AppProps { assessment?: AssessmentAttempt; onAssessmentSubmit?: (snap: unknown) => void }
+
+function Lab({ assessment, onAssessmentSubmit }: AppProps) {
   const lang = useLang();
   const original = fixture as any;
   // ?blank=1 abre o laboratório com o canvas vazio (usado para demonstrações e para começar do zero)
-  const blank = useMemo(() => new URLSearchParams(location.search).has("blank"), []);
+  const blank = useMemo(() => !!assessment || new URLSearchParams(location.search).has("blank"), []);
   // a sessão (caso/requisitos) só vale quando a tela inicial a pede (?s=1); abrir /app direto não herda um caso antigo
-  const sharedMode = useMemo(() => new URLSearchParams(location.search).has("shared"), []);
+  const sharedMode = useMemo(() => !assessment && new URLSearchParams(location.search).has("shared"), []);
   const [shared, setShared] = useState<SharePayload | null | "error">(null);
   const stored = useMemo(() => (new URLSearchParams(location.search).has("s") ? loadSession() : null), []);
   const session = useMemo<Session | null>(() => {
+    if (assessment) { const c = caseById(assessment.case_id); return c ? sessionFor(c) : null; }
     if (!sharedMode) return stored;
     if (!shared || shared === "error") return null;
     const c = shared.caseId ? caseById(shared.caseId) : undefined;
     return c ? sessionFor(c) : { mode: "free", title: shared.title, requirements: emptyRequirements() };
-  }, [sharedMode, stored, shared]);
+  }, [assessment, sharedMode, stored, shared]);
   // identidade do desenho: caso (um por caso), livre com id (?d=…, vários) ou o livre antigo ("free"); a referência não é salva
   const dParam = useMemo(() => { const d = new URLSearchParams(location.search).get("d"); return d && /^[a-z0-9]{4,16}$/i.test(d) ? d.toLowerCase() : null; }, []);
   const caseMode = !!session?.caseId;
-  const designKey = sharedMode ? null : blank ? (session?.caseId ?? (dParam ? `free-${dParam}` : "free")) : "reference";
+  const designKey = assessment ? `assessment-${assessment.id}` : sharedMode ? null : blank ? (session?.caseId ?? (dParam ? `free-${dParam}` : "free")) : "reference";
   const fallbackName = designKey === "free" ? t("Canvas livre") : t("Desenho sem nome");
   const [designTitle, setDesignTitle] = useState<string>(() => {
     try { const v = JSON.parse(localStorage.getItem(`archlab:design:${designKey}`) ?? "null")?.title; if (typeof v === "string" && v.trim()) return v; } catch { /* ignora */ }
@@ -493,10 +327,10 @@ function Lab() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   // primeira visita ao laboratório: passeio guiado (nunca em link compartilhado nem com modal aberto)
-  useEffect(() => { if (sharedMode || tourDone() || compact) return; const id = setTimeout(() => { if (!document.querySelector("dialog[open]")) setTourOpen(true); }, 1200); return () => clearTimeout(id); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { if (assessment || sharedMode || tourDone() || compact) return; const id = setTimeout(() => { if (!document.querySelector("dialog[open]")) setTourOpen(true); }, 1200); return () => clearTimeout(id); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   // o enunciado do encurtador só vale para o desenho de referência; no canvas em branco o painel mostra os requisitos da sessão (ou some)
-  const caseTypes = useMemo(() => (blank && session?.checks ? new Set(session.checks.needs.flatMap((n) => n.any)) : undefined), [blank, session]);
-  const chaosHints = useMemo(() => (blank && session?.checks?.chaos ? new Set(session.checks.chaos) : undefined), [blank, session]);
+  const caseTypes = useMemo(() => (!assessment && blank && session?.checks ? new Set(session.checks.needs.flatMap((n) => n.any)) : undefined), [blank, session]);
+  const chaosHints = useMemo(() => (!assessment && blank && session?.checks?.chaos ? new Set(session.checks.chaos) : undefined), [blank, session]);
   const hasPanel = !blank || !!session;
   const briefOpen = hasPanel && briefPref && !compact;
   const [toolsPref, setToolsOpen] = usePref("toolsOpen", true); // painel da direita (componentes, propriedades, revisão): dá para esconder e ficar só com o desenho
@@ -534,7 +368,7 @@ function Lab() {
   // Só o que muda a arquitetura (não posição/seleção) recompõe o documento.
   const semKey = JSON.stringify(nodes.map((n) => [n.id, n.data.type, n.data.name, n.data.replicas, n.data.providerId, n.data.hitRate]));
   const docNodes = useMemo(() => nodes.map((n) => {
-    const o = originalById.get(n.id);
+    const o = assessment ? undefined : originalById.get(n.id);
     const replicas = n.data.replicas;
     const placements = (o?.properties.placements?.length ? o.properties.placements : [{ region: "region-a", zone: "zone-a", count: 1 }])
       .map((p: any, i: number) => ({ ...p, count: i === 0 ? replicas : Math.min(p.count, replicas) }));
@@ -898,13 +732,13 @@ function Lab() {
   const [stagesDone, setStagesDone] = useState(0);
   const design = useMemo(() => ({ nodes: docNodes, flows, loads, p95Ms: readP95, readSuccess }), [docNodes, flows, loads, readP95, readSuccess]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const checks = useMemo(() => (blank && session ? evaluate(session, design) : []), [blank, session, design, lang]);
+  const checks = useMemo(() => (!assessment && blank && session ? evaluate(session, design) : []), [blank, session, design, lang]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const rating = useMemo(() => rate({ nodes: docNodes, edges: docEdges, flows, loads: baseline.loads, errFrac: baseErr, p95Ms: baseP95, p95Target: session?.checks?.p95Ms, lossErr, checks, readPct }),
+  const rating = useMemo(() => assessment ? { overall: null, tier: null, attrs: [] } : rate({ nodes: docNodes, edges: docEdges, flows, loads: baseline.loads, errFrac: baseErr, p95Ms: baseP95, p95Target: session?.checks?.p95Ms, lossErr, checks, readPct }),
     [docNodes, docEdges, flows, baseline, baseErr, baseP95, session, lossErr, checks, readPct, lang]);
   nodesRef.current = nodes;
   const interviewSummary = { rating: rating.overall, met: checks.filter((c) => c.status === "meets").length, total: checks.length, findings: findings.length, important: reviewHigh, nodes: nodes.length };
-  const refSnap = useMemo(() => (blank && session?.caseId && session.checks && session.load ? buildReference(session.checks, session.load) : null), [blank, session]);
+  const refSnap = useMemo(() => (!assessment && blank && session?.caseId && session.checks && session.load ? buildReference(session.checks, session.load) : null), [blank, session]);
   const compare = useMemo(() => {
     if (!refSnap) return { missing: [] as string[], extra: [] as string[] };
     const mine = new Set(nodes.map((n) => n.data.type)), theirs = new Set(refSnap.n.map((n) => n.d.type));
@@ -914,7 +748,7 @@ function Lab() {
   }, [refSnap, nodes]);
 
   useEffect(() => {
-    if (!blank || sharedMode || !session?.caseId || !nodes.length || viewingRef) return;
+    if (assessment || !blank || sharedMode || !session?.caseId || !nodes.length || viewingRef) return;
     const t = setTimeout(() => {
       const met = checks.filter((c) => c.status === "meets").length;
       saveCaseProgress(session.caseId!, { met, total: checks.length, stages: stagesDone, status: "started", ovr: rating.overall ?? undefined });
@@ -923,7 +757,7 @@ function Lab() {
   }, [blank, session, nodes.length, checks, stagesDone, viewingRef, rating.overall]);
 
   // ── persistência: o desenho é salvo no navegador (um por caso) e pode ser exportado/importado como arquivo ──
-  const storeKey = `archlab:design:${sharedMode ? "shared" : designKey}`;
+  const storeKey = assessment ? `archlab:assessment-draft:${assessment.id}` : `archlab:design:${sharedMode ? "shared" : designKey}`;
   const fileRef = useRef<HTMLInputElement>(null);
   const valid = (s: any) => s && Array.isArray(s.n) && Array.isArray(s.e) && Array.isArray(s.f) && Array.isArray(s.w) && s.m && typeof s.m === "object";
   useEffect(() => {
@@ -938,7 +772,12 @@ function Lab() {
           return;
         }
       }
-      const raw = localStorage.getItem(storeKey); if (!raw) return;
+      const raw = localStorage.getItem(storeKey);
+      if (assessment?.draft && valid(assessment.draft)) {
+        const local = raw ? JSON.parse(raw) : null;
+        if (!local || (local.savedAt ?? 0) < Date.parse(assessment.draft_updated_at ?? "")) { restore(JSON.stringify(assessment.draft)); return; }
+      }
+      if (!raw) return;
       const saved = JSON.parse(raw)?.snap; if (typeof saved !== "string" || !valid(JSON.parse(saved)) || saved === snap()) return;
       restore(saved); say("Desenho anterior recuperado");
     } catch { /* dado antigo ou corrompido: começa do zero */ }
@@ -957,7 +796,12 @@ function Lab() {
   // ── nuvem (só logado): puxa o desenho salvo e depois grava as mudanças; nunca sobrescreve a nuvem antes de olhar o que já existe ──
   const auth = useAuth();
   const uid = authEnabled && auth.status === "in" ? auth.user?.id : undefined;
-  const cloudKey = designKey;
+  const cloudKey = assessment ? null : designKey;
+  useEffect(() => {
+    if (!assessment) return;
+    const timer = setTimeout(() => { void saveAssessmentDraft(assessment.id, JSON.parse(key)).then((ok) => setSave(ok ? "cloud" : "error")).catch(() => setSave("error")); }, 1200);
+    return () => clearTimeout(timer);
+  }, [assessment?.id, key]);
   const cloudReady = useRef(false);
   useEffect(() => {
     cloudReady.current = false;
@@ -981,9 +825,9 @@ function Lab() {
     return () => clearTimeout(t0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, uid, cloudKey, viewingRef, designTitle]);
-  const openVersions = () => { setVersions(loadVersions(storeKey)); setVersionsOpen(true); };
+  const openVersions = () => { if (assessment) return; setVersions(loadVersions(storeKey)); setVersionsOpen(true); };
   const saveNow = (name: string) => { const l = saveVersion(storeKey, name || t("Versão"), key); if (l) { setVersions(l); say(t("Versão salva")); } else say(t("Não foi possível salvar a versão")); };
-  const restoreVersion = (v: Version) => {
+  const restoreVersion = (v: Version) => { if (assessment) return;
     saveVersion(storeKey, t("Antes de restaurar"), key); // nunca perde o que estava na tela
     restore(v.snap); say(t("Versão restaurada: {nome}", { nome: v.name })); setTimeout(doFit, 150);
   };
@@ -1078,7 +922,7 @@ function Lab() {
   };
   const backupKey = `${storeKey}:mine`;
   useEffect(() => { try { setBackupAt(localStorage.getItem(backupKey) ? 1 : 0); } catch { /* ignora */ } }, [backupKey]);
-  const loadReference = () => {
+  const loadReference = () => { if (assessment) return;
     if (!refSnap) return;
     try { if (!viewingRef) localStorage.setItem(backupKey, key); } catch { /* ignora */ }
     setBackupAt(1); setViewingRef(true); restore(JSON.stringify(refSnap)); say(t("Solução de referência carregada")); setTimeout(doFit, 120);
@@ -1087,7 +931,7 @@ function Lab() {
     try { const mine = localStorage.getItem(backupKey); if (mine) { restore(mine); localStorage.removeItem(backupKey); } } catch { /* ignora */ }
     setBackupAt(0); setViewingRef(false); say(t("Seu desenho foi restaurado")); setTimeout(doFit, 120);
   };
-  const importDesign = async (file: File) => {
+  const importDesign = async (file: File) => { if (assessment) return;
     try {
       const j = JSON.parse(await file.text());
       if (j?.format !== "archlab-design" || !valid(j.snap)) throw new Error("formato");
@@ -1142,6 +986,7 @@ function Lab() {
   };
   /** Insere um padrão pronto: nós, conexões válidas e grupos, num espaço livre perto do centro da tela. */
   const insertPattern = (p: Pattern, opts: { quiet?: boolean } = {}) => {
+    if (assessment) return;
     const c = screenToFlowPosition({ x: window.innerWidth * 0.3, y: window.innerHeight * 0.45 });
     const taken = new Set(nodes.map((n) => n.id));
     const probe = buildPattern(p, { x: 0, y: 0 }, taken, (s) => s, () => null).nodes;
@@ -1245,9 +1090,10 @@ function Lab() {
     setRun({ status: "running", t: 0, series: [] });
   };
   /** Mostra uma aba das ferramentas; no celular isso abre a gaveta. */
-  const showTab = (tb: "components" | "props" | "review") => { setTab(tb); if (compact) { setView("tools"); setSheetSnap((x) => (x === "closed" ? "half" : x)); } };
+  const showTab = (tb: "components" | "props" | "review") => { if (assessment && tb === "review") return; setTab(tb); if (compact) { setView("tools"); setSheetSnap((x) => (x === "closed" ? "half" : x)); } };
   const dockActive = !compact || sheetSnap === "closed" ? null : view === "brief" ? "brief" : tab;
   const pickDock = (id: "brief" | "components" | "props" | "review") => {
+    if (assessment && id === "review") return;
     if (dockActive === id) { setSheetSnap("closed"); return; }
     if (id === "brief") setView("brief"); else { setView("tools"); setTab(id); }
     setSheetSnap((x) => (x === "closed" ? "half" : x));
@@ -1295,7 +1141,7 @@ function Lab() {
           <a className="icon-btn back" href="/start" aria-label={t("Voltar ao início")} onClick={(e) => { e.preventDefault(); go("/start"); }}><Icon name="arrow_back" size={24} /></a>
           {blank ? <DesignName value={designName} editable={freeEditable} onCommit={setDesignTitle} status={sharedMode ? null : save} /> : <b className="cb-title">{original.metadata.title ?? t("Links curtos")}</b>}
           <span className="spacer" />
-          <RatingChip rating={rating} title={blank ? designName : (session?.title ?? t("Encurtador de links"))} />
+          {assessment ? <button type="button" className="chip primary assessment-submit" aria-label={t("Entregar avaliação")} disabled={!nodes.length} onClick={() => onAssessmentSubmit?.(JSON.parse(key))}><Icon name="task_alt" size={18} /><span>{t("Entregar")}</span></button> : <RatingChip rating={rating} title={blank ? designName : (session?.title ?? t("Encurtador de links"))} />}
           {running ? (
             <button className="simbtn stop" onClick={() => setRun((r) => ({ ...r, status: "stopped" }))} aria-label={t("Parar")}><Icon name="stop" size={22} /><span className="lbl-sim">{t("Parar")}</span></button>
           ) : (
@@ -1327,7 +1173,7 @@ function Lab() {
         <button className={`chip chaos-btn${chaos.size ? " on" : ""}`} data-tour="chaos" onClick={() => setChaosOpen(true)} title={t("Injetar falhas no desenho")}>
           <Icon name="local_fire_department" size={16} /><span className="lbl">{t("Modo caos")}</span>{chaos.size ? <b className="count">{chaos.size}</b> : null}
         </button>
-        {session?.mode === "study" && (
+        {!assessment && session?.mode === "study" && (
           <InterviewChip active={interview} onOpen={() => setInterviewOpen(true)}
             onStart={(minutes) => { if (PAYWALL && currentPlan() !== "pro") { go("/planos"); return; } setInterview({ startedAt: Date.now(), minutes }); setInterviewOpen(true); }} />
         )}
@@ -1337,11 +1183,11 @@ function Lab() {
           </button>
         )}
         <span className="spacer" />
-        <RatingChip rating={rating} title={blank ? designName : (session?.title ?? t("Encurtador de links"))} />
-        <ExportMenu onLink={copyLink} onJson={exportDesign} onMermaid={exportMermaid} onDoc={exportDoc} onReport={exportReport} onCard={exportCard} onImport={() => fileRef.current?.click()} busy={reporting} />
+        {assessment ? <button type="button" className="chip primary assessment-submit" aria-label={t("Entregar avaliação")} disabled={!nodes.length} onClick={() => onAssessmentSubmit?.(JSON.parse(key))}><Icon name="task_alt" size={18} /><span>{t("Entregar")}</span></button> : <RatingChip rating={rating} title={blank ? designName : (session?.title ?? t("Encurtador de links"))} />}
+        {!assessment && <ExportMenu onLink={copyLink} onJson={exportDesign} onMermaid={exportMermaid} onDoc={exportDoc} onReport={exportReport} onCard={exportCard} onImport={() => fileRef.current?.click()} busy={reporting} />}
         <LangToggle />
         <ThemeToggle className="theme-btn" />
-        <AccountMenu onShortcuts={() => setHelpOpen(true)} onTour={() => setTourOpen(true)} />
+        <AccountMenu onShortcuts={() => setHelpOpen(true)} onTour={assessment ? undefined : () => setTourOpen(true)} />
         {!authEnabled && <button className="chip icon-only" aria-label={t("Atalhos de teclado")} title={t("Atalhos de teclado (?)")} onClick={() => setHelpOpen(true)}><Icon name="keyboard" size={18} /></button>}
         {/* a validação interna do modelo só aparece quando há problema: o normal é estar tudo certo e não precisa ocupar o header */}
         {issues.length > 0 && (
@@ -1364,8 +1210,8 @@ function Lab() {
       >
         <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} color="var(--dot)" />
         <Controls showInteractive={false}>
-          <ControlButton onClick={() => setPatternsOpen(true)} title={t("Padrões prontos")} aria-label={t("Padrões prontos")}><Icon name="extension" size={16} /></ControlButton>
-          <ControlButton onClick={openVersions} title={t("Versões do desenho")} aria-label={t("Versões do desenho")}><Icon name="history" size={16} /></ControlButton>
+          {!assessment && <ControlButton onClick={() => setPatternsOpen(true)} title={t("Padrões prontos")} aria-label={t("Padrões prontos")}><Icon name="extension" size={16} /></ControlButton>}
+          {!assessment && <ControlButton onClick={openVersions} title={t("Versões do desenho")} aria-label={t("Versões do desenho")}><Icon name="history" size={16} /></ControlButton>}
           <ControlButton onClick={addGroup} title={t("Agrupar blocos (G)")} aria-label={t("Agrupar blocos")}><Icon name="workspaces" size={16} /></ControlButton>
           <ControlButton onClick={autoAlign} title={t("Organizar automaticamente (L)")} aria-label={t("Organizar automaticamente")}><Icon name="auto_fix_high" size={16} /></ControlButton>
         </Controls>
@@ -1403,7 +1249,7 @@ function Lab() {
         <aside ref={briefRef} className={`panel brief${compact ? " sheet" : ""}`} data-snap={compact ? (view === "brief" ? sheetSnap : "closed") : undefined} aria-label={blank ? t("Requisitos") : t("Enunciado do desafio")} data-tour="brief">
           {compact && <SheetGrip asideRef={briefRef} snap={sheetSnap} setSnap={setSheetSnap} title={t("Requisitos")} />}
           <div className="brief-bar">
-            {blank && session?.mode === "study" ? (
+            {!assessment && blank && session?.mode === "study" ? (
               <span className="seg" role="tablist" aria-label={t("Painel do caso")}>
                 <button role="tab" aria-selected={leftTab === "req"} className={leftTab === "req" ? "on" : ""} onClick={() => setLeftTab("req")}><Icon name="checklist" size={15} />{" "}{t("Requisitos")}</button>
                 <button role="tab" aria-selected={leftTab === "guide"} className={leftTab === "guide" ? "on" : ""} onClick={() => setLeftTab("guide")}><Icon name="alarm" size={15} />{" "}{t("Guia")}</button>
@@ -1411,9 +1257,9 @@ function Lab() {
             ) : <span><Icon name={blank ? "checklist" : "assignment"} size={17} /> {blank ? t("Requisitos") : t("Desafio")}</span>}
             <button className="icon-btn" aria-label={t("Recolher enunciado")} title={t("Recolher")} onClick={() => setBriefOpen(false)}><Icon name="left_panel_close" size={18} /></button>
           </div>
-          {blank && session ? (leftTab === "guide" && session.mode === "study"
+          {blank && session ? (!assessment && leftTab === "guide" && session.mode === "study"
             ? <Guide session={session} checks={checks} onStages={setStagesDone} />
-            : <RequirementsView session={session} checks={checks} reference={refSnap ? { ...compare, viewing: viewingRef, hasBackup: backupAt === 1, onLoad: loadReference, onBack: backToMine } : undefined} />) : <Brief nodes={docNodes} flows={flows} loads={loads} rps={rps} down={down} p95Ms={readP95} />}
+            : <RequirementsView assessment={!!assessment} session={session} checks={checks} reference={refSnap ? { ...compare, viewing: viewingRef, hasBackup: backupAt === 1, onLoad: loadReference, onBack: backToMine } : undefined} />) : <Brief nodes={docNodes} flows={flows} loads={loads} rps={rps} down={down} p95Ms={readP95} />}
         </aside>
       ) : (
         <button className="chip brief-open-btn" onClick={() => setBriefOpen(true)}><Icon name={blank ? "checklist" : "assignment"} size={16} /> {blank ? t("Ver requisitos") : t("Ver enunciado")}</button>
@@ -1426,7 +1272,7 @@ function Lab() {
         {compact && <SheetGrip asideRef={toolsRef} snap={sheetSnap} setSnap={setSheetSnap} title={t("Ferramentas")} />}
         <div className="tabs">
           <div className="tabs-list" role="tablist">
-          {([["components", "widgets", "Componentes"], ["props", "tune", "Propriedades"], ["review", "fact_check", "Revisão"]] as const).map(([k, icon, label]) => (
+          {([["components", "widgets", "Componentes"], ["props", "tune", "Propriedades"], ["review", "fact_check", "Revisão"]] as const).filter(([k]) => !assessment || k !== "review").map(([k, icon, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>
               <Icon name={icon} size={16} /> {t(label)}{k === "review" && reviewHigh > 0 && <i className="tab-count" aria-label={t("{n} importantes", { n: reviewHigh })}>{reviewHigh}</i>}
             </button>
@@ -1435,7 +1281,7 @@ function Lab() {
           {!compact && <button type="button" className="icon-btn tabs-hide" aria-label={t("Esconder painel")} title={t("Esconder painel (P)")} onClick={() => setToolsOpen(false)}><Icon name="right_panel_close" size={18} /></button>}
         </div>
         {tab === "components" && <Palette onAdd={(i, providerId) => { addNode(i, undefined, providerId); if (compact) setSheetSnap("closed"); }} inCase={caseTypes} />}
-        {tab === "review" && <ReviewPanel findings={findings} hasNodes={nodes.length > 0} cost={cost} onFocus={focusNodes} />}
+        {!assessment && tab === "review" && <ReviewPanel findings={findings} hasNodes={nodes.length > 0} cost={cost} onFocus={focusNodes} />}
         {tab === "props" && (sel && selNode && selHealth ? (
           <div className="inspector" key={selected}>
             <label className="name-field">
@@ -1481,7 +1327,7 @@ function Lab() {
                 <div className="stat"><span><Icon name="timer" size={14} />{" "}{t("Latência p95")}</span><b>{selLoad.latencyP95Ms === null ? "—" : <><Num value={selLoad.latencyP95Ms} /> ms</>}</b></div>
               </div>
             )}
-            {selLoad?.queue && (
+            {!assessment && selLoad?.queue && (
               <div className={`alert${selLoad.queue.backlogGrowthPerSec > 0.5 ? "" : " ok"}`}>
                 <Icon name={selLoad.queue.backlogGrowthPerSec > 0.5 ? "hourglass_top" : "check_circle"} size={18} />
                 <span>{selLoad.queue.consumers === 0 ? t("Sem consumidor: tudo o que entra acumula. Ligue a fila a um worker.")
@@ -1493,21 +1339,21 @@ function Lab() {
             {rejected > 0.5 && !selLoad?.queue && <div className="alert"><Icon name="warning" size={18} />{" "}{tx("Demanda excede a capacidade em {n} ops/s (modelado).", { n: <b className="num">{fmt(rejected)}</b> })}</div>}
             {down.has(sel.id) && <div className="alert"><Icon name="flash_off" size={18} />{" "}{t("Componente fora do ar neste cenário. Tudo que depende dele reage no canvas.")}</div>}
 
-            {selHealth.health === "idle" && SIDE_TYPES.has(sel.type) && (
+            {!assessment && selHealth.health === "idle" && SIDE_TYPES.has(sel.type) && (
               <div className="hintbox"><Icon name="info" size={18} /><span>{t("Componente de apoio: telemetria, segredos, descoberta e DNS ficam fora dos fluxos de requisição, então não recebem carga na simulação.")}</span></div>
             )}
-            {selHealth.health === "idle" && !SIDE_TYPES.has(sel.type) && (
+            {!assessment && selHealth.health === "idle" && !SIDE_TYPES.has(sel.type) && (
               <div className="hintbox"><Icon name="route" size={18} />
                 <span>{t("Nenhum caminho de requisição passa por aqui, então não há carga para calcular. Ligue este componente a uma origem de carga pelas conexões.")}</span></div>
             )}
-            {selHealth.health === "noprofile" && (
+            {!assessment && selHealth.health === "noprofile" && (
               <div className="hintbox"><Icon name="rule" size={18} />
                 <span>{sel.properties.profileId === "unresolved" ? t("Este tipo é abstrato: escolha o provedor/engine acima para definir a capacidade.") : t("Este tipo ainda não tem perfil de capacidade na simulação.")}</span></div>
             )}
-            {selHealth.health === "unknown" && (
+            {!assessment && selHealth.health === "unknown" && (
               <div className="hintbox"><Icon name="help" size={18} /><span>{t("O fluxo usa uma classe de operação que o perfil deste componente não define (ex.: mensagem em um banco). Revise as conexões que chegam a ele.")}</span></div>
             )}
-            <ConceptCard type={sel.type} />
+            {!assessment && <ConceptCard type={sel.type} />}
             {selFlows.length > 0 && (
               <p className="note">{t("Participa de:")} {selFlows.map((f) => meta[f.id]?.name ?? f.id).join(", ")}.</p>
             )}
@@ -1530,7 +1376,7 @@ function Lab() {
             ...(hasPanel ? [{ id: "brief" as const, icon: "checklist", label: t("Requisitos") }] : []),
             { id: "components" as const, icon: "widgets", label: t("Componentes") },
             { id: "props" as const, icon: "tune", label: t("Propriedades") },
-            { id: "review" as const, icon: "fact_check", label: t("Revisão"), badge: reviewHigh },
+            ...(!assessment ? [{ id: "review" as const, icon: "fact_check", label: t("Revisão"), badge: reviewHigh }] : []),
           ]} />
           <button type="button" className="fit-fab icon-btn" aria-label={t("Enquadrar o desenho")} onClick={doFit}><Icon name="fit_screen" size={22} /></button>
         </>
@@ -1548,15 +1394,15 @@ function Lab() {
               <section className="more-sec"><h3>{t("Cenário da simulação")}</h3><div className="more-scn">{scenario}</div></section>
               <section className="more-sec"><h3>{t("Ferramentas")}</h3>
                 <MoreRow icon="local_fire_department" label={t("Modo caos")} hint={t("Injetar falhas no desenho")} badge={chaos.size} onClick={() => { setMoreOpen(false); setChaosOpen(true); }} />
-                {session?.mode === "study" && <MoreRow icon="timer" label={t("Modo entrevista")} hint={interview ? t("Abrir o painel da entrevista") : t("Simule uma entrevista com relógio e fases")}
+                {!assessment && session?.mode === "study" && <MoreRow icon="timer" label={t("Modo entrevista")} hint={interview ? t("Abrir o painel da entrevista") : t("Simule uma entrevista com relógio e fases")}
                   onClick={() => { setMoreOpen(false); if (interview) { setInterviewOpen(true); return; } if (PAYWALL && currentPlan() !== "pro") { go("/planos"); return; } setInterview({ startedAt: Date.now(), minutes: 45 }); setInterviewOpen(true); }} />}
-                <MoreRow icon="extension" label={t("Padrões prontos")} onClick={() => { setMoreOpen(false); setPatternsOpen(true); }} />
-                <MoreRow icon="history" label={t("Versões do desenho")} onClick={() => { setMoreOpen(false); openVersions(); }} />
+                {!assessment && <MoreRow icon="extension" label={t("Padrões prontos")} onClick={() => { setMoreOpen(false); setPatternsOpen(true); }} />}
+                {!assessment && <MoreRow icon="history" label={t("Versões do desenho")} onClick={() => { setMoreOpen(false); openVersions(); }} />}
                 <MoreRow icon="workspaces" label={t("Agrupar blocos")} onClick={() => { setMoreOpen(false); addGroup(); }} />
                 <MoreRow icon="auto_fix_high" label={t("Organizar automaticamente")} onClick={() => { setMoreOpen(false); autoAlign(); }} />
                 {down.size > 0 && <MoreRow icon="restart_alt" label={t("{n} fora do ar · restaurar", { n: down.size })} onClick={() => { setDown(new Set()); setMoreOpen(false); }} />}
               </section>
-              <section className="more-sec"><h3>{t("Compartilhar e exportar")}</h3>
+              {!assessment && <section className="more-sec"><h3>{t("Compartilhar e exportar")}</h3>
                 <MoreRow icon="link" label={t("Copiar link do desenho")} onClick={() => { setMoreOpen(false); copyLink(); }} />
                 <MoreRow icon="description" label={t("Documento de design (.md)")} onClick={() => { setMoreOpen(false); exportDoc(); }} />
                 <MoreRow icon="schema" label={t("Diagrama Mermaid (.mmd)")} onClick={() => { setMoreOpen(false); exportMermaid(); }} />
@@ -1564,14 +1410,14 @@ function Lab() {
                 <MoreRow icon="badge" label={t("Cartão da nota para redes sociais")} onClick={() => { setMoreOpen(false); exportCard(); }} />
                 <MoreRow icon="data_object" label={t("Desenho (.json)")} onClick={() => { setMoreOpen(false); exportDesign(); }} />
                 <MoreRow icon="upload" label={t("Abrir arquivo (.json)")} onClick={() => { setMoreOpen(false); fileRef.current?.click(); }} />
-              </section>
+              </section>}
               <section className="more-sec"><h3>{t("Preferências")}</h3>
-                <div className="more-prefs"><LangToggle /><ThemeToggle className="theme-btn" /><AccountMenu onShortcuts={() => setHelpOpen(true)} onTour={() => setTourOpen(true)} /></div>
+                <div className="more-prefs"><LangToggle /><ThemeToggle className="theme-btn" /><AccountMenu onShortcuts={() => setHelpOpen(true)} onTour={assessment ? undefined : () => setTourOpen(true)} /></div>
               </section>
             </MoreSheet>
           )}
-      {patternsOpen && <PatternsDialog onPick={insertPattern} onClose={() => setPatternsOpen(false)} />}
-      {versionsOpen && <VersionsDialog versions={versions} onSave={saveNow} onRestore={restoreVersion} onDelete={(v) => setVersions(deleteVersion(storeKey, v.id))} onClose={() => setVersionsOpen(false)} />}
+      {!assessment && patternsOpen && <PatternsDialog onPick={insertPattern} onClose={() => setPatternsOpen(false)} />}
+      {!assessment && versionsOpen && <VersionsDialog versions={versions} onSave={saveNow} onRestore={restoreVersion} onDelete={(v) => setVersions(deleteVersion(storeKey, v.id))} onClose={() => setVersionsOpen(false)} />}
       {interviewOpen && interview && (
         <InterviewPanel active={interview} summary={interviewSummary} onClose={() => setInterviewOpen(false)}
           onFinish={() => { setInterviewDone({ minutes: interview.minutes, usedSec: Math.min(interview.minutes * 60, (Date.now() - interview.startedAt) / 1000) }); setInterview(null); }} />
@@ -1584,7 +1430,7 @@ function Lab() {
       )}
 
       {helpOpen && <ShortcutsDialog onClose={() => setHelpOpen(false)} onTour={() => setTimeout(() => setTourOpen(true), 150)} />}
-      {tourOpen && <Tour onClose={() => setTourOpen(false)} />}
+      {!assessment && tourOpen && <Tour onClose={() => setTourOpen(false)} />}
       <div className="toast-region" aria-live="polite">{toast && <div className="toast" key={toast}>{toast}</div>}</div>
 
       {chaosOpen && (
@@ -1618,4 +1464,4 @@ class Boundary extends Component<{ children: ReactNode }, { error: Error | null 
     );
   }
 }
-export const App = () => <Boundary><ReactFlowProvider><Lab /></ReactFlowProvider></Boundary>;
+export const App = (props: AppProps = {}) => <Boundary><ReactFlowProvider><Lab {...props} /></ReactFlowProvider></Boundary>;

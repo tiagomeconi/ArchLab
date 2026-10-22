@@ -147,3 +147,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 .st-draw { animation: st-draw .6s var(--ease) both; }
 
 .lp input[type="search"]::-webkit-search-cancel-button, .lp input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appearance: none; }
+
+.profile-dialog::backdrop { background: rgba(0, 0, 0, .65); backdrop-filter: blur(5px); }
+
+.solution-workspace .react-flow__minimap { margin: 0 16px 16px 0; }

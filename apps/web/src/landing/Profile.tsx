@@ -9,6 +9,7 @@ import { renderSocialCard } from "../socialCard";
 import { Icon } from "../ui";
 import { localeOf, t, useLang } from "../i18n";
 import { journeyOf } from "./useJourney";
+import { useAssessmentProfile } from "./useAssessmentProfile";
 import { ProfileView } from "./ProfileView";
 import { useMyDesigns } from "./useMyDesigns";
 
@@ -21,6 +22,7 @@ export function Profile() {
   const [prof, setProf] = useState<ProfileData | null>(null);
   const [rank, setRank] = useState<MyRank | null>(null);
   const [designs] = useMyDesigns();
+  const competitive = useAssessmentProfile();
   const [cardBusy, setCardBusy] = useState(false);
   useEffect(() => { if (!authEnabled) go("/start"); }, []);
   useEffect(() => { let alive = true; fetchProfile().then((p) => { if (alive) setProf(p); }); getMyRank().then((r) => { if (alive) setRank(r); }); return () => { alive = false; }; }, [user?.id]);
@@ -35,7 +37,7 @@ export function Profile() {
     try {
       const j = journeyOf(progress, days);
       const blob = await renderSocialCard({
-        kind: "profile", title: name, overall: j.overall, photoUrl: photo, memberSince: since || undefined, achievements: j.ach.filter((a) => a.unlocked).map((a) => ({ icon: a.icon, title: a.title })),
+        kind: "profile", title: name, overall: null, points: competitive.profile?.points, photoUrl: photo, memberSince: since || undefined, achievements: j.ach.filter((a) => a.unlocked).map((a) => ({ icon: a.icon, title: a.title })),
         stats: [{ label: t("Casos concluídos"), value: `${Object.values(progress).filter((p) => p.status === "done" && true).length}/${ALL_CASES.length}` }, { label: t("Conquistas"), value: `${j.unlocked}/${j.ach.length}` }, { label: t("Sequência"), value: t("{n} dias", { n: streakOf(days).current }) }],
         handle: prof?.isPublic && prof.handle ? prof.handle : undefined,
       });

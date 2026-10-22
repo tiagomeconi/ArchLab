@@ -115,12 +115,13 @@ interface Variant { edges: AutoEdge[]; keys: string[] }
  * "consulta de cache e ramo de miss" (leitura) e "escrita direta no banco". Depois de uma fila/log o fluxo termina, porque o
  * motor calcula o consumo pela aresta fila → worker (incluir o worker contaria a carga em dobro).
  */
-export function buildAutoFlows(rootId: string, nodes: AutoNode[], edges: AutoEdge[], hitRate = 0.9): AutoFlow[] {
+export function buildAutoFlows(rootId: string, nodes: AutoNode[], edges: AutoEdge[], hitRate = 0.9, budget?: { remaining: number }): AutoFlow[] {
   const typeOf = new Map(nodes.map((n) => [n.id, n.type]));
   const out = new Map<string, AutoEdge[]>();
   for (const e of edges) if (typeOf.has(e.source) && typeOf.has(e.target)) out.set(e.source, [...(out.get(e.source) ?? []), e]);
 
   const variants = (nodeId: string, seen: Set<string>): Variant[] => {
+    if (budget && --budget.remaining < 0) throw new Error("O desenho excede o limite de caminhos da avaliação.");
     const kids = (out.get(nodeId) ?? []).filter((e) => !seen.has(e.target) && !SIDE_TYPES.has(typeOf.get(e.target) ?? ""));
     if (!kids.length || MSG_TYPES.has(typeOf.get(nodeId) ?? "")) return [{ edges: [], keys: [] }];
     const data = kids.filter((e) => roleOf(typeOf.get(e.target) ?? "") === "data");

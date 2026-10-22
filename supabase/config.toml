@@ -1,0 +1,4 @@
+project_id = "system-forge"
+
+[functions.assessment]
+verify_jwt = true

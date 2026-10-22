@@ -2,8 +2,9 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { authEnabled, authMessage, avatarOf, removeAvatar, setNewPassword, updateAccount, uploadAvatar, useAuth, signOut, verifyPassword } from "../auth";
 import { prepareAvatar } from "../avatar";
 import { birthError, fullNameOk, handleError, passwordOk, sanitizeHandle } from "../account";
-import { deleteAccount, exportMyData, fetchProfile, savePublicSettings, type Profile as ProfileData } from "../cloud";
+import { deleteAccount, exportMyData, fetchProfile, saveCountry, savePublicSettings, type Profile as ProfileData } from "../cloud";
 import { go, link } from "../nav";
+import { CountrySelect } from "./CountrySelect";
 import { DatePicker } from "./DatePicker";
 import { Avatar } from "../AccountMenu";
 import { Icon } from "../ui";
@@ -18,6 +19,9 @@ export function Settings() {
   const auth = useAuth();
   const user = auth.user;
   const meta = user?.user_metadata ?? {};
+  const [country, setCountry] = useState("");
+  const [countryMsg, setCountryMsg] = useState("");
+  const [countryBusy, setCountryBusy] = useState(false);
   const [loaded, setLoaded] = useState<ProfileData | null>(null);
   const [name, setName] = useState(String(meta.name ?? "")); const [birth, setBirth] = useState(String(meta.birth_date ?? "")); const [bio, setBio] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null); const [saving, setSaving] = useState(false);
@@ -42,7 +46,7 @@ export function Settings() {
   const dropPhoto = async () => { if (photoBusy) return; setPhotoBusy(true); setPhotoMsg(""); try { await removeAvatar(); } catch { setPhotoMsg(t("Não foi possível remover a foto. Tente de novo.")); } finally { setPhotoBusy(false); } };
 
   useEffect(() => { if (!authEnabled) go("/start"); }, []);
-  useEffect(() => { fetchProfile().then((p) => { if (!p) return; setLoaded(p); setName(p.fullName || String(meta.name ?? "")); setBirth(p.birthDate); setBio(p.bio); setHandle(p.handle); setIsPublic(p.isPublic); }); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user?.id]);
+  useEffect(() => { fetchProfile().then((p) => { if (!p) return; setLoaded(p); setName(p.fullName || String(meta.name ?? "")); setBirth(p.birthDate); setBio(p.bio); setHandle(p.handle); setIsPublic(p.isPublic); setCountry(p.country || ""); }); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user?.id]);
   useEffect(() => { const id = location.hash.slice(1); if (id) setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }), 350); }, []);
   if (!user) return null;
   const email = user.email ?? "";
@@ -144,9 +148,11 @@ export function Settings() {
         </form>
       </section>
 
+      <section className={`${card} mt-6`} aria-label={t("País do ranking")}><h2 className="text-lg font-semibold">{t("País do ranking")}</h2><p className="mt-2 text-sm text-text-2">{t("País autodeclarado. Após a primeira avaliação aprovada, o país daquela temporada permanece fixo; mudanças valem para temporadas futuras.")}</p><div className="mt-4"><CountrySelect value={country} onChange={setCountry} /></div><button type="button" disabled={!country || countryBusy} className={`${btn} mt-4`} onClick={async () => { setCountryBusy(true); setCountryMsg(""); const ok = await saveCountry(country); setCountryMsg(t(ok ? "País salvo." : "Não foi possível salvar o país.")); setCountryBusy(false); }}>{t("Salvar país")}</button><p role="status" className="mt-3 text-sm text-text-2">{countryMsg}</p></section>
+
       <section id="publico" className={`${card} mt-6 scroll-mt-24`} aria-label={t("Perfil público")}>
         <h2 className="text-lg font-semibold">{t("Perfil público")}</h2>
-        <p className="mt-1 text-sm text-text-2">{t("Ganhe um endereço para mostrar a sua liga e as suas conquistas no LinkedIn ou no currículo. Fica desligado até você ativar.")}</p>
+        <p className="mt-1 text-sm text-text-2">{t("Ganhe um endereço para mostrar seus pontos, avaliações e conquistas. O perfil público permite participar dos rankings.")}</p>
         <form onSubmit={savePublic} className="mt-5 grid gap-4" noValidate>
           <div className="grid gap-1.5 text-sm font-medium"><label htmlFor="handle">{t("Seu @usuário")}</label>
             <div className="flex items-center rounded-xl border border-line bg-surface focus-within:border-accent">
@@ -161,7 +167,7 @@ export function Settings() {
               <span className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow transition-transform duration-200 ${isPublic ? "translate-x-5" : ""}`} />
             </button>
             <div className="text-sm"><b id="pub-label" className="block">{t("Tornar o meu perfil público")}</b>
-              <span className="text-text-2">{t("Qualquer pessoa com o link vê o seu nome, a foto, a liga, os casos, as conquistas e a sequência. O e-mail, o nascimento e os desenhos nunca aparecem.")}</span></div>
+              <span className="text-text-2">{t("Visitantes veem nome, foto, pontos, país da temporada, avaliações e conquistas. Desenhos avaliados só aparecem quando você os publica. E-mail e nascimento permanecem privados.")}</span></div>
           </div>
           <div aria-live="polite" className="min-h-5 text-sm">{pubMsg && <p role={pubMsg.ok ? "status" : "alert"} className={pubMsg.ok ? "text-text-2" : "text-danger"}>{pubMsg.text}</p>}</div>
           <div className="flex flex-wrap items-center gap-3">

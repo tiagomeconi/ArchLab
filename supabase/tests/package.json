@@ -1,0 +1,1 @@
+{"name":"assessment-database-tests","private":true,"type":"module","scripts":{"test":"node assessments.mjs"},"devDependencies":{"@electric-sql/pglite":"0.5.11"}}

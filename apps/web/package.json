@@ -8,7 +8,8 @@
     "typecheck": "tsc -p .",
     "gen:logos": "node scripts/gen-logos.mjs",
     "gen:icons": "python3 scripts/subset-icons.py",
-    "gen:avatars": "node scripts/gen-avatars.mjs"
+    "gen:avatars": "node scripts/gen-avatars.mjs",
+    "gen:assessments": "node scripts/build-assessments.mjs"
   },
   "dependencies": {
     "@archlab/domain": "workspace:*",

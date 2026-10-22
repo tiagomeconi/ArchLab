@@ -56,7 +56,7 @@ function ReferenceBox({ info: r }: { info: ReferenceProps }) {
 }
 
 /** Requisitos do caso (modo estudo) ou do que foi registrado (modo livre): checagens automáticas sobre o desenho + itens autodeclarados. */
-export function RequirementsView({ session, checks, reference }: { session: Session; checks: Check[]; reference?: ReferenceProps }) {
+export function RequirementsView({ session, checks, reference, assessment = false }: { assessment?: boolean; session: Session; checks: Check[]; reference?: ReferenceProps }) {
   useLang();
   const { requirements: r } = session;
   const found = session.caseId ? caseById(session.caseId) : undefined;
@@ -74,7 +74,7 @@ export function RequirementsView({ session, checks, reference }: { session: Sess
     <div className="brief-body">
       <header className="brief-head">
         {logoOf && <div className="brief-logo"><BrandMark id={logoOf} name={t(session.title)} color="var(--accent)" height={36} /></div>}
-        <span className="tag">{session.mode === "study" ? t("Modo estudo") : t("Modo livre")}</span>
+        <span className="tag">{assessment ? t("Avaliação sem dicas") : session.mode === "study" ? t("Modo estudo") : t("Modo livre")}</span>
         <h2>{t(session.title)}</h2>
         {session.summary && <p className="lead">{t(session.summary)}</p>}
       </header>
@@ -108,7 +108,7 @@ export function RequirementsView({ session, checks, reference }: { session: Sess
 
       {reference && <ReferenceBox info={reference} />}
 
-      {manualItems.length > 0 && (
+      {!assessment && manualItems.length > 0 && (
         <Group title={t("Requisitos do caso · {a}/{b} autodeclarados", { a: declared, b: manualItems.length })} icon="checklist"
           note={t("O laboratório não consegue provar estes itens num modelo abstrato. Marque os que você já endereçou no desenho e na sua explicação.")}>
           <ul className="reqs">
@@ -120,6 +120,7 @@ export function RequirementsView({ session, checks, reference }: { session: Sess
         </Group>
       )}
 
+      {assessment && <Group title={t("Requisitos do caso")} icon="checklist"><ul className="reqs">{manualItems.map(([k, txt, kind]) => <li key={k}><div><small>{t(kind)}</small>{t(txt)}</div></li>)}</ul></Group>}
       {facts.length > 0 && <Group title={t("Escala e metas")} icon="monitoring"><ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.6 }}>{facts.map((f, i) => <li key={i}>{f}</li>)}</ul></Group>}
       {r.constraints && <Group title={t("Restrições e observações")} icon="rule"><p style={{ margin: 0, lineHeight: 1.6 }}>{t(r.constraints)}</p></Group>}
     </div>

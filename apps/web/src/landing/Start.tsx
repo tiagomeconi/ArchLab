@@ -1,11 +1,9 @@
 import { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
 import "./landing.css";
 import { CASES, COMPANY_CASES, sessionFor, type CaseGroup, type StudyCase } from "../cases";
-import { leagueOf } from "../leagues";
-import { LeagueBadge } from "../LeagueBadge";
 import { loadProgress, type CaseProgress } from "../progress";
 import { clearSession, DEFAULT_LOAD, emptyRequirements, newDesignId, saveSession, type Requirements } from "../session";
-import { go } from "../nav";
+import { go, link } from "../nav";
 import { BrandMark, Icon, SearchField } from "../ui";
 import { cn } from "./lib/utils";
 import { t, useLang } from "../i18n";
@@ -47,7 +45,7 @@ function ProgressMark({ p }: { p?: CaseProgress }) {
     <>
       {(p.status === "done" || p.ovr) && (
         <span className="absolute right-4 top-4 flex items-center gap-2 text-xs font-semibold">
-          {p.ovr ? <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface py-0.5 pl-1.5 pr-2.5 tabular-nums text-text-2" title={t("Melhor nota: {n} ({liga})", { n: p.ovr, liga: t(leagueOf(p.ovr).name) })}><LeagueBadge league={leagueOf(p.ovr)} size={18} label={false} /><b className="text-text">{p.ovr}</b></span> : null}
+          {p.ovr ? <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface py-0.5 pl-1.5 pr-2.5 tabular-nums text-text-2" title={t("Nota de prática: {n}", { n: p.ovr })}><span className="text-[10px]">{t("Prática")}</span><b className="text-text">{p.ovr}</b></span> : null}
           {p.status === "done" && <span className="text-ok" title={t("Concluído")} role="img" aria-label={t("Concluído")}><Icon name="check_circle" size={20} /></span>}
         </span>
       )}
@@ -90,11 +88,12 @@ function LockMark({ level }: { level: StudyCase["level"] }) {
 function CompanyCard({ c, p }: { c: StudyCase; p?: CaseProgress }) {
   const co = c.company!;
   return (
-    <button onClick={() => openCase(c)} style={{ "--brand": co.brand } as React.CSSProperties}
-      className="group relative flex flex-col overflow-hidden rounded-3xl border border-line bg-surface p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-[var(--brand)] hover:shadow-[0_24px_60px_-24px_var(--brand)]">
+    <article style={{ "--brand": co.brand } as React.CSSProperties}
+      className="group relative flex flex-col overflow-hidden rounded-3xl border border-line bg-surface p-6 text-left transition-all duration-300 hover:border-[var(--brand)] hover:shadow-[0_24px_60px_-24px_var(--brand)]">
       <span aria-hidden className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full opacity-[.14] blur-3xl transition-opacity duration-500 group-hover:opacity-35" style={{ background: "var(--brand)" }} />
       <ProgressMark p={p} />
       <LockMark level={c.level} />
+      <button type="button" onClick={() => openCase(c)} className="relative flex flex-1 flex-col items-start text-left">
       <div className="relative flex items-start justify-between gap-3">
         <BrandMark id={co.logo} name={co.name} color={co.brand} />
       </div>
@@ -102,11 +101,13 @@ function CompanyCard({ c, p }: { c: StudyCase; p?: CaseProgress }) {
       <p className="relative mt-1 text-[15px] font-semibold leading-snug" style={{ color: "color-mix(in srgb, var(--brand) 45%, var(--text))" }}>{t(co.focus)}</p>
       <p className="relative mt-2.5 flex-1 text-sm leading-snug text-text-2">{t(c.summary)}</p>
       <div className="relative mt-4 flex flex-wrap gap-1.5">{c.concepts.map((k) => <span key={k} className="rounded-md bg-track px-2 py-0.5 text-xs text-text-2">{t(k)}</span>)}</div>
+      </button>
       <div className="relative mt-5 flex items-center justify-between gap-3 border-t border-line pt-4">
-        <Cta>{t("Ver requisitos")}</Cta>
+        <button type="button" onClick={() => openCase(c)}><Cta>{t("Ver requisitos")}</Cta></button>
         <Level level={c.level} />
       </div>
-    </button>
+      <a {...link(`/avaliacao/${c.id}`)} className="relative mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-line px-3 text-sm font-semibold text-accent transition-colors hover:border-accent hover:bg-accent-soft"><Icon name="verified" size={17} />{t("Fazer avaliação sem dicas")}</a>
+    </article>
   );
 }
 

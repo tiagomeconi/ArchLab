@@ -20,6 +20,7 @@ const Profile = lazy(() => import("./landing/Profile").then((m) => ({ default: m
 const AppLayout = lazy(() => import("./landing/AppLayout").then((m) => ({ default: m.AppLayout })));
 const Home = lazy(() => import("./landing/Home").then((m) => ({ default: m.Home })));
 const Designs = lazy(() => import("./landing/Designs").then((m) => ({ default: m.Designs })));
+const AssessmentEntry = lazy(() => import("./landing/AssessmentEntry").then((m) => ({ default: m.AssessmentEntry })));
 const PublicProfile = lazy(() => import("./landing/PublicProfile").then((m) => ({ default: m.PublicProfile })));
 const Lab = lazy(() => import("./landing/EditorGate").then((m) => ({ default: m.EditorGate })));
 const Settings = lazy(() => import("./landing/Settings").then((m) => ({ default: m.Settings })));
@@ -68,13 +69,15 @@ function Root() {
   const path = usePath();
   const inApp = path === "/app" || path.startsWith("/app/");
   const inside = path.startsWith("/start") || path === "/perfil" || path === "/desenhos" || path === "/ranking" || path === "/configuracoes" || path === "/planos";
+  const assessment = path.startsWith("/avaliacao/");
   const pub = path.startsWith("/u/");
   const legal = path === "/termos" || path === "/privacidade";
   const auth = path === "/login" || path === "/cadastro";
   const confirmed = path === "/confirmado" || path === "/confirmado/";
   // cada área (landing, login, sistema, laboratório) entra com um fade suave; dentro do sistema quem anima é o AppLayout
-  const area = inApp ? "lab" : inside ? "inside" : confirmed ? "confirmed" : pub ? "public" : legal ? "legal" : auth ? "auth" : "landing";
-  const page = inApp ? <Protected><Lab /></Protected>
+  const area = assessment ? "assessment" : inApp ? "lab" : inside ? "inside" : confirmed ? "confirmed" : pub ? "public" : legal ? "legal" : auth ? "auth" : "landing";
+  const page = assessment ? <Protected><AssessmentEntry key={path} {...(path.startsWith("/avaliacao/tentativa/") ? { attemptId: path.split("/")[3] } : { caseId: path.split("/")[2] })} /></Protected>
+    : inApp ? <Protected><Lab /></Protected>
     : inside ? <Inside path={path} />
     : confirmed ? <Confirmed />
     : legal ? <Legal kind={path === "/termos" ? "termos" : "privacidade"} />

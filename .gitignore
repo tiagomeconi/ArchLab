@@ -17,6 +17,8 @@ docs-internal/
 __pycache__/
 *.pyc
 .venv/
+supabase/.temp/
+supabase/.branches/
 
 # editor / sistema
 .DS_Store
