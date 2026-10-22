@@ -3,7 +3,7 @@ import { Icon } from "./ui";
 import { t } from "./i18n";
 
 /** Peças do laboratório em celular e tablet em pé: navegação inferior, gavetas que sobem de baixo, barra de ações e menu "Mais". */
-export type DockTab = "brief" | "components" | "flows" | "props" | "review";
+export type DockTab = "brief" | "components" | "props" | "review";
 export type Snap = "closed" | "half" | "full";
 
 export function Dock({ items, active, onPick }: { items: { id: DockTab; icon: string; label: string; badge?: number }[]; active: DockTab | null; onPick: (id: DockTab) => void }) {
@@ -61,19 +61,22 @@ export function SheetGrip({ asideRef, snap, setSnap, title }: { asideRef: RefObj
 }
 
 /** Barra flutuante do bloco selecionado: conectar, réplicas, propriedades e remover, tudo ao alcance do polegar. */
-export function NodeActionBar({ raised, name, replicas, maxReplicas, connecting, onConnect, onReplicas, onProps, onRemove, onCancel }: {
-  raised?: boolean; name: string; replicas: number; maxReplicas: number; connecting: boolean; onConnect: () => void; onReplicas: (n: number) => void; onProps: () => void; onRemove: () => void; onCancel: () => void;
+export function NodeActionBar({ name, replicas, maxReplicas, connecting, onConnect, onReplicas, onProps, onRemove, onCancel }: {
+  name: string; replicas: number; maxReplicas: number; connecting: boolean; onConnect: () => void; onReplicas: (n: number) => void; onProps: () => void; onRemove: () => void; onCancel: () => void;
 }) {
   if (connecting) {
     return (
-      <div className={`action-bar connecting${raised ? " raised" : ""}`} role="status">
-        <span><Icon name="touch_app" size={20} /><b>{t("Toque no destino")}</b><small>{t("de {nome}", { nome: name })}</small></span>
-        <button type="button" className="chip" onClick={onCancel}>{t("Cancelar")}</button>
-      </div>
+      <aside aria-label={t("Ações do bloco")}>
+        <div className="action-bar connecting" role="status">
+          <span><Icon name="touch_app" size={20} /><b>{t("Toque no destino")}</b><small>{t("de {nome}", { nome: name })}</small></span>
+          <button type="button" className="chip" onClick={onCancel}>{t("Cancelar")}</button>
+        </div>
+      </aside>
     );
   }
   return (
-    <div className={`action-bar${raised ? " raised" : ""}`} role="toolbar" aria-label={t("Ações de {nome}", { nome: name })}>
+    <aside aria-label={t("Ações do bloco")}>
+    <div className="action-bar" role="toolbar" aria-label={t("Ações de {nome}", { nome: name })}>
       <button type="button" className="ab primary" onClick={onConnect}><Icon name="arrow_right_alt" size={22} /><span>{t("Conectar")}</span></button>
       <span className="ab-step" role="group" aria-label={t("Réplicas")}>
         <button type="button" aria-label={t("Menos uma réplica")} disabled={replicas <= 1} onClick={() => onReplicas(replicas - 1)}><Icon name="remove" size={20} /></button>
@@ -83,18 +86,7 @@ export function NodeActionBar({ raised, name, replicas, maxReplicas, connecting,
       <button type="button" className="ab" aria-label={t("Propriedades")} onClick={onProps}><Icon name="tune" size={22} /></button>
       <button type="button" className="ab danger" aria-label={t("Remover componente")} onClick={onRemove}><Icon name="delete" size={22} /></button>
     </div>
-  );
-}
-
-export interface LessonSummary { step: number; total: number; title: string; done: number; tasks: number; complete: boolean }
-/** Faixa da aula acima da navegação: o passo atual e quantas tarefas faltam, sempre à vista enquanto a pessoa monta o desenho. */
-export function LessonStrip({ s, onOpen }: { s: LessonSummary; onOpen: () => void }) {
-  return (
-    <button type="button" className={`lesson-strip${s.complete ? " ok" : ""}`} onClick={onOpen} aria-label={t("Abrir a aula: passo {a} de {b}", { a: s.step, b: s.total })}>
-      <span className="ls-ico"><Icon name={s.complete ? "check_circle" : "school"} size={20} /></span>
-      <span className="ls-txt"><small>{t("Passo {a} de {b}", { a: s.step, b: s.total })} · {s.done}/{s.tasks}</small><b>{s.title}</b></span>
-      <span className="ls-go">{s.complete ? t("Continuar") : t("Ver")}<Icon name="keyboard_arrow_up" size={20} /></span>
-    </button>
+    </aside>
   );
 }
 

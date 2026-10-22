@@ -28,6 +28,7 @@ const GROUPS: { title: string; items: [string[], string][] }[] = [
     [["Espaço", "arrastar"], "Move o canvas"],
     [["/"], "Busca na paleta de componentes"],
     [["B"], "Mostra ou esconde o enunciado"],
+    [["P"], "Mostra ou esconde o painel de componentes"],
     [["M"], "Mostra ou esconde o minimapa"],
     [["?"], "Abre esta ajuda"],
   ] },

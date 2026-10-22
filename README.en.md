@@ -88,8 +88,9 @@ Request flows are **derived from the connections** you draw: connect it and it s
 - **Connections from any side** of a block, with arrows showing direction and a **two-way** option.
 - **Groups** to mark zones, clusters or domains; dragging a group moves its blocks, and chaos mode can take a whole group down.
 - **Ready-made patterns** (cached API, queue and workers, CQRS, media with CDN, two zones…) and design **versions** to go back.
+- **Lessons as documentation:** 110 articles in 13 sections, basics to advanced: fundamentals, architectural styles, scalability, databases, consistency, caching, networking, messaging, distributed systems, security and operations, Low Level Design and interview prep. Long-form, with diagrams, tables and code. In Portuguese and English, with search.
 - **Export** as a design document (`.md`), Mermaid diagram (`.mmd`), image or `.json`.
-- **Phone and tablet** with their own interface: the canvas fills the screen, panels slide up from the bottom as sheets, and you can **connect by tapping** (pick the source, tap the destination). Guided lessons work the same way. It can be installed to the home screen.
+- **Phone and tablet** with their own interface: the canvas fills the screen, panels slide up from the bottom as sheets, and you can **connect by tapping** (pick the source, tap the destination). It can be installed to the home screen.
 
 ## The overall score (OVR)
 

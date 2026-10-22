@@ -1,5 +1,5 @@
 /* Ícones: Material Symbols Rounded em subconjunto (só os ícones usados). Regerar com: pnpm --filter @archlab/web gen:icons */
-@font-face { font-family: "Material Symbols Rounded Variable"; font-style: normal; font-display: block; font-weight: 100 700; src: url("/src/fonts/material-symbols-subset.woff2?v=8a5ddd8f") format("woff2"); }
+@font-face { font-family: "Material Symbols Rounded Variable"; font-style: normal; font-display: block; font-weight: 100 700; src: url("/src/fonts/material-symbols-subset.woff2?v=deb2c000") format("woff2"); }
 :root {
   --bg: #f4f6fb; --surface: rgba(255,255,255,.82); --surface-solid: #ffffff; --text: #0f172a; --text-2: #526079;
   --border: rgba(15,23,42,.10); --border-strong: #b6c2d6; --accent: #0369a1; --accent-soft: rgba(3,105,161,.10); --on-accent: #fff;
@@ -596,7 +596,6 @@ a.brand { color: inherit; text-decoration: none; cursor: pointer; }
 .lang-btn { display: inline-flex; align-items: center; gap: 4px; height: 36px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: 700 12px var(--sans); letter-spacing: .04em; cursor: pointer; transition: border-color .2s, color .2s; }
 .lang-btn:hover { border-color: var(--border-strong); color: var(--text); } .lang-btn .on { color: var(--accent); }
 
-/* Montar fluxo automático (estado vazio da aba Fluxos) */
 .auto-box { display: grid; gap: 8px; justify-items: start; margin: 4px 0 12px; padding: 12px; border-radius: 14px; background: var(--accent-soft); }
 .auto-box small { color: var(--text-2); font-size: 12px; line-height: 1.45; }
 
@@ -883,21 +882,6 @@ dialog.patterns { width: min(720px, calc(100vw - 32px)); }
 .shape-pop { left: 0; right: auto; width: 210px; top: calc(100% + 6px); }
 
 /* aulas guiadas */
-.lesson .tag.ok { color: var(--ok); }
-.lesson-dots { display: flex; gap: 5px; margin: 8px 0 4px; } .lesson-dots i { flex: 1; height: 5px; border-radius: 3px; background: var(--track); }
-.lesson-dots i.done { background: var(--ok); } .lesson-dots i.now { background: var(--accent); }
-.lesson-explain p { margin: 10px 0; font-size: 14px; line-height: 1.6; }
-.lesson-task { margin-top: 16px; padding: 12px 14px; border: 1px solid var(--accent); border-radius: 14px; background: var(--accent-soft); }
-.lesson-task h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); display: flex; align-items: center; gap: 5px; }
-.lesson-task ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
-.lesson-task li { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; line-height: 1.4; } .lesson-task li.ok { color: var(--ok); } .lesson-task li.ok span { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--ok) 50%, transparent); }
-.lesson-hint { margin: 10px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--text); display: flex; gap: 6px; align-items: flex-start; }
-.lesson-task .link { margin-top: 10px; display: inline-flex; gap: 4px; align-items: center; font-size: 12.5px; }
-.lesson-done { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: var(--ok-bg); border: 1px solid var(--ok); }
-.lesson-done p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.5; display: flex; gap: 6px; align-items: flex-start; color: var(--text); }
-.lesson-foot { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--border); }
-.lesson-foot .link { font-size: 12.5px; color: var(--text-2); }
-.lesson-actions { display: grid; gap: 8px; margin-top: 18px; } .lesson-actions .chip { justify-content: center; }
 .recap li { margin: 8px 0; line-height: 1.5; }
 
 /* header do laboratório: uma linha só de 1280 px para cima, com os rótulos e o nome da marca saindo por etapas (os ícones ficam, com title) */
@@ -967,12 +951,6 @@ dialog.patterns { width: min(720px, calc(100vw - 32px)); }
 .action-bar .ab-step b { min-width: 34px; text-align: center; font-size: 14px; }
 .action-bar.connecting { justify-content: space-between; padding-left: 14px; background: var(--accent-soft); border-color: var(--accent); }
 .action-bar.connecting span { display: inline-flex; align-items: center; gap: 8px; min-width: 0; } .action-bar.connecting small { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lesson-strip { all: unset; box-sizing: border-box; position: fixed; z-index: 22; left: 8px; right: 8px; bottom: calc(var(--dock-h) + 10px); max-width: 560px; margin-inline: auto; display: flex; align-items: center; gap: 10px; padding: 8px 10px; min-height: 54px; border-radius: 18px; background: var(--surface-solid); border: 1px solid var(--accent); box-shadow: var(--shadow-lg); cursor: pointer; -webkit-tap-highlight-color: transparent; animation: pop .25s var(--ease) both; }
-.lesson-strip.ok { border-color: var(--ok); background: var(--ok-bg); }
-.lesson-strip .ls-ico { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); flex: none; } .lesson-strip.ok .ls-ico { background: transparent; color: var(--ok); }
-.lesson-strip .ls-txt { flex: 1; min-width: 0; display: grid; } .lesson-strip small { font-size: 11px; color: var(--text-2); } .lesson-strip b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lesson-strip .ls-go { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; font-weight: 700; color: var(--accent); }
-.lesson-strip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* resultado da simulação: faixa no topo, entre o lápis de notas e o botão de enquadrar */
 .lab.ly-sheet .simpanel { top: calc(var(--bar-h) + var(--safe-top) + 20px) !important; bottom: auto !important; left: 8px !important; right: 8px !important; width: auto !important; max-width: none !important; max-height: 46dvh; overflow: auto; }
@@ -1013,7 +991,6 @@ dialog.more-sheet::backdrop { background: rgba(3, 8, 18, .55); }
 .touch .pitem { min-height: 60px; cursor: pointer; } .touch .pitem .add { opacity: 1; width: 44px; height: 44px; }
 .dock-lbl { font-size: 10.5px; letter-spacing: -.01em; padding: 0; }
 .lab.ly-sheet .brief-bar:not(:has(.seg)) { display: none; }
-.action-bar.raised { bottom: calc(var(--dock-h) + 74px); }
 .lab.ly-sheet .sidebar .inspector { max-height: none; }
 
 /* barra compacta fora do layout de gavetas (tablet deitado e janelas estreitas de computador) */
@@ -1037,7 +1014,6 @@ dialog.more-sheet::backdrop { background: rgba(3, 8, 18, .55); }
   .dock-lbl { display: none; } .dock { padding-top: 4px; }
   .lab.ly-sheet .fit-fab, .lab.ly-sheet .react-flow__panel.top { margin-top: 0; }
   .lab.ly-sheet .react-flow__panel.top { margin-top: calc(var(--bar-h) + var(--safe-top) + 14px); }
-  .lab.ly-sheet .lesson-strip { min-height: 46px; padding: 4px 10px; }
   .lab.ly-sheet .action-bar .ab { height: 42px; } .lab.ly-sheet .action-bar .ab-step button { height: 42px; }
   dialog.more-sheet { max-height: 96dvh; } .more-body { max-height: calc(96dvh - 28px); }
 }
@@ -1045,7 +1021,6 @@ dialog.more-sheet::backdrop { background: rgba(3, 8, 18, .55); }
 .touch .lab button, .touch .dock button, .touch .more-row, .touch .pitem { touch-action: manipulation; }
 .lab.ly-sheet .react-flow { -webkit-touch-callout: none; }
 body:has(.lab.ly-sheet) { overscroll-behavior: none; }
-@media (max-height: 520px) { .lesson-strip small { display: none; } .lesson-strip { min-height: 40px; } .lesson-strip .ls-ico { width: 30px; height: 30px; } }
 .lab.ly-phone .chaos-foot { flex-wrap: wrap; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
 .lab.ly-phone .chaos-foot .spacer { display: none; } .lab.ly-phone .chaos-foot .note { flex: 1 0 100%; }
 .lab.ly-phone .chaos-foot .chip { flex: 1 1 auto; justify-content: center; white-space: nowrap; }
@@ -1068,3 +1043,35 @@ body:has(.lab.ly-sheet) { overscroll-behavior: none; }
 :lang(ja) body, :lang(ja) .lab, :lang(ja) .lp { font-family: var(--sans), "Hiragino Sans", "Yu Gothic UI", "Meiryo", "Noto Sans JP", sans-serif; }
 :lang(zh-CN) body, :lang(zh-CN) .lab, :lang(zh-CN) .lp { font-family: var(--sans), "PingFang SC", "Microsoft YaHei UI", "Noto Sans SC", sans-serif; }
 :lang(ko) body, :lang(ko) .lab, :lang(ko) .lp { font-family: var(--sans), "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
+
+/* cor da "tinta" dos logos com partes escuras (ver scripts/logos-ink.json): clara no tema escuro, a original no claro */
+:root[data-theme="dark"] { --logo-ink: #e6ebf3; }
+
+/* paleta: busca por tecnologia e lista das tecnologias de cada componente */
+.tech-results { margin-bottom: 4px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.tech-row { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 8px; border-radius: 14px; border: 1px solid transparent; cursor: pointer; transition: background .15s, border-color .15s, box-shadow .15s; }
+.tech-row:hover { background: var(--surface-solid); border-color: var(--border); box-shadow: var(--shadow); }
+.tech-row:focus-visible, .tech-chip:focus-visible, .tech-peek:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tech-text { display: grid; flex: 1; min-width: 0; line-height: 1.25; } .tech-text b { font-weight: 600; font-size: 13.5px; } .tech-text small { color: var(--text-2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tech-row .add-ico { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); flex: none; }
+.tech-row:hover .add-ico { background: var(--accent); color: var(--on-accent); }
+.tech-peek { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 7px; margin-top: 6px; width: fit-content; padding: 3px 9px 3px 5px; border-radius: 999px; border: 1px solid var(--border); font-size: 11.5px; color: var(--text-2); cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+.tech-peek:hover, .tech-peek[aria-expanded="true"] { background: var(--track); color: var(--text); border-color: var(--border-strong); }
+.tech-stack { display: inline-flex; gap: 4px; align-items: center; }
+.tech-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 4px 4px 12px; padding: 8px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--track) 55%, transparent); }
+.tech-chip { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 40px; padding: 5px 6px 5px 5px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-solid); font-size: 12px; line-height: 1.2; cursor: pointer; transition: border-color .15s, transform .15s, box-shadow .15s; }
+.tech-chip:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: var(--shadow); }
+.chip-logo { display: grid; place-items: center; flex: none; width: 36px; height: 28px; border-radius: 8px; background: color-mix(in srgb, var(--track) 70%, transparent); }
+.chip-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; min-width: 0; }
+.tech-more { all: unset; box-sizing: border-box; grid-column: 1 / -1; text-align: center; padding: 7px; border-radius: 10px; font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; }
+.tech-more:hover { background: var(--accent-soft); } .tech-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.touch .tech-row, .touch .tech-chip { min-height: 44px; } .touch .tech-peek { min-height: 34px; } .touch .tech-list { grid-template-columns: 1fr; }
+
+/* esconder o painel da direita para ficar só com o desenho (a esquerda já tinha "Ver requisitos") */
+.tabs { align-items: center; } .tabs button.tabs-hide { flex: none; width: 34px; height: 34px; padding: 0; margin-left: 2px; color: var(--text-2); }
+.tabs button.tabs-hide:hover { background: var(--track); color: var(--text); }
+.tools-open-btn { position: absolute; z-index: 5; top: calc(var(--topbar-bottom, 84px) + 14px); right: 16px; box-shadow: var(--shadow); animation: pop .35s var(--ease) both; }
+@media (max-width: 820px) { .tools-open-btn { display: none; } }
+/* com o botão de esconder o painel, as abas perdem o ícone no desktop para caber os três nomes na largura do painel */
+.lab.ly-dock .tabs button:not(.tabs-hide) .msr { display: none; }
+.tabs .tabs-list { display: flex; flex: 1; gap: 4px; min-width: 0; }

@@ -68,10 +68,28 @@ const MAP = {
 };
 const EXTRA = JSON.parse(readFileSync(new URL("./logos-map-extra.json", import.meta.url), "utf8"));
 for (const [id, v] of Object.entries(EXTRA)) if (!(id in MAP)) MAP[id] = v;
-const HEX = { linkedin: "#0A66C2", amazon: "#FF9900" }; // removidos/renomeados no pacote simple-icons: cor oficial fixa
+const HEX = { linkedin: "#0A66C2", amazon: "#FF9900", amazonwebservices: "#FF9900", microsoftazure: "#0078D4", azurefunctions: "#0062AD", microsoftsqlserver: "#CC2927",
+  zeromq: "#DF0000", stackpath: "#8b95a5", awsamplify: "#FF9900", amazoncloudwatch: "#E7157B", ibm: "#1F70C1", microsoftedge: "#0078D7", dynamics365: "#0B53CE" }; // marcas removidas/renomeadas no pacote simple-icons: cor oficial fixa (sem isso o logo sairia cinza)
 const siHex = (name) => { if (HEX[name]) return HEX[name]; const k = Object.keys(si).find((x) => x.toLowerCase() === "si" + name.toLowerCase()); return k ? "#" + si[k].hex : "#888888"; };
 const lum = (hex) => { let h = hex.replace("#", ""); if (h.length === 3) h = [...h].map((c) => c + c).join(""); const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
   const f = (c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4); return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+// logos com partes escuras que somem no tema escuro (lista medida em pixels reais, scripts/logos-ink.json): as cores bem escuras viram
+// `var(--logo-ink, <cor original>)`, que o tema escuro define como um cinza claro; as demais cores ficam como estão
+const INK = new Set(JSON.parse(readFileSync(new URL("./logos-ink.json", import.meta.url), "utf8")));
+const inkify = (body) => {
+  const toHex = (v) => { const m = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/.exec(v); return m ? "#" + [m[1], m[2], m[3]].map((x) => (+x).toString(16).padStart(2, "0")).join("") : v; };
+  const dark = (v) => { v = toHex(v); const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v); if (m) return lum(v) < 0.12; return /^(black)$/i.test(v) || v === "currentColor"; };
+  const swap = (tag) => {
+    // declarações em style="…" (inclusive rgb()) e atributos fill/stroke/stop-color
+    tag = tag.replace(/style="([^"]*)"/, (all, css) => `style="${css.replace(/(fill|stroke|stop-color):\s*(#[0-9a-fA-F]{3,6}|rgb\([^)]*\))/g, (d, prop, v) => (dark(v) ? `${prop}:var(--logo-ink,${toHex(v)})` : d))}"`);
+    const decl = [];
+    tag = tag.replace(/\s(fill|stroke|stop-color)="([^"]+)"/g, (all, prop, v) => { if (!dark(v)) return all; decl.push(`${prop}:var(--logo-ink,${v === "black" ? "#000" : toHex(v)})`); return ""; });
+    if (!decl.length) return tag;
+    return /\sstyle="/.test(tag) ? tag.replace(/style="([^"]*)"/, (all, css) => `style="${decl.join(";")};${css}"`) : tag.replace(/(\/?>)$/, ` style="${decl.join(";")}"$1`);
+  };
+  const inner = body.replace(/<(path|circle|rect|polygon|polyline|ellipse|line|g|stop)\b[^>]*>/g, swap);
+  return `<g style="fill:var(--logo-ink,#000)">${inner}</g>`; // o que não declara cor (preto por padrão) também acompanha o tema
+};
 const out = {}; const missing = [];
 for (const [id, [src, name]] of Object.entries(MAP)) {
   let w = 24, h = 24, body, mono = false;
@@ -99,6 +117,7 @@ for (const [id, [src, name]] of Object.entries(MAP)) {
   const ls = cols.map(lum); if (named) ls.push(0);
   const dark = ls.length > 0 && Math.max(...ls) < 0.2;   // some em fundo escuro some: usa silhueta clara no tema escuro
   const light = ls.length > 0 && Math.min(...ls) > 0.85; // some em fundo claro
+  if (INK.has(id)) body = inkify(body);
   out[id] = { w, h, body: body.replace(/\s+/g, " ").trim(), ...(dark ? { dark: true } : {}), ...(light ? { light: true } : {}), ...(mono ? { mono: true } : {}) };
 }
 const ts = `// GERADO por scripts/gen-logos.mjs — não editar à mão.\n// Fontes: Iconify "logos" e "devicon", Simple Icons (marcas pertencem aos respectivos donos; uso ilustrativo).\nexport interface Logo { w: number; h: number; body: string; dark?: boolean; light?: boolean; mono?: boolean }\nexport const LOGOS: Record<string, Logo> = ${JSON.stringify(out)};\n`;

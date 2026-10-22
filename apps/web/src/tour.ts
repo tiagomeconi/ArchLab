@@ -4,7 +4,6 @@ export const TOUR_STEPS: TourStep[] = [
   { title: "Bem-vindo ao laboratório", text: "Em um minuto você vê onde fica cada coisa: monte uma arquitetura, simule o tráfego, quebre de propósito e leia a sua nota." },
   { target: "palette", side: "left", title: "Componentes", text: "Arraste da paleta para o canvas, ou clique no + do componente. Dá para buscar pelo nome (tecla /)." },
   { target: "canvas", side: "top", title: "Ligue as peças", text: "Puxe pelas bolinhas dos cards para criar conexões. Ao soltar, você escolhe o protocolo. Dica: a tecla L organiza o diagrama sozinha." },
-  { target: "flows", side: "left", title: "Fluxos", text: "O caminho de cada requisição é montado a partir das suas conexões. Aqui você confere e ajusta cada passo." },
   { target: "brief", side: "right", title: "Enunciado e requisitos", text: "O caso traz requisitos e verificações automáticas. Elas ficam verdes à medida que o seu desenho atende cada uma." },
   { target: "simulate", side: "bottom", title: "Simular", text: "Roda 300 segundos com a carga do caso. Veja a utilização de cada componente, a latência p95 e quem satura primeiro." },
   { target: "chaos", side: "bottom", title: "Modo caos", text: "Derrube um banco, injete latência, parta a rede. O melhor jeito de aprender é ver o desenho quebrar." },

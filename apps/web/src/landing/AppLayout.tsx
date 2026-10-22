@@ -14,7 +14,6 @@ const ITEMS = [
   { to: "/start", icon: "home", label: "Início", on: (p: string) => p === "/start" || p === "/start/" },
   { to: "/start/aulas", icon: "auto_stories", label: "Aulas", on: (p: string) => p.startsWith("/start/aulas") },
   { to: "/start/estudo", icon: "school", label: "Casos", on: (p: string) => p.startsWith("/start/estudo") },
-  { to: "/start/trilhas", icon: "route", label: "Trilhas", on: (p: string) => p.startsWith("/start/trilhas") },
   { to: "/start/livre", icon: "draw", label: "Modo livre", short: "Livre", on: (p: string) => p.startsWith("/start/livre") },
   { to: "/desenhos", icon: "folder_open", label: "Meus desenhos", short: "Desenhos", on: (p: string) => p === "/desenhos" },
   { to: "/ranking", icon: "leaderboard", label: "Ranking", on: (p: string) => p === "/ranking", account: true },

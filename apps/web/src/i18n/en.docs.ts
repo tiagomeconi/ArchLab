@@ -1,0 +1,21 @@
+/** Textos da área de Aulas (documentação). O conteúdo dos artigos fica em docs.ts, com PT e EN lado a lado. */
+export const docsUi: Record<string, string> = {
+  "Aulas": "Lessons",
+  "Documentação de system design, do básico ao avançado. Leia na ordem ou pule direto para o que precisa; depois, ponha em prática nos casos e no modo livre.": "System design documentation, from basics to advanced. Read in order or jump straight to what you need, then practice in the cases and in free mode.",
+  "{n} min de leitura": "{n} min read",
+  "Voltar às aulas": "Back to lessons",
+  "Pratique": "Practice",
+  "Hora de praticar": "Time to practice",
+  "Monte uma arquitetura com o que você leu e veja a simulação responder.": "Build an architecture with what you read and watch the simulation respond.",
+  "Outros artigos": "Other articles",
+  "Neste artigo": "In this article",
+  "Documentação do básico ao avançado, em artigos curtos.": "Documentation from basics to advanced, in short articles.",
+  "Ler as aulas": "Read the lessons",
+  "Todos os casos e modo entrevista": "All cases and interview mode",
+  "Nunca fez system design? Comece pelas aulas.": "Never done system design? Start with the lessons.",
+  "Ações do bloco": "Block actions",
+  "{n} artigos em {m} seções": "{n} articles in {m} sections",
+  "Buscar nas aulas": "Search the lessons",
+  "Nenhum artigo encontrado.": "No articles found.",
+  "Nesta seção": "In this section",
+};

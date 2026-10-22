@@ -282,12 +282,10 @@ function Free() {
   );
 }
 
-const LessonsPage = lazy(() => import("./Lessons").then((m) => ({ default: m.Lessons })));
-const PathsPage = lazy(() => import("./Paths").then((m) => ({ default: m.Paths })));
+const DocsPage = lazy(() => import("./Docs").then((m) => ({ default: m.Docs })));
 export function Start({ path }: { path: string }) {
   useLang();
-  if (path.startsWith("/start/aulas")) return <Suspense fallback={null}><LessonsPage /></Suspense>;
-  if (path.startsWith("/start/trilhas")) return <Suspense fallback={null}><PathsPage /></Suspense>;
+  if (path.startsWith("/start/aulas")) return <Suspense fallback={null}><DocsPage path={path} /></Suspense>;
   if (path.startsWith("/start/estudo")) return <Study />;
   if (path.startsWith("/start/livre")) return <Free />;
   return <Study />;

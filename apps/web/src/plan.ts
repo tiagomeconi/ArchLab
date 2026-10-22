@@ -16,6 +16,4 @@ export const planOf = (user: User | null | undefined): Plan => (user?.app_metada
 export const currentPlan = (): Plan => planOf(getAuthState().user);
 /** Caso (pelo nível) fechado para este plano? */
 export const isLocked = (level: StudyCase["level"], plan: Plan, paywall: boolean) => paywall && plan !== "pro" && !FREE_LEVELS.includes(level);
-/** Aulas: a unidade 1 é gratuita; as demais são do plano Pro (quando a restrição está ligada). */
-export const lessonLocked = (l: { unit: number }, plan: Plan = currentPlan()) => PAYWALL && plan !== "pro" && l.unit > 0;
 export const levelLocked = (level: StudyCase["level"], plan: Plan = currentPlan()) => isLocked(level, plan, PAYWALL);

@@ -87,7 +87,7 @@ def test_observacao_do_componente_e_anotacoes_gerais_persistem(page):
     page.goto(page.base + "/app?blank=1"); page.wait_for_selector(".react-flow")
     add_component(page, "Banco NoSQL")
     page.locator(".react-flow__node").first.click()
-    page.locator(".tabs button").nth(2).click()
+    page.locator(".tabs button").nth(1).click()
     page.get_by_label("Observações").fill("Escolhi Mongo por causa do schema flexível; shard por user_id.")
     assert page.locator(".react-flow__node .node-note").count() == 1
     page.get_by_role("button", name="Anotações do desenho").click()
@@ -102,7 +102,7 @@ def test_observacao_do_componente_e_anotacoes_gerais_persistem(page):
     assert "RH pediu custo" in page.get_by_role("dialog", name="Anotações do desenho").locator("textarea").input_value()
     page.keyboard.press("Escape")
     page.locator(".react-flow__node").first.click()
-    page.locator(".tabs button").nth(2).click()
+    page.locator(".tabs button").nth(1).click()
     assert "schema flexível" in page.get_by_label("Observações").input_value()
 
 

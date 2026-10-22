@@ -47,7 +47,7 @@ export function Plans() {
             <Item>{t("Tudo do plano gratuito")}</Item>
             <Item>{t("{n} casos Intermediários", { n: counts.inter })}</Item>
             <Item>{t("{n} casos Avançados", { n: counts.adv })}</Item>
-            <Item>{t("Trilhas completas e modo entrevista")}</Item>
+            <Item>{t("Todos os casos e modo entrevista")}</Item>
             <Item>{t("Novos casos assim que forem publicados")}</Item>
           </ul>
           {mine === "pro" ? <p className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-ok"><Icon name="check_circle" size={18} />{t("Seu plano atual")}</p>

@@ -24,7 +24,7 @@ def test_replicas_no_card_e_nome_editavel(page):
     assert "×2" in node.inner_text()
     # nome pelo painel de propriedades
     node.click()
-    page.locator(".tabs button").nth(2).click()
+    page.locator(".tabs button").nth(1).click()
     campo = page.get_by_label("Nome do componente")
     campo.fill("Serviço de catálogo"); campo.press("Enter")
     assert "Serviço de catálogo" in page.locator(".react-flow__node").first.inner_text()
@@ -134,88 +134,6 @@ def test_progresso_aparece_na_lista(page):
     assert page.get_by_text("em andamento").first.is_visible() or page.get_by_text("Continuar:").is_visible()
 
 
-def _desenho_sem_fluxos(page, tmp_path):
-    """Exporta a referência do Netflix e remove os fluxos: sobra só o desenho e as conexões, como quem acabou de ligar tudo."""
-    open_case(page, "Netflix")
-    page.get_by_role("button", name="Ver solução de referência").click()
-    page.get_by_role("button", name="Ver a referência").click()
-    page.wait_for_timeout(800)
-    page.get_by_role("button", name="Exportar").click()
-    with page.expect_download() as d:
-        page.get_by_role("menuitem", name="Desenho (.json)").click()
-    arq = tmp_path / "ref.json"; d.value.save_as(arq)
-    j = json.loads(arq.read_text()); j["snap"]["f"], j["snap"]["w"], j["snap"]["m"] = [], [], {}
-    sem = tmp_path / "sem-fluxos.json"; sem.write_text(json.dumps(j))
-    return sem
-
-
-def test_simular_com_desenho_sem_fluxos_deriva_os_fluxos_das_conexoes(page, tmp_path):
-    sem = _desenho_sem_fluxos(page, tmp_path)
-    open_case(page, "Uber")
-    page.locator("input[type=file]").set_input_files(str(sem)); page.wait_for_timeout(800)
-    assert page.locator(".simbtn.play").is_enabled()
-    page.locator(".simbtn.play").click()
-    page.wait_for_timeout(2500)
-    oferecidas = page.locator(".simpanel .stat", has_text="Oferecidas").locator("b").inner_text()
-    assert oferecidas.split("/")[0].strip() not in ("0", ""), f"a simulação não gerou carga ({oferecidas})"
-
-
-def test_modo_fixture_mantem_criacao_manual_de_fluxo(page):
-    page.goto(page.base + "/app"); page.wait_for_selector(".react-flow")
-    page.locator(".tabs button").nth(1).click()
-    novo = page.get_by_role("button", name="Novo fluxo")
-    assert novo.is_visible() and novo.bounding_box()["width"] > 60
-
-
-def test_canvas_em_branco_nao_tem_edicao_manual_de_passos(page):
-    page.goto(page.base + "/app?blank=1"); page.wait_for_selector(".react-flow")
-    page.locator(".tabs button").nth(1).click()
-    assert page.get_by_role("button", name="Novo fluxo").count() == 0
-    assert page.get_by_text("Adicionar passo").count() == 0
-    assert page.get_by_text("Os fluxos seguem as conexões").is_visible()
-
-
-def test_refazer_fluxos_a_partir_das_conexoes(page, tmp_path):
-    sem = _desenho_sem_fluxos(page, tmp_path)
-    open_case(page, "Uber")
-    page.locator("input[type=file]").set_input_files(str(sem)); page.wait_for_timeout(800)
-    page.locator(".tabs button").nth(1).click()
-    assert page.locator(".flow-pill").count() == 0
-    page.get_by_role("button", name="Refazer a partir das conexões").click()
-    page.wait_for_timeout(600)
-    assert page.locator(".flow-pill").count() >= 3
-    assert page.get_by_role("tree").is_visible()
-
-
-def test_ligar_no_canvas_aparece_sozinho_no_fluxo(page):
-    page.goto(page.base + "/app?blank=1"); page.wait_for_selector(".react-flow")
-    add_component(page, "Cliente"); add_component(page, "Load balancer"); add_component(page, "Backend")
-    page.wait_for_timeout(400)
-    ns = page.locator(".react-flow__node")
-    # arruma lado a lado e liga cliente → lb → backend arrastando as bolinhas
-    caixas = [ns.nth(i).bounding_box() for i in range(3)]
-    for i, (dx, dy) in enumerate([(-420, -150), (-100, -150), (220, -150)]):
-        c = caixas[i]
-        page.mouse.move(c["x"] + c["width"] / 2, c["y"] + 20); page.mouse.down()
-        page.mouse.move(c["x"] + c["width"] / 2 + dx, c["y"] + 20 + dy, steps=8); page.mouse.up()
-    page.wait_for_timeout(400)
-    def ligar(i, j):
-        a, b = ns.nth(i).locator(".react-flow__handle[data-handleid=\"right\"]").bounding_box(), ns.nth(j).locator(".react-flow__handle[data-handleid=\"left\"]").bounding_box()
-        page.mouse.move(a["x"] + a["width"] / 2, a["y"] + a["height"] / 2); page.mouse.down()
-        page.mouse.move(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2, steps=12); page.mouse.up()
-        page.wait_for_timeout(300)
-        if page.locator("dialog[open]").count(): page.get_by_role("button", name="Conectar").click(); page.wait_for_timeout(300)
-    ligar(0, 1)
-    page.locator(".tabs button").nth(1).click()
-    page.wait_for_timeout(400)
-    assert page.locator(".flow-pill").count() == 1
-    ligar(1, 2)
-    page.wait_for_timeout(500)
-    arvore = page.get_by_role("tree")
-    nomes = [arvore.get_by_role("treeitem").nth(i).locator(".ft-name").inner_text() for i in range(arvore.get_by_role("treeitem").count())]
-    assert nomes == ["Cliente", "Load balancer", "Backend"], nomes
-
-
 def test_conexoes_tem_protocolo_com_identidade_e_trafego_animado(page):
     open_case(page, "Netflix")
     page.get_by_role("button", name="Ver solução de referência").click()
@@ -274,34 +192,6 @@ def test_cronometro_cabe_no_painel_em_todos_os_estados(page):
         painel, reset = caixa(".brief"), caixa(".timer .chip.icon-only")
         assert reset["x"] + reset["width"] <= painel["x"] + painel["width"], f"botão de zerar fora do painel ({estado})"
         assert page.evaluate("document.querySelector('.timer').scrollWidth <= document.querySelector('.timer').clientWidth")
-
-
-def test_caminho_do_fluxo_e_uma_arvore_recolhivel(page):
-    open_case(page, "Netflix")
-    page.get_by_role("button", name="Ver solução de referência").click()
-    page.get_by_role("button", name="Ver a referência").click()
-    page.wait_for_timeout(1000)
-    page.locator(".tabs button").nth(1).click()
-    page.locator(".flow-pill", has_text="Leitura").first.click()   # o fluxo de leitura é o mais profundo (cliente, balanceador, backend, cache e banco)
-    arvore = page.get_by_role("tree")
-    assert arvore.is_visible()
-    itens = arvore.get_by_role("treeitem")
-    total = itens.count()
-    assert total >= 5
-    niveis = [int(itens.nth(i).get_attribute("aria-level")) for i in range(total)]
-    assert niveis[0] == 1 and max(niveis) >= 4          # hierarquia com recuo
-    assert arvore.locator(".ft-guide").count() >= 4     # guias de recuo desenhadas
-    # nada sai do cartão: todo ícone e botão de remover fica dentro da árvore
-    caixa = arvore.bounding_box()
-    for sel in (".ft-ico", ".ft-del"):
-        for i in range(arvore.locator(sel).count()):
-            b = arvore.locator(sel).nth(i).bounding_box()
-            assert b["x"] >= caixa["x"] and b["x"] + b["width"] <= caixa["x"] + caixa["width"]
-    # recolher esconde os descendentes; expandir traz de volta
-    arvore.locator(".ft-caret:not(.ft-leaf)").first.click()
-    assert arvore.get_by_role("treeitem").count() == 1
-    arvore.locator(".ft-caret:not(.ft-leaf)").first.click()
-    assert arvore.get_by_role("treeitem").count() == total
 
 
 def _referencia(page):
@@ -678,3 +568,52 @@ def test_ver_a_referencia_e_sair_nao_vira_o_desenho_da_pessoa(page):
     # e recarregar a página também não troca
     page.reload(); page.wait_for_selector(".react-flow"); page.wait_for_timeout(1200)
     assert page.locator(".react-flow__node-arch").count() == 1
+
+
+def _desenho_sem_fluxos(page, tmp_path):
+    """Exporta a referência do Netflix e remove os fluxos: sobra só o desenho e as conexões, como quem acabou de ligar tudo."""
+    open_case(page, "Netflix")
+    page.get_by_role("button", name="Ver solução de referência").click()
+    page.get_by_role("button", name="Ver a referência").click()
+    page.wait_for_timeout(800)
+    page.get_by_role("button", name="Exportar").click()
+    with page.expect_download() as d:
+        page.get_by_role("menuitem", name="Desenho (.json)").click()
+    arq = tmp_path / "ref.json"; d.value.save_as(arq)
+    j = json.loads(arq.read_text()); j["snap"]["f"], j["snap"]["w"], j["snap"]["m"] = [], [], {}
+    sem = tmp_path / "sem-fluxos.json"; sem.write_text(json.dumps(j))
+    return sem
+
+
+def test_simular_com_desenho_sem_fluxos_deriva_os_fluxos_das_conexoes(page, tmp_path):
+    sem = _desenho_sem_fluxos(page, tmp_path)
+    open_case(page, "Uber")
+    page.locator("input[type=file]").set_input_files(str(sem)); page.wait_for_timeout(800)
+    assert page.locator(".simbtn.play").is_enabled()
+    page.locator(".simbtn.play").click()
+    page.wait_for_timeout(2500)
+    oferecidas = page.locator(".simpanel .stat", has_text="Oferecidas").locator("b").inner_text()
+    assert oferecidas.split("/")[0].strip() not in ("0", ""), f"a simulação não gerou carga ({oferecidas})"
+
+
+def test_aba_fluxos_nao_existe_mais_so_componentes_propriedades_e_revisao(page):
+    page.goto(page.base + "/app?blank=1"); page.wait_for_selector(".react-flow")
+    assert page.locator(".tabs [role=tab]").all_inner_texts() == ["Componentes", "Propriedades", "Revisão"]
+
+
+def test_esconder_e_mostrar_os_paineis_para_ficar_so_com_o_desenho(page):
+    open_case(page, "Netflix")
+    lateral = page.get_by_label("Ferramentas")
+    assert lateral.is_visible()
+    page.get_by_role("button", name="Esconder painel").click()
+    assert lateral.count() == 0
+    page.get_by_role("button", name="Recolher enunciado").click()
+    assert page.get_by_label("Requisitos").count() == 0
+    # com os dois escondidos o canvas ocupa a tela; os botões trazem os painéis de volta
+    page.get_by_role("button", name="Mostrar painel").click(); assert lateral.is_visible()
+    page.get_by_role("button", name="Ver requisitos").click()
+    # atalho P esconde e mostra de novo (fora de campos de texto)
+    page.locator(".react-flow__pane").click(position={"x": 400, "y": 300})
+    page.keyboard.press("p"); assert lateral.count() == 0
+    page.keyboard.press("p"); assert lateral.is_visible()
+    page.reload(); page.wait_for_selector(".react-flow"); assert lateral.is_visible()

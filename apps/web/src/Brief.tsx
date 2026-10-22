@@ -77,7 +77,7 @@ export function Brief({ nodes, flows, loads, rps, p95Ms = null }: BriefModel) {
           <li><div><b>{t("FR-URL-2")}</b>{" "}{t("Redirecionar um alias")}{" "}<span className="must">must</span>
             <small>{t("Caminho de leitura chegando ao armazenamento durável.")}</small></div><Chip s={readPath} /></li>
           <li><div><b>{t("FR-URL-3")}</b>{" "}{t("Criar link")}{" "}<span className="should">should</span>
-            <small>{t("Existe um fluxo de escrita (aba Fluxos) até o armazenamento?")}</small></div><Chip s={writePath} /></li>
+            <small>{t("Existe um fluxo de escrita até o armazenamento?")}</small></div><Chip s={writePath} /></li>
           <li><div><b>{t("FR-URL-4")}</b>{" "}{t("Expirar links após 365 dias")}{" "}<span className="must">must</span>
             <small>{t("TTL no banco/cache ou rotina de limpeza.")}</small></div>
             <label className="check"><input type="checkbox" checked={!!manual["fr4"]} onChange={() => toggle("fr4")} /> {manual["fr4"] ? <Chip s="manual" /> : <Chip s="unknown" />}</label></li>

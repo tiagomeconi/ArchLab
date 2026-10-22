@@ -77,7 +77,6 @@ Os fluxos de requisição são **derivados das conexões** que você desenha: li
 
 ## Estude com método
 
-- **Trilhas de estudo:** seis temas (fundamentos, tempo real, mídia, dinheiro, dados e busca, geolocalização) com os casos em ordem de dificuldade.
 - **Revisão automática:** a aba *Revisão* aponta ponto único de falha, banco sem réplica, leitura sem cache, cadeia síncrona longa e mais, explicando o porquê e como corrigir.
 - **Cartões de conceito** em cada componente (o que é, quando usar, o que custa) e **dicas progressivas** nos requisitos que falham.
 - **Modo entrevista:** relógio de 30, 45 ou 60 minutos, cinco fases típicas e um resumo no fim.
@@ -88,8 +87,9 @@ Os fluxos de requisição são **derivados das conexões** que você desenha: li
 - **Conexões por qualquer lado** do bloco, com setas que mostram o sentido e a opção de **dois sentidos**.
 - **Grupos** para marcar zonas, clusters ou domínios; arrastar o grupo leva os blocos junto, e o modo caos pode derrubar o grupo inteiro.
 - **Padrões prontos** (API com cache, fila e workers, CQRS, mídia com CDN, duas zonas…) e **versões** do desenho para voltar atrás.
+- **Aulas em documentação:** 110 artigos em 13 seções, do básico ao avançado: fundamentos, estilos arquiteturais, escalabilidade, bancos, consistência, cache, rede, mensageria, sistemas distribuídos, segurança e operação, Low Level Design e preparação para entrevistas. Longos, com diagramas, tabelas e código. Em português e inglês, com busca.
 - **Exportar** como documento de design (`.md`), diagrama Mermaid (`.mmd`), imagem ou `.json`.
-- **Celular e tablet** com interface própria: o canvas ocupa a tela, os painéis sobem de baixo como gavetas, e dá para **conectar por toque** (escolhe a origem, toca no destino). As aulas guiadas funcionam do mesmo jeito. Dá para instalar na tela inicial.
+- **Celular e tablet** com interface própria: o canvas ocupa a tela, os painéis sobem de baixo como gavetas, e dá para **conectar por toque** (escolhe a origem, toca no destino). Dá para instalar na tela inicial.
 
 ## A nota geral (OVR)
 

@@ -12,7 +12,6 @@ import { CATEGORY_OF, ITEM_BY_TYPE, PALETTE, type PaletteItem } from "./catalog"
 import { FALLBACK_ICON, PROVIDERS, providerOf, type Provider } from "./providers";
 import { LOGOS } from "./logos.generated";
 import { INVERT_ON_DARK, SOFT_INVERT_ON_DARK, logoBox } from "./ProviderLogo";
-import { FlowsPanel } from "./FlowsPanel";
 import { NotesPad } from "./Notes";
 import { ExportMenu } from "./ExportMenu";
 import { renderReport } from "./report";
@@ -20,11 +19,8 @@ import { GroupNode, GROUP_MIN, cleanGroups, inGroup, type GroupData, type GroupD
 import { ReviewPanel, ConceptCard } from "./ReviewPanel";
 import { lintArchitecture } from "./lint";
 import { estimateCost } from "./cost";
-import { LessonPanel } from "./LessonPanel";
 import { useLayout } from "./useLayout";
-import { Dock, LessonStrip, MoreRow, MoreSheet, NodeActionBar, SheetGrip, type LessonSummary, type Snap } from "./CompactUI";
-import { lessonById, openLesson } from "./lessonNav";
-import type { LessonState } from "./lessonGoals";
+import { Dock, MoreRow, MoreSheet, NodeActionBar, SheetGrip, type Snap } from "./CompactUI";
 import { PatternsDialog, VersionsDialog } from "./LibraryDialogs";
 import { buildPattern, type Pattern } from "./patterns";
 import { deleteVersion, loadVersions, saveVersion, type Version } from "./versions";
@@ -39,7 +35,7 @@ import { ChaosDialog } from "./ChaosDialog";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 import { CHAOS, groupChaos, pickTarget, resolveChaos } from "./chaos";
 import { DURATION, SimPanel, type RunStatus, type Sample } from "./SimPanel";
-import { addStep, buildAutoFlows, SIDE_TYPES, SOURCE_TYPES, createFlow, removeNodeFromFlow, removeStep, type Flow, type FlowMeta } from "./flowOps";
+import { buildAutoFlows, SIDE_TYPES, SOURCE_TYPES, removeNodeFromFlow, type Flow, type FlowMeta } from "./flowOps";
 import { fmt, Icon, Logo, Range, SearchField, usePref } from "./ui";
 import { go } from "./nav";
 import { RequirementsView } from "./RequirementsView";
@@ -95,9 +91,9 @@ const ICONS: Record<string, string> = {
   "payment-gateway": "credit_card", "third-party-api": "api",
 };
 /** Logo vetorial do provedor, sem fundo (SVG inline). Sem logo disponível: monograma na cor da marca. */
-function ProviderMark({ provider, size = 30 }: { provider: Provider; size?: number }) {
+function ProviderMark({ provider, size = 30, fit }: { provider: Provider; size?: number; /** caixa fixa (miniaturas e chips): o logo se ajusta dentro dela, inclusive os wordmarks largos */ fit?: { w: number; h: number } }) {
   const logo = LOGOS[provider.id];
-  const box = logoBox(provider.id, size);
+  const box = fit ?? logoBox(provider.id, size);
   return (
     <span className={`pmark${logo && INVERT_ON_DARK.has(provider.id) ? " inv" : ""}${logo && SOFT_INVERT_ON_DARK.has(provider.id) ? " inv-soft" : ""}`} style={{ width: box.w, height: box.h }} title={provider.name}>
       {logo ? (
@@ -335,32 +331,86 @@ function ProviderDialog({ type, current, onPick, onClose }: {
   );
 }
 
-function Palette({ onAdd, inCase }: { onAdd: (item: PaletteItem) => void; inCase?: Set<string> }) {
+const TECH_FIRST = 8; // tecnologias mostradas antes de "ver todas"
+const plain = (x: string) => x.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+/** Paleta de componentes. A busca também acha pela tecnologia (n8n, Node-RED, Kafka…), mostrando em que componente ela mora; cada componente mostra as tecnologias que contém. */
+function Palette({ onAdd, inCase }: { onAdd: (item: PaletteItem, providerId?: string) => void; inCase?: Set<string> }) {
   const touch = useLayout().touch; // em toque, tocar na linha inteira adiciona ao canvas (arrastar da lista não existe no dedo)
   const [q, setQ] = useState("");
   const [closed, setClosed] = useState<Set<string>>(() => new Set());
-  const query = q.trim().toLowerCase();
+  const [open, setOpen] = useState<Set<string>>(() => new Set());
+  const [all, setAll] = useState<Set<string>>(() => new Set()); // componentes cuja lista de tecnologias foi aberta por inteiro
+  const query = plain(q.trim());
+  const techHit = (p: Provider) => plain(`${p.name} ${p.id} ${p.note ? t(p.note) : ""}`).includes(query);
   const groups = PALETTE.map((g) => ({
-    ...g, items: g.items.filter((i) => !query || `${t(i.label)} ${t(i.desc)} ${i.type}`.toLowerCase().includes(query)),
+    ...g, items: g.items.filter((i) => !query || plain(`${t(i.label)} ${t(i.desc)} ${i.type}`).includes(query) || (PROVIDERS[i.type] ?? []).some(techHit)),
   })).filter((g) => g.items.length);
+  // tecnologias que casam com a busca, cada uma com o componente em que aparece (a mesma marca pode servir a vários papéis)
+  const techs = query.length < 2 ? [] : PALETTE.flatMap((g) => g.items.flatMap((i) => (PROVIDERS[i.type] ?? []).filter(techHit).map((p) => ({ p, i, cat: g.cat }))))
+    .sort((a, b) => Number(plain(b.p.name).startsWith(query)) - Number(plain(a.p.name).startsWith(query))).slice(0, 40);
+  const flip = (set: Set<string>, type: string) => { const n = new Set(set); if (n.has(type)) n.delete(type); else n.add(type); return n; };
+  const toggle = (type: string) => setOpen((o) => flip(o, type));
+  const preview = (list: Provider[]) => [...list].sort((a, b) => Number((LOGOS[b.id]?.w ?? 1) / (LOGOS[b.id]?.h ?? 1) <= 1.6) - Number((LOGOS[a.id]?.w ?? 1) / (LOGOS[a.id]?.h ?? 1) <= 1.6)).filter((p) => LOGOS[p.id]).slice(0, 3);
   return (
     <div className="palette">
-      <SearchField value={q} onChange={setQ} placeholder={t("Buscar componente")} label={t("Buscar componente")} hint="/" />
+      <SearchField value={q} onChange={setQ} placeholder={t("Buscar (ex.: n8n, Kafka)")} label={t("Buscar componente")} hint="/" />
+      {techs.length > 0 && (
+        <section className="tech-results" aria-label={t("Tecnologias")}>
+          <h3><i className="dot" />{t("Tecnologias")}<small>{techs.length}</small></h3>
+          {techs.map(({ p, i, cat }) => (
+            <button key={`${p.id}:${i.type}`} type="button" className={`tech-row cat-${cat}`} onClick={() => onAdd(i, p.id)}
+              aria-label={t("Adicionar {tech} como {comp}", { tech: p.name, comp: t(i.label) })}>
+              <span className="chip-logo"><ProviderMark provider={p} fit={{ w: 34, h: 22 }} /></span>
+              <span className="tech-text"><b>{p.name}</b><small>{t("como {comp}", { comp: t(i.label) })}{p.note ? ` · ${t(p.note)}` : ""}</small></span>
+              <span className="add-ico"><Icon name="add" size={18} /></span>
+            </button>
+          ))}
+        </section>
+      )}
       {groups.map((g) => (
         <section key={g.title} className={`cat-${g.cat}`}>
           <h3><button type="button" className="cat-toggle" aria-expanded={!!query || !closed.has(g.cat)}
             onClick={() => setClosed((c) => { const n = new Set(c); if (n.has(g.cat)) n.delete(g.cat); else n.add(g.cat); return n; })}>
             <i className="dot" />{t(g.title)}<small>{g.items.length}</small><Icon name="expand_more" size={16} /></button></h3>
-          {(!!query || !closed.has(g.cat)) && g.items.map((i) => (
-            <div key={i.type} className="pitem" draggable={!touch} onClick={touch ? () => onAdd(i) : undefined}
-              onDragStart={(e) => { e.dataTransfer.setData("application/archlab", i.type); e.dataTransfer.effectAllowed = "move"; }}>
-              <span className="icon"><Icon name={i.icon} size={18} /></span>
-              <span className="pitem-text"><b>{t(i.label)}{inCase?.has(i.type) && <span className="sugg" title={t("A arquitetura de referência deste caso costuma usar")}>{t("No caso")}</span>}</b><small>{t(i.desc)}</small></span>
-              <button className="add" aria-label={`${t("Adicionar")} ${t(i.label)}`} title={t("Adicionar ao canvas")} onClick={(e) => { e.stopPropagation(); onAdd(i); }}>
-                <Icon name="add" size={18} />
-              </button>
-            </div>
-          ))}
+          {(!!query || !closed.has(g.cat)) && g.items.map((i) => {
+            const provs = PROVIDERS[i.type] ?? []; const expanded = open.has(i.type);
+            return (
+              <div key={i.type} className="pitem-wrap">
+                <div className="pitem" draggable={!touch} onClick={touch ? () => onAdd(i) : undefined}
+                  onDragStart={(e) => { e.dataTransfer.setData("application/archlab", i.type); e.dataTransfer.effectAllowed = "move"; }}>
+                  <span className="icon"><Icon name={i.icon} size={18} /></span>
+                  <span className="pitem-text"><b>{t(i.label)}{inCase?.has(i.type) && <span className="sugg" title={t("A arquitetura de referência deste caso costuma usar")}>{t("No caso")}</span>}</b><small>{t(i.desc)}</small>
+                    {provs.length > 0 && (
+                      <button type="button" className="tech-peek" aria-expanded={expanded} onClick={(e) => { e.stopPropagation(); toggle(i.type); }}
+                        aria-label={expanded ? t("Ocultar tecnologias de {comp}", { comp: t(i.label) }) : t("Ver as {n} tecnologias de {comp}", { n: provs.length, comp: t(i.label) })}>
+                        <span className="tech-stack">{preview(provs).map((p) => <ProviderMark key={p.id} provider={p} fit={{ w: 18, h: 18 }} />)}</span>
+                        <span>{expanded ? t("Ocultar") : t("{n} tecnologias", { n: provs.length })}</span><Icon name={expanded ? "expand_less" : "expand_more"} size={14} />
+                      </button>
+                    )}
+                  </span>
+                  <button className="add" aria-label={`${t("Adicionar")} ${t(i.label)}`} title={t("Adicionar ao canvas")} onClick={(e) => { e.stopPropagation(); onAdd(i); }}>
+                    <Icon name="add" size={18} />
+                  </button>
+                </div>
+                {expanded && (
+                  <div className="tech-list" role="group" aria-label={t("Tecnologias de {comp}", { comp: t(i.label) })}>
+                    {(all.has(i.type) || provs.length <= TECH_FIRST + 2 ? provs : provs.slice(0, TECH_FIRST)).map((p) => (
+                      <button key={p.id} type="button" className="tech-chip" onClick={() => onAdd(i, p.id)} title={p.note ? t(p.note) : p.name}
+                        aria-label={t("Adicionar {tech} como {comp}", { tech: p.name, comp: t(i.label) })}>
+                        <span className="chip-logo"><ProviderMark provider={p} fit={{ w: 34, h: 22 }} /></span><span className="chip-name">{p.name}</span>
+                      </button>
+                    ))}
+                    {provs.length > TECH_FIRST + 2 && (
+                      <button type="button" className="tech-more" aria-expanded={all.has(i.type)} onClick={() => setAll((x) => flip(x, i.type))}>
+                        {all.has(i.type) ? t("Mostrar menos") : t("Ver todas (+{n})", { n: provs.length - TECH_FIRST })}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </section>
       ))}
       {groups.length === 0 && <p className="note">{t("Nenhum componente encontrado.")}</p>}
@@ -395,8 +445,6 @@ function Lab() {
   }, [sharedMode, stored, shared]);
   // identidade do desenho: caso (um por caso), livre com id (?d=…, vários) ou o livre antigo ("free"); a referência não é salva
   const dParam = useMemo(() => { const d = new URLSearchParams(location.search).get("d"); return d && /^[a-z0-9]{4,16}$/i.test(d) ? d.toLowerCase() : null; }, []);
-  // modo aula (?l=…): canvas em branco com o painel guiado no lugar dos requisitos
-  const lesson = useMemo(() => lessonById(new URLSearchParams(location.search).get("l")), []);
   const caseMode = !!session?.caseId;
   const designKey = sharedMode ? null : blank ? (session?.caseId ?? (dParam ? `free-${dParam}` : "free")) : "reference";
   const fallbackName = designKey === "free" ? t("Canvas livre") : t("Desenho sem nome");
@@ -418,7 +466,6 @@ function Lab() {
   const [sheetSnap, setSheetSnap] = useState<Snap>("closed");
   const [moreOpen, setMoreOpen] = useState(false);
   const [connectFrom, setConnectFrom] = useState<string | null>(null);
-  const [lessonSum, setLessonSum] = useState<LessonSummary | null>(null);
   const [simOpenC, setSimOpenC] = useState(false);
   const briefRef = useRef<HTMLElement>(null); const toolsRef = useRef<HTMLElement>(null);
   const [patternsOpen, setPatternsOpen] = useState(false);
@@ -431,7 +478,7 @@ function Lab() {
   const [run, setRun] = useState<{ status: RunStatus; t: number; series: Sample[] }>({ status: "idle", t: 0, series: [] });
   const [down, setDown] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<string | null>(blank ? null : "db");
-  const [tab, setTab] = useState<"components" | "flows" | "props" | "review">("components");
+  const [tab, setTab] = useState<"components" | "props" | "review">("components");
   const [providerFor, setProviderFor] = useState<string | null>(null);
   const { screenToFlowPosition, deleteElements, fitView } = useReactFlow();
   const counter = useRef(0);
@@ -440,7 +487,7 @@ function Lab() {
   const [flows, setFlows] = useState<Flow[]>(blank ? [] : original.traffic.flows);
   const [workloads, setWorkloads] = useState<any[]>(blank ? [] : original.traffic.workloads);
   const [meta, setMeta] = useState<Record<string, FlowMeta>>(blank ? {} : { "flow-redirect": { name: "Redirecionar link", weight: 1 } });
-  const [briefPref, setBriefOpen] = usePref(lesson ? "lessonBriefOpen" : "briefOpen", lesson ? true : !(lay.touch && typeof innerWidth !== "undefined" && innerWidth < 1400));
+  const [briefPref, setBriefOpen] = usePref("briefOpen", !(lay.touch && typeof innerWidth !== "undefined" && innerWidth < 1400));
   const [chaos, setChaos] = useState<Set<string>>(new Set());
   const [chaosOpen, setChaosOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -452,6 +499,8 @@ function Lab() {
   const chaosHints = useMemo(() => (blank && session?.checks?.chaos ? new Set(session.checks.chaos) : undefined), [blank, session]);
   const hasPanel = !blank || !!session;
   const briefOpen = hasPanel && briefPref && !compact;
+  const [toolsPref, setToolsOpen] = usePref("toolsOpen", true); // painel da direita (componentes, propriedades, revisão): dá para esconder e ficar só com o desenho
+  const toolsOpen = compact || toolsPref;
   const [toast, setToast] = useState<string | null>(null);
   const [simMin, setSimMin] = usePref("resultCollapsed", false);
   const [mapOpen, setMapOpen] = usePref("minimapOpen", true);
@@ -468,7 +517,6 @@ function Lab() {
   const [groups, setGroups] = useState<GroupDoc[]>([]);
   const [groupSel, setGroupSel] = useState<Set<string>>(new Set());
   const [groupBusy, setGroupBusy] = useState(false);
-  const [flowSel, setFlowSel] = useState<string | null>(blank ? null : "flow-redirect");
   const [pending, setPending] = useState<{ source: string; target: string; sp?: Side; tp?: Side; options: ConnectionOption[]; editId?: string; current?: { protocol: string; mode: string } } | null>(null);
   const [nodes, setNodes] = useState<Node<NodeData>[]>(() =>
     (blank ? [] : original.nodes).map((n: any) => {
@@ -579,9 +627,6 @@ function Lab() {
     for (const e of docEdges) if (loads.get(e.source)?.queue) s.add(e.id);
     return s;
   }, [flows, docEdges, loads]);
-  const activeFlow = tab === "flows" ? flows.find((f) => f.id === flowSel) : undefined;
-  const flowNodeIds = useMemo(() => new Set(activeFlow?.steps.map((s) => s.nodeId) ?? []), [activeFlow]);
-  const flowEdgeIds = useMemo(() => new Set(activeFlow?.steps.map((s) => s.edgeId).filter(Boolean) as string[] ?? []), [activeFlow]);
 
   const setReplicas = useCallback((id: string, n: number) =>
     setNodes((ns) => ns.map((x) => (x.id === id ? { ...x, data: { ...x.data, replicas: Math.min(MAX_REPLICAS, Math.max(1, n)) } } : x))), []);
@@ -594,7 +639,7 @@ function Lab() {
   const shownNodes = nodes.map((n) => {
     const load = loads.get(n.id);
     const h = healthOf(load, down.has(n.id) || !!chaosRes.effects.nodes?.[n.id]?.unavailable, profileById.get(n.id) ?? "unresolved", SIDE_TYPES.has(String(n.data.type)));
-    return { ...n, data: { ...n.data, load, ...h, chaos: chaosRes.faultNodes.has(n.id), dim: (!!activeFlow && !flowNodeIds.has(n.id)) || (!!protoFocus && !protoNodes.has(n.id)), onReplicas: setReplicas } };
+    return { ...n, data: { ...n.data, load, ...h, chaos: chaosRes.faultNodes.has(n.id), dim: (!!protoFocus && !protoNodes.has(n.id)), onReplicas: setReplicas } };
   });
   const groupNodes: Node<GroupData>[] = groups.map((g) => ({
     id: g.id, type: "group", position: { x: g.x, y: g.y }, width: g.w, height: g.h, zIndex: -1, dragHandle: ".group-head", selected: groupSel.has(g.id),
@@ -618,7 +663,7 @@ function Lab() {
       id: e.id, source: e.source, target: e.target, sourceHandle: sideOf(e.sourcePort, "source"), targetHandle: sideOf(e.targetPort, "target"), type: "flow", deletable: true, selected: edgeSel.has(e.id),
       data: {
         fault: chaosRes.faultEdges.has(e.id), animate: run.status === "running", label: `${e.configuration.protocol} · ${e.configuration.mode}`, protocol: String(e.configuration.protocol), mode: String(e.configuration.mode), flow, hot: (tl?.utilization ?? 0) > 1, unused,
-        dim: (!!activeFlow && !flowEdgeIds.has(e.id)) || (!!protoFocus && String(e.configuration.protocol) !== protoFocus),
+        dim: (!!protoFocus && String(e.configuration.protocol) !== protoFocus),
         both: !!e.configuration.bidirectional,
         onBoth: () => setDocEdges((es) => es.map((x) => x.id !== e.id ? x : { ...x, configuration: { ...x.configuration, bidirectional: !x.configuration.bidirectional } })),
         onEdit: () => {
@@ -669,7 +714,7 @@ function Lab() {
     if (!changes.length) return;
     setNodes((ns) => applyNodeChanges(changes, ns));
     for (const c of changes) {
-      if (c.type === "select" && c.selected) { setSelected(c.id); setTab((t) => (t === "flows" || t === "review" ? t : "props")); }
+      if (c.type === "select" && c.selected) { setSelected(c.id); setTab((t) => (t === "review" ? t : "props")); }
       if (c.type === "remove") {
         setSelected((s) => (s === c.id ? null : s));
         setDown((d) => { const n = new Set(d); n.delete(c.id); return n; });
@@ -717,7 +762,7 @@ function Lab() {
     }]);
   };
 
-  const addNode = (item: PaletteItem, position?: { x: number; y: number }) => {
+  const addNode = (item: PaletteItem, position?: { x: number; y: number }, providerId?: string) => {
     counter.current += 1;
     let id = `${item.type}-${counter.current}`;
     while (nodes.some((n) => n.id === id)) id = `${item.type}-${++counter.current}`;
@@ -727,10 +772,10 @@ function Lab() {
     for (let i = 0; i < 40 && overlaps(pos); i++) { pos.y += 180; if (i % 3 === 2) { pos.x += 240; pos.y -= 540; } }
     setNodes((ns) => [...ns.map((n) => ({ ...n, selected: false })), {
       id, type: "arch", position: pos, width: 240, selected: true,
-      data: { name: t(item.label), type: item.type, replicas: 1, hitRate: item.type === "redis" ? DEFAULT_CACHE.hitRate : undefined, health: "idle" as Health },
+      data: { name: t(item.label), type: item.type, replicas: 1, providerId, hitRate: item.type === "redis" ? DEFAULT_CACHE.hitRate : undefined, health: "idle" as Health },
     }]);
     setSelected(id); setTab("props");
-    if (PROVIDERS[item.type]?.length && !lesson) setProviderFor(id); // na aula a escolha de tecnologia só atrapalha o passo a passo
+    if (PROVIDERS[item.type]?.length && !providerId) setProviderFor(id);
   };
   const onDrop = (e: React.DragEvent) => {
     const item = ITEM_BY_TYPE.get(e.dataTransfer.getData("application/archlab"));
@@ -742,14 +787,7 @@ function Lab() {
   const patchNode = (id: string, patch: Partial<NodeData>) => setNodes((ns) => ns.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...patch } } : n)));
   const toggleDown = (id: string) => setDown((d) => { const n = new Set(d); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  // ── fluxos ──
-  const panelNodes = docNodes.map((n: any) => ({ id: n.id, name: n.name, type: n.type, profileId: n.properties.profileId, icon: ICONS[n.type] ?? "dns" }));
-  const createFlowFrom = (rootNodeId: string, name: string) => {
-    const { flow, workload } = createFlow(flows, rootNodeId);
-    setFlows((fs) => [...fs, flow]); setWorkloads((w) => [...w, workload]);
-    setMeta((m) => ({ ...m, [flow.id]: { name, weight: 0.2 } })); setFlowSel(flow.id);
-  };
-  // ── fluxos derivados das conexões (canvas em branco): o que você liga no desenho aparece sozinho em Fluxos ──
+  // ── fluxos derivados das conexões (canvas em branco): o que você liga no desenho vira fluxo sozinho ──
   const structSig = (ns: { id: string; type: string; hit?: number }[], es: { id: string; source: string; target: string }[]) =>
     JSON.stringify([ns.map((n) => [n.id, n.type, n.hit]), es.map((e) => [e.id, e.source, e.target])]);
   const synced = useRef("");
@@ -766,7 +804,6 @@ function Lab() {
     const sources = new Set(built.map((b) => b.flow.steps[0]!.nodeId));
     setFlows(built.map((b) => b.flow)); setWorkloads(built.map((b) => b.workload));
     setMeta((m) => Object.fromEntries(built.map((b) => [b.flow.id, m[b.flow.id] ?? { name: sources.size > 1 ? `${tName(b.name)} · ${nodes.find((n) => n.id === b.flow.steps[0]!.nodeId)?.data.name ?? ""}` : tName(b.name), weight: b.weight }])));
-    setFlowSel((cur) => (built.some((b) => b.flow.id === cur) ? cur : built[0]?.flow.id ?? null));
     if (announce) say(built.length ? t("Fluxos refeitos a partir das conexões") : t("Sem conexões de saída nas origens: ligue a origem de carga a outro componente no canvas."));
     return built.length;
   };
@@ -776,10 +813,6 @@ function Lab() {
     syncFlows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sigNow]);
-  const deleteFlow = (id: string) => {
-    setFlows((fs) => fs.filter((f) => f.id !== id)); setWorkloads((w) => w.filter((x) => x.id !== `wl-${id}` && !(id === "flow-redirect" && x.id === "wl-redirect")));
-    setFlowSel(null);
-  };
 
   const selNode = selected ? nodes.find((n) => n.id === selected) : undefined;
   const sel = selNode ? docNodes.find((n: any) => n.id === selNode.id) : null;
@@ -869,15 +902,7 @@ function Lab() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const rating = useMemo(() => rate({ nodes: docNodes, edges: docEdges, flows, loads: baseline.loads, errFrac: baseErr, p95Ms: baseP95, p95Target: session?.checks?.p95Ms, lossErr, checks, readPct }),
     [docNodes, docEdges, flows, baseline, baseErr, baseP95, session, lossErr, checks, readPct, lang]);
-  // modo aula: estado do canvas que as metas das tarefas conferem
   nodesRef.current = nodes;
-  const lessonState: LessonState | null = lesson ? {
-    nodes: nodes.map((n) => { const u = loads.get(n.id)?.utilization; return { id: n.id, type: n.data.type, replicas: n.data.replicas, hitRate: n.data.hitRate, util: u != null && Number.isFinite(u) ? u : null }; }),
-    edges: docEdges.map((e) => ({ source: e.source, target: e.target })),
-    simulated: run.status !== "idle" && run.t >= 3,
-    selectedType: selNode?.data.type ?? null, tab, chaos: chaos.size,
-    maxUtil: (() => { const us = [...loads.entries()].filter(([, l]) => !l.source && l.utilization !== null && Number.isFinite(l.utilization)).map(([, l]) => l.utilization as number); return us.length ? Math.max(...us) : null; })(),
-  } : null;
   const interviewSummary = { rating: rating.overall, met: checks.filter((c) => c.status === "meets").length, total: checks.length, findings: findings.length, important: reviewHigh, nodes: nodes.length };
   const refSnap = useMemo(() => (blank && session?.caseId && session.checks && session.load ? buildReference(session.checks, session.load) : null), [blank, session]);
   const compare = useMemo(() => {
@@ -1145,20 +1170,6 @@ function Lab() {
     setTimeout(() => fitView({ nodes: built.nodes.map((n) => ({ id: n.id })), padding: 0.4, maxZoom: 1, duration: 400 }), 60);
     if (!opts.quiet) { setTab("props"); say(t("Padrão inserido: {nome}", { nome: t(p.title) })); }
   };
-  // aula com ponto de partida: monta o desenho inicial quando o canvas está vazio (não repõe se a pessoa já tem o desenho salvo)
-  useEffect(() => {
-    if (!lesson?.starter) return;
-    const st = lesson.starter;
-    const id = setTimeout(() => {
-      if (nodesRef.current.length > 0) return;
-      insertPattern({ id: `starter-${lesson.id}`, icon: lesson.icon, title: lesson.title, summary: "", groups: [],
-        nodes: st.nodes.map((n) => ({ key: n.key, type: n.type, name: n.name, replicas: n.replicas, x: n.x, y: n.y, hitRate: n.hitRate })),
-        edges: st.edges.map((e) => ({ from: e.from, to: e.to })) }, { quiet: true });
-      setTimeout(() => doFit(), 650); // enquadra o desenho entre os painéis laterais
-    }, 500);
-    return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   const clearSelection = () => { setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n))); setEdgeSel(new Set()); setSelected(null); setGroupSel(new Set()); };
   const nudge = (dx: number, dy: number) => setNodes((ns) => ns.map((n) => (n.selected ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } } : n)));
   /** Organiza o diagrama: calcula as posições (autolayout.ts) e anima os cards até lá; vira um único passo no desfazer. */
@@ -1181,7 +1192,7 @@ function Lab() {
     };
     alignAnim.current = requestAnimationFrame(step);
   };
-  const doFit = () => fitView({ padding: compact ? { top: "76px", bottom: "150px", left: "24px", right: "24px" } : lay.narrowBar ? { top: "86px", bottom: "60px", left: briefOpen ? "350px" : "70px", right: "350px" } : { top: "110px", bottom: "60px", left: briefOpen ? "420px" : "80px", right: "400px" }, duration: 400 });
+  const doFit = () => fitView({ padding: compact ? { top: "76px", bottom: "150px", left: "24px", right: "24px" } : lay.narrowBar ? { top: "86px", bottom: "60px", left: briefOpen ? "350px" : "70px", right: toolsOpen ? "350px" : "70px" } : { top: "110px", bottom: "60px", left: briefOpen ? "420px" : "80px", right: toolsOpen ? "400px" : "80px" }, duration: 400 });
 
   const keys = useRef<(e: KeyboardEvent) => void>(() => {});
   keys.current = (e) => {
@@ -1212,6 +1223,7 @@ function Lab() {
     else if (k === "g") addGroup();
     else if (k === "m") setMapOpen((v) => !v);
     else if (k === "b") setBriefOpen((v) => !v);
+    else if (k === "p") setToolsOpen((v) => !v);
     else if (e.key === "?" || (e.key === "/" && e.shiftKey)) setHelpOpen(true);
     else if (e.key === "/") { e.preventDefault(); setTab("components"); setTimeout(() => document.querySelector<HTMLInputElement>('input[aria-label="Buscar componente"]')?.focus(), 30); }
   };
@@ -1228,16 +1240,14 @@ function Lab() {
   const running = run.status === "running";
 
   /** Inicia a simulação (ou leva ao que falta antes dela). */
-  // aula no celular: o passo a passo abre sozinho na primeira vez
-  useEffect(() => { if (lesson && compact) { setView("brief"); setSheetSnap("half"); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const startSim = () => {
-    if (flows.length === 0 && !(blank && syncFlows(true) > 0)) { showTab("flows"); if (!blank) say(t("Antes de simular, crie um fluxo: o caminho que a requisição percorre.")); return; }
+    if (flows.length === 0 && !(blank && syncFlows(true) > 0)) { say(t("Sem conexões de saída nas origens: ligue a origem de carga a outro componente no canvas.")); return; }
     setRun({ status: "running", t: 0, series: [] });
   };
   /** Mostra uma aba das ferramentas; no celular isso abre a gaveta. */
-  const showTab = (tb: "components" | "flows" | "props" | "review") => { setTab(tb); if (compact) { setView("tools"); setSheetSnap((x) => (x === "closed" ? "half" : x)); } };
+  const showTab = (tb: "components" | "props" | "review") => { setTab(tb); if (compact) { setView("tools"); setSheetSnap((x) => (x === "closed" ? "half" : x)); } };
   const dockActive = !compact || sheetSnap === "closed" ? null : view === "brief" ? "brief" : tab;
-  const pickDock = (id: "brief" | "components" | "flows" | "props" | "review") => {
+  const pickDock = (id: "brief" | "components" | "props" | "review") => {
     if (dockActive === id) { setSheetSnap("closed"); return; }
     if (id === "brief") setView("brief"); else { setView("tools"); setTab(id); }
     setSheetSnap((x) => (x === "closed" ? "half" : x));
@@ -1282,7 +1292,7 @@ function Lab() {
     <div className={`lab${briefOpen ? " brief-open" : ""}${compact ? " ly-sheet" : " ly-dock"}${lay.phone ? " ly-phone" : ""}${lay.touch ? " touch" : ""}`}>
       {lay.narrowBar ? (
         <header className="panel topbar compact">
-          <a className="icon-btn back" href="/start" aria-label={t("Voltar ao início")} onClick={(e) => { e.preventDefault(); go(lesson ? "/start/aulas" : "/start"); }}><Icon name="arrow_back" size={24} /></a>
+          <a className="icon-btn back" href="/start" aria-label={t("Voltar ao início")} onClick={(e) => { e.preventDefault(); go("/start"); }}><Icon name="arrow_back" size={24} /></a>
           {blank ? <DesignName value={designName} editable={freeEditable} onCommit={setDesignTitle} status={sharedMode ? null : save} /> : <b className="cb-title">{original.metadata.title ?? t("Links curtos")}</b>}
           <span className="spacer" />
           <RatingChip rating={rating} title={blank ? designName : (session?.title ?? t("Encurtador de links"))} />
@@ -1348,7 +1358,7 @@ function Lab() {
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} isValidConnection={isValidConnection}
         deleteKeyCode={["Backspace", "Delete"]} connectionMode={ConnectionMode.Loose} connectionRadius={lay.touch ? 56 : 36} connectionLineComponent={ConnectionLine}
         onNodeClick={onNodeClick} zoomOnDoubleClick={!lay.touch} nodeDragThreshold={lay.touch ? 5 : 1} panOnScroll={false}
-        fitView={!blank} defaultViewport={{ x: 0, y: 0, zoom: 1 }} fitViewOptions={{ padding: compact ? { top: "76px", bottom: "150px", left: "24px", right: "24px" } : lay.narrowBar ? { top: "86px", bottom: "60px", left: briefOpen ? "350px" : "70px", right: "350px" } : { top: "110px", bottom: "60px", left: "420px", right: "400px" } }} minZoom={0.25} maxZoom={2}
+        fitView={!blank} defaultViewport={{ x: 0, y: 0, zoom: 1 }} fitViewOptions={{ padding: compact ? { top: "76px", bottom: "150px", left: "24px", right: "24px" } : lay.narrowBar ? { top: "86px", bottom: "60px", left: briefOpen ? "350px" : "70px", right: toolsOpen ? "350px" : "70px" } : { top: "110px", bottom: "60px", left: "420px", right: toolsOpen ? "400px" : "80px" } }} minZoom={0.25} maxZoom={2}
         onPaneClick={() => { setSelected(null); setGroupSel(new Set()); setConnectFrom(null); }} onDrop={onDrop}
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
       >
@@ -1387,21 +1397,21 @@ function Lab() {
 
       {run.status !== "idle" && <SimPanel collapsed={compact ? !simOpenC : simMin} onToggle={() => (compact ? setSimOpenC((v) => !v) : setSimMin((v) => !v))} status={run.status} t={run.t} series={run.series} chaos={chaosItems.filter((c) => chaos.has(c.id)).map((c) => (c.label ? `${t(c.title)}: ${c.label}` : c.title))} />}
 
-      {run.status === "idle" && <p className="hint panel" role="region" aria-label={t("Dica")}><Icon name="info" size={15} />{" "}{t("Arraste da lateral · ligue pelas bolinhas · defina o caminho em Fluxos ·")}{" "}<kbd>?</kbd> {t("atalhos")}</p>}
+      {run.status === "idle" && <p className="hint panel" role="region" aria-label={t("Dica")}><Icon name="info" size={15} />{" "}{t("Arraste da lateral · ligue pelas bolinhas ·")}{" "}<kbd>?</kbd> {t("atalhos")}</p>}
 
       {!hasPanel ? null : (briefOpen || compact) ? (
         <aside ref={briefRef} className={`panel brief${compact ? " sheet" : ""}`} data-snap={compact ? (view === "brief" ? sheetSnap : "closed") : undefined} aria-label={blank ? t("Requisitos") : t("Enunciado do desafio")} data-tour="brief">
-          {compact && <SheetGrip asideRef={briefRef} snap={sheetSnap} setSnap={setSheetSnap} title={lesson ? t("Aula") : t("Requisitos")} />}
+          {compact && <SheetGrip asideRef={briefRef} snap={sheetSnap} setSnap={setSheetSnap} title={t("Requisitos")} />}
           <div className="brief-bar">
             {blank && session?.mode === "study" ? (
               <span className="seg" role="tablist" aria-label={t("Painel do caso")}>
                 <button role="tab" aria-selected={leftTab === "req"} className={leftTab === "req" ? "on" : ""} onClick={() => setLeftTab("req")}><Icon name="checklist" size={15} />{" "}{t("Requisitos")}</button>
                 <button role="tab" aria-selected={leftTab === "guide"} className={leftTab === "guide" ? "on" : ""} onClick={() => setLeftTab("guide")}><Icon name="alarm" size={15} />{" "}{t("Guia")}</button>
               </span>
-            ) : <span><Icon name={lesson ? "school" : blank ? "checklist" : "assignment"} size={17} /> {lesson ? t("Aula") : blank ? t("Requisitos") : t("Desafio")}</span>}
+            ) : <span><Icon name={blank ? "checklist" : "assignment"} size={17} /> {blank ? t("Requisitos") : t("Desafio")}</span>}
             <button className="icon-btn" aria-label={t("Recolher enunciado")} title={t("Recolher")} onClick={() => setBriefOpen(false)}><Icon name="left_panel_close" size={18} /></button>
           </div>
-          {lesson && lessonState ? <LessonPanel lesson={lesson} state={lessonState} onExit={() => go("/start/aulas")} onNext={(l) => openLesson(l, true)} onSummary={setLessonSum} /> : blank && session ? (leftTab === "guide" && session.mode === "study"
+          {blank && session ? (leftTab === "guide" && session.mode === "study"
             ? <Guide session={session} checks={checks} onStages={setStagesDone} />
             : <RequirementsView session={session} checks={checks} reference={refSnap ? { ...compare, viewing: viewingRef, hasBackup: backupAt === 1, onLoad: loadReference, onBack: backToMine } : undefined} />) : <Brief nodes={docNodes} flows={flows} loads={loads} rps={rps} down={down} p95Ms={readP95} />}
         </aside>
@@ -1409,23 +1419,22 @@ function Lab() {
         <button className="chip brief-open-btn" onClick={() => setBriefOpen(true)}><Icon name={blank ? "checklist" : "assignment"} size={16} /> {blank ? t("Ver requisitos") : t("Ver enunciado")}</button>
       )}
 
+      {!toolsOpen ? (
+        <button className="chip tools-open-btn" onClick={() => setToolsOpen(true)}><Icon name="right_panel_open" size={16} /> {t("Mostrar painel")}</button>
+      ) : (
       <aside ref={toolsRef} className={`panel sidebar${compact ? " sheet" : ""}`} data-snap={compact ? (view === "tools" ? sheetSnap : "closed") : undefined} aria-label={t("Ferramentas")} data-tour="palette">
         {compact && <SheetGrip asideRef={toolsRef} snap={sheetSnap} setSnap={setSheetSnap} title={t("Ferramentas")} />}
-        <div className="tabs" role="tablist">
-          {([["components", "widgets", "Componentes"], ["flows", "route", "Fluxos"], ["props", "tune", "Propriedades"], ["review", "fact_check", "Revisão"]] as const).map(([k, icon, label]) => (
-            <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)} data-tour={k === "flows" ? "flows" : undefined}>
+        <div className="tabs">
+          <div className="tabs-list" role="tablist">
+          {([["components", "widgets", "Componentes"], ["props", "tune", "Propriedades"], ["review", "fact_check", "Revisão"]] as const).map(([k, icon, label]) => (
+            <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>
               <Icon name={icon} size={16} /> {t(label)}{k === "review" && reviewHigh > 0 && <i className="tab-count" aria-label={t("{n} importantes", { n: reviewHigh })}>{reviewHigh}</i>}
             </button>
           ))}
+          </div>
+          {!compact && <button type="button" className="icon-btn tabs-hide" aria-label={t("Esconder painel")} title={t("Esconder painel (P)")} onClick={() => setToolsOpen(false)}><Icon name="right_panel_close" size={18} /></button>}
         </div>
-        {tab === "components" && <Palette onAdd={(i) => { addNode(i); if (compact) setSheetSnap("closed"); }} inCase={caseTypes} />}
-        {tab === "flows" && (
-          <FlowsPanel flows={flows} meta={meta} nodes={panelNodes} edges={docEdges} selectedId={flowSel} onSelect={setFlowSel}
-            auto={blank} onCreate={createFlowFrom} onAuto={() => syncFlows(true)} onDelete={deleteFlow}
-            onMeta={(id, m) => setMeta((all) => ({ ...all, [id]: { ...(all[id] ?? { name: id, weight: 1 }), ...m } }))}
-            onAddStep={(fid, s) => setFlows((fs) => fs.map((f) => (f.id === fid ? addStep(f, s) : f)))}
-            onRemoveStep={(fid, sid) => setFlows((fs) => fs.map((f) => (f.id === fid ? removeStep(f, sid) : f)))} />
-        )}
+        {tab === "components" && <Palette onAdd={(i, providerId) => { addNode(i, undefined, providerId); if (compact) setSheetSnap("closed"); }} inCase={caseTypes} />}
         {tab === "review" && <ReviewPanel findings={findings} hasNodes={nodes.length > 0} cost={cost} onFocus={focusNodes} />}
         {tab === "props" && (sel && selNode && selHealth ? (
           <div className="inspector" key={selected}>
@@ -1489,14 +1498,14 @@ function Lab() {
             )}
             {selHealth.health === "idle" && !SIDE_TYPES.has(sel.type) && (
               <div className="hintbox"><Icon name="route" size={18} />
-                <span>{tx("Nenhum fluxo passa por aqui, então não há carga para calcular. {abrir} e adicione este componente a um caminho.", { abrir: <button className="link" onClick={() => setTab("flows")}>{t("Abrir Fluxos")}</button> })}</span></div>
+                <span>{t("Nenhum caminho de requisição passa por aqui, então não há carga para calcular. Ligue este componente a uma origem de carga pelas conexões.")}</span></div>
             )}
             {selHealth.health === "noprofile" && (
               <div className="hintbox"><Icon name="rule" size={18} />
                 <span>{sel.properties.profileId === "unresolved" ? t("Este tipo é abstrato: escolha o provedor/engine acima para definir a capacidade.") : t("Este tipo ainda não tem perfil de capacidade na simulação.")}</span></div>
             )}
             {selHealth.health === "unknown" && (
-              <div className="hintbox"><Icon name="help" size={18} /><span>{t("O fluxo usa uma classe de operação que o perfil deste componente não define (ex.: mensagem em um banco). Ajuste a operação do passo na aba Fluxos.")}</span></div>
+              <div className="hintbox"><Icon name="help" size={18} /><span>{t("O fluxo usa uma classe de operação que o perfil deste componente não define (ex.: mensagem em um banco). Revise as conexões que chegam a ele.")}</span></div>
             )}
             <ConceptCard type={sel.type} />
             {selFlows.length > 0 && (
@@ -1513,14 +1522,13 @@ function Lab() {
           </div>
         ) : <p className="note pad">{t("Selecione um componente no canvas para ver as propriedades.")}</p>)}
       </aside>
+      )}
 
       {compact && (
         <>
-          {lesson && lessonSum && (sheetSnap === "closed" || view !== "brief") && <LessonStrip s={lessonSum} onOpen={() => { setView("brief"); setSheetSnap("half"); }} />}
           <Dock active={dockActive} onPick={pickDock} items={[
-            ...(hasPanel ? [{ id: "brief" as const, icon: lesson ? "school" : "checklist", label: lesson ? t("Aula") : t("Requisitos") }] : []),
+            ...(hasPanel ? [{ id: "brief" as const, icon: "checklist", label: t("Requisitos") }] : []),
             { id: "components" as const, icon: "widgets", label: t("Componentes") },
-            { id: "flows" as const, icon: "route", label: t("Fluxos") },
             { id: "props" as const, icon: "tune", label: t("Propriedades") },
             { id: "review" as const, icon: "fact_check", label: t("Revisão"), badge: reviewHigh },
           ]} />
@@ -1530,7 +1538,7 @@ function Lab() {
       {lay.touch && (selNode || connectFrom) && (!compact || sheetSnap === "closed" || view !== "tools") && (() => {
             const n = nodes.find((x) => x.id === (connectFrom ?? selNode?.id)); if (!n) return null;
             return (
-              <NodeActionBar raised={!!(lesson && lessonSum && (sheetSnap === "closed" || view !== "brief"))} name={n.data.name} replicas={n.data.replicas} maxReplicas={MAX_REPLICAS} connecting={!!connectFrom}
+              <NodeActionBar name={n.data.name} replicas={n.data.replicas} maxReplicas={MAX_REPLICAS} connecting={!!connectFrom}
                 onConnect={() => { setConnectFrom(n.id); setSheetSnap("closed"); }} onReplicas={(r) => setReplicas(n.id, r)}
                 onProps={() => showTab("props")} onRemove={() => { deleteElements({ nodes: [{ id: n.id }] }); setConnectFrom(null); }} onCancel={() => setConnectFrom(null)} />
             );

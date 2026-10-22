@@ -154,10 +154,58 @@ def test_aviso_de_conta_excluida_aparece_na_landing_e_some_ao_fechar(page):
     assert "conta=excluida" not in page.url
 
 
-def test_trilhas_de_estudo_listam_os_temas_e_abrem_o_primeiro_caso(page):
-    page.goto(page.base + "/start/trilhas"); page.get_by_role("heading", name="Trilhas de estudo").wait_for()
-    assert page.locator("section[aria-label]").count() >= 6
-    sec = page.get_by_role("region", name="Fundamentos")
-    assert "0/5" in sec.inner_text()
-    sec.get_by_role("button", name="Começar a trilha").click()
-    page.wait_for_selector(".react-flow")
+def test_aulas_sao_documentacao_com_lista_por_nivel_e_artigo(page):
+    page.goto(page.base + "/start/aulas"); page.get_by_role("heading", name="Aulas", exact=True).wait_for()
+    assert page.get_by_role("link", name="Cache: responder sem refazer o trabalho").count() == 1
+    page.get_by_role("link", name="Cache: responder sem refazer o trabalho").click()
+    page.get_by_role("heading", name="Cache: responder sem refazer o trabalho", level=1).wait_for()
+    assert "/start/aulas/cache" in page.url
+    page.get_by_role("navigation", name="Outros artigos").get_by_role("link", name=re.compile("Cache distribuído")).click()   # próximo artigo
+    page.get_by_role("heading", name=re.compile("^Cache distribuído"), level=1).wait_for()
+    page.get_by_role("navigation", name="Nesta seção").get_by_role("link", name=re.compile("^Políticas de remoção")).click()
+    page.get_by_role("link", name="Voltar às aulas").click()
+    page.get_by_role("heading", name="Aulas", exact=True).wait_for()
+    page.get_by_role("searchbox", name="Buscar nas aulas").fill("raft")
+    page.get_by_role("link", name=re.compile("Algoritmos de consenso")).wait_for()
+    assert page.get_by_role("link", name=re.compile("Hashing consistente")).count() == 0
+
+
+def test_paleta_acha_tecnologia_pelo_nome_e_adiciona_ja_escolhida(page):
+    page.goto(page.base + "/app?blank=1&s=1&d=test0001"); page.wait_for_selector(".palette")
+    busca = page.get_by_label("Buscar componente")
+    busca.fill("n8n")
+    linha = page.get_by_role("button", name="Adicionar n8n como Orquestrador de workflow")
+    linha.wait_for()
+    assert "como Orquestrador de workflow" in page.locator(".tech-row").first.inner_text()
+    linha.click()
+    page.locator(".react-flow__node").first.wait_for()
+    assert page.locator("dialog[open]").count() == 0        # a tecnologia já veio escolhida: não pergunta de novo
+    assert page.locator(".react-flow__node svg[aria-label='n8n']").count() == 1
+
+
+def test_paleta_node_red_aparece_em_mais_de_um_componente(page):
+    page.goto(page.base + "/app?blank=1&s=1&d=test0001"); page.wait_for_selector(".palette")
+    page.get_by_label("Buscar componente").fill("node-red")
+    comps = page.locator(".tech-row .tech-text small").all_inner_texts()
+    assert len([c for c in comps if "Gateway IoT" in c]) == 1 and len([c for c in comps if "Computação de borda" in c]) == 1, comps
+
+
+def test_paleta_mostra_as_tecnologias_de_cada_componente(page):
+    page.goto(page.base + "/app?blank=1&s=1&d=test0001"); page.wait_for_selector(".palette")
+    cli = page.locator(".pitem-wrap", has_text="Fonte de requisições")
+    cli.get_by_role("button", name=re.compile("^Ver as \\d+ tecnologias de Cliente")).click()
+    cli.get_by_role("button", name="Adicionar Google Chrome como Cliente").click()
+    page.locator(".react-flow__node svg[aria-label='Google Chrome']").wait_for()
+    assert page.locator("dialog[open]").count() == 0
+
+
+def test_paleta_lista_longa_mostra_as_primeiras_e_o_resto_sob_demanda(page):
+    page.goto(page.base + "/app?blank=1&s=1&d=test0001"); page.wait_for_selector(".palette")
+    sql = page.locator(".pitem-wrap", has_text="Relacional transacional")
+    sql.get_by_role("button", name=re.compile("^Ver as \\d+ tecnologias de Banco SQL")).click()
+    antes = sql.locator(".tech-chip").count()
+    assert antes == 8, antes
+    sql.get_by_role("button", name=re.compile("^Ver todas")).click()
+    assert sql.locator(".tech-chip").count() > antes
+    sql.get_by_role("button", name="Mostrar menos").click()
+    assert sql.locator(".tech-chip").count() == 8

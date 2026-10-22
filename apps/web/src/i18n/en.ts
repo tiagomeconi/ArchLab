@@ -16,8 +16,9 @@ import { safety } from "./en.safety";
 import { names } from "./en.names";
 import { profile } from "./en.profile";
 import { review } from "./en.review";
-import { lessons } from "./en.lessons";
+import { docsUi } from "./en.docs";
+import { paletteUi } from "./en.palette";
 import { mobile } from "./en.mobile";
 import { txs } from "./en.tx";
 
-export const EN: Record<string, string> = { ...newcases, ...components, ...rating, ...landing, ...cases, ...lab, ...extra, ...start, ...auth, ...auth2, ...home, ...leagues, ...audit, ...social, ...safety, ...names, ...profile, ...review, ...lessons, ...mobile, ...txs };
+export const EN: Record<string, string> = { ...newcases, ...components, ...rating, ...landing, ...cases, ...lab, ...extra, ...start, ...auth, ...auth2, ...home, ...leagues, ...audit, ...social, ...safety, ...names, ...profile, ...review, ...docsUi, ...paletteUi, ...mobile, ...txs };

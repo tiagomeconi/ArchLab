@@ -27,7 +27,7 @@ export function buildStages(s: Session): Stage[] {
       hint: [fact("Usuários", sc.users), fact("Requisições", sc.rps), fact("Leitura/escrita", sc.readWrite), fact("Armazenamento", sc.storage)].filter(Boolean).join(" · ") || undefined, pick: () => false },
     { id: "high", title: t("Desenho de alto nível"), minutes: 10, icon: "schema",
       asks: [t("Qual é o caminho principal de uma requisição, do cliente ao dado?"), t("Onde ficam as responsabilidades: entrada, serviço, cache, banco?"), t("Qual caminho de escrita e qual de leitura?")],
-      hint: t("Monte o caminho principal e defina os fluxos na aba Fluxos."), pick: (c) => c.id.startsWith("path:") },
+      hint: t("Monte o caminho principal ligando origem, serviço e dados: os fluxos saem das conexões."), pick: (c) => c.id.startsWith("path:") },
     { id: "deep", title: t("Aprofundar os componentes"), minutes: 10, icon: "deployed_code",
       asks: [t("Por que cada componente está ali e qual alternativa você descartou?"), t("Que banco, fila ou cache você escolhe e por quê?"), t("Como os dados são particionados e replicados?")],
       hint: t("Escolha o provedor de cada peça e justifique em voz alta."), pick: (c) => c.id.startsWith("need:") },

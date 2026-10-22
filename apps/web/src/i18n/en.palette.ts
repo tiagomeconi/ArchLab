@@ -1,0 +1,23 @@
+/** Paleta de componentes: busca por tecnologia e lista de tecnologias de cada componente. */
+export const paletteUi: Record<string, string> = {
+  "Buscar (ex.: n8n, Kafka)": "Search (e.g. n8n, Kafka)",
+  "Tecnologias": "Technologies",
+  "como {comp}": "as {comp}",
+  "Adicionar {tech} como {comp}": "Add {tech} as {comp}",
+  "{n} tecnologias": "{n} technologies",
+  "Ocultar": "Hide",
+  "Ocultar tecnologias de {comp}": "Hide technologies of {comp}",
+  "Ver as {n} tecnologias de {comp}": "Show the {n} technologies of {comp}",
+  "Tecnologias de {comp}": "Technologies of {comp}",
+  "Ver todas (+{n})": "Show all (+{n})",
+  "Mostrar menos": "Show less",
+  "Nenhum caminho de requisição passa por aqui, então não há carga para calcular. Ligue este componente a uma origem de carga pelas conexões.": "No request path goes through here, so there is no load to compute. Connect this component to a load source through the connections.",
+  "Monte o caminho principal ligando origem, serviço e dados: os fluxos saem das conexões.": "Build the main path by connecting source, service and data: flows come from the connections.",
+  "Existe um fluxo de escrita até o armazenamento?": "Is there a write flow all the way to storage?",
+  "O fluxo usa uma classe de operação que o perfil deste componente não define (ex.: mensagem em um banco). Revise as conexões que chegam a ele.": "The flow uses an operation class that this component's profile does not define (e.g. a message into a database). Review the connections that reach it.",
+  "Mostrar painel": "Show panel",
+  "Esconder painel": "Hide panel",
+  "Esconder painel (P)": "Hide panel (P)",
+  "Mostra ou esconde o painel de componentes": "Shows or hides the components panel",
+  "Arraste da lateral · ligue pelas bolinhas ·": "Drag from the side · connect with the dots ·",
+};
