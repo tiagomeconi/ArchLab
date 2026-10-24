@@ -124,7 +124,7 @@ export function ProfileView({ data, actions }: { data: ProfileViewData; actions?
     { tab: "atividade", icon: "local_fire_department", label: t("Sequência"), value: t("{n} dias", { n: streak.current }) },
   ];
   const active = (s: (typeof side)[number]) => tab === s.tab && (s.tab !== "casos" || filter === (s.filter ?? "all"));
-  const btn = "flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-3 text-left text-sm transition-colors lg:w-full";
+  const btn = "flex shrink-0 items-center gap-3 rounded-full px-4 py-3 text-left text-sm transition-colors lg:w-full";
 
   return (
     <>

@@ -38,6 +38,8 @@ export interface ReportInput {
   logoId?: string;
   iconName?: string;
   rating: Rating;
+  /** Entrega competitiva não aprovada: não mostra liga; o texto é o rótulo no lugar do nome da liga. */
+  noLeague?: string;
   met: number;
   total: number;
   nodes: ReportNode[];
@@ -129,7 +131,7 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
   try { await Promise.all([document.fonts.load(`700 24px ${SANS}`), document.fonts.load(`500 16px ${SANS}`), document.fonts.load(`24px "Material Symbols Rounded Variable"`)]); } catch { /* usa a fonte do sistema */ }
 
   const caseLogo = r.logoId ? LOGOS[r.logoId] : undefined;
-  const lgNow = r.rating.overall === null ? LEAGUES[0]! : leagueOf(r.rating.overall);
+  const lgNow = r.rating.overall === null || r.noLeague ? LEAGUES[0]! : leagueOf(r.rating.overall);
   const [logoImg, brandImg, badgeImg] = await Promise.all([caseLogo ? svgImage(caseLogo, "#f4f7fb") : Promise.resolve(null), pngImage("/logo.png"), badgeImage(lgNow)]);
   const provImgs = new Map<string, HTMLImageElement>();
   await Promise.all([...new Set(r.nodes.map((n) => n.providerId).filter(Boolean) as string[])].map(async (id) => {
@@ -164,7 +166,7 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
 
   const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, C.bg0); bg.addColorStop(1, C.bg1);
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-  const lg = r.rating.overall === null ? null : leagueOf(r.rating.overall);
+  const lg = r.rating.overall === null || r.noLeague ? null : leagueOf(r.rating.overall);
   const tier = lg ? { name: lg.name, color: lg.c1 } : { name: "—", color: C.dim };
   const glow = ctx.createRadialGradient(PAD + 80, PAD, 0, PAD + 80, PAD, 520); glow.addColorStop(0, `${tier.color}2e`); glow.addColorStop(1, "transparent");
   ctx.fillStyle = glow; ctx.fillRect(0, 0, W, 700);
@@ -208,8 +210,8 @@ export async function renderReport(r: ReportInput): Promise<Blob> {
   const bW = 108, bH = Math.round((bW * 72) / 64);
   if (badgeImg) { ctx.save(); if (!lg) ctx.globalAlpha = 0.3; ctx.drawImage(badgeImg, PAD + 26, y + (hh - bH) / 2, bW, bH); ctx.restore(); }
   const hx = PAD + 26 + bW + 26;
-  ctx.fillStyle = C.sub; ctx.font = `700 12px ${SANS}`; ctx.fillText(t("LIGA"), hx, y + 40);
-  ctx.fillStyle = tier.color; ctx.font = `800 32px ${SANS}`; ctx.fillText(fit(ctx, lg ? t(lg.name) : t("Sem nota"), PAD + SIDE - hx - 16), hx, y + 76);
+  ctx.fillStyle = C.sub; ctx.font = `700 12px ${SANS}`; ctx.fillText(r.noLeague ? t("ENTREGA") : t("LIGA"), hx, y + 40);
+  ctx.fillStyle = tier.color; ctx.font = `800 32px ${SANS}`; ctx.fillText(fit(ctx, lg ? t(lg.name) : r.noLeague ?? t("Sem nota"), PAD + SIDE - hx - 16), hx, y + 76);
   const ov = r.rating.overall === null ? "—" : String(r.rating.overall);
   ctx.fillStyle = C.text; ctx.font = `800 70px ${SANS}`; ctx.fillText(ov, hx, y + 144);
   const ow = ctx.measureText(ov).width; ctx.fillStyle = C.sub; ctx.font = `700 16px ${SANS}`; ctx.fillText("OVR", hx + ow + 10, y + 144);

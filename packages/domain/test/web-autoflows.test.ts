@@ -74,3 +74,14 @@ describe("DNS é consulta lateral", () => {
     expect(built[0]!.flow.steps.map((s) => s.nodeId)).toEqual(["c", "waf"]);
   });
 });
+
+describe("componentes de apoio ficam fora do fluxo", () => {
+  it("o que só é alcançável por um componente de apoio fica sem fluxo (a aresta real teria de ligar pai e filho)", () => {
+    const nodes = [node("c", "client"), node("dns", "dns"), node("lb", "load-balancer"), node("app", "backend")];
+    expect(buildAutoFlows("c", nodes, [edge("c", "dns"), edge("dns", "lb"), edge("lb", "app")])).toEqual([]);
+  });
+  it("WAF em linha recebe carga (está no caminho)", () => {
+    const nodes = [node("c", "client"), node("waf", "waf"), node("app", "backend")];
+    expect(buildAutoFlows("c", nodes, [edge("c", "waf"), edge("waf", "app")])[0]!.flow.steps.map((s) => s.nodeId)).toEqual(["c", "waf", "app"]);
+  });
+});

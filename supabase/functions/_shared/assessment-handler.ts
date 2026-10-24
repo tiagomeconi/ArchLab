@@ -25,8 +25,9 @@ export async function handleAssessment(req: Request, deps: AssessmentDependencie
   try { attempt=await deps.getAttempt(input.attemptId as string); }
   catch { return reply({ message: "Não foi possível carregar a avaliação. Tente novamente." },503); }
   if (!attempt) return reply({ message: "Avaliação não encontrada." },404);
-  if (attempt.status==="submitted") return reply(attempt);
-  if (attempt.status!=="active" || attempt.rules_version!==deps.rulesVersion) return reply({ message: "Esta tentativa não pode ser entregue com as regras disponíveis." },409);
+  // entrega sem correção aberta: devolve o que já foi registrado (reenvio seguro). Com correção aberta (draft), reavalia.
+  if (attempt.status==="submitted" && !attempt.draft) return reply(attempt);
+  if ((attempt.status!=="active" && attempt.status!=="submitted") || attempt.rules_version!==deps.rulesVersion) return reply({ message: "Esta tentativa não pode ser entregue com as regras disponíveis." },409);
   let result: EvaluationResult;
   try { result=deps.evaluate(attempt.case_id,input.snap); }
   catch (error) { return reply({ message: error instanceof Error ? error.message : "Não foi possível avaliar o desenho." },400); }

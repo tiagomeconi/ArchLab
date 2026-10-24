@@ -9,7 +9,7 @@ import { AccountMenu } from "../AccountMenu";
 import { useHome } from "../auth";
 import { t } from "../i18n";
 
-export const field = "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-text-2/60 focus:border-accent";
+export const field = "w-full rounded-full border border-line bg-surface px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-text-2/60 focus:border-accent";
 
 /** Moldura das telas de conta (login, cadastro e perfil). */
 export function AuthShell({ back, wide = false, xwide = false, children }: { back: { to: string; label: string }; wide?: boolean; xwide?: boolean; children: ReactNode }) {

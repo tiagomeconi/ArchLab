@@ -147,8 +147,8 @@ function Header() {
         <div className="flex items-center gap-2">
           <LangToggle />
           <ThemeToggle className="!size-9" />
-          {authEnabled && auth.status === "out" && <a {...link("/login")} className="rounded-xl px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:text-text">{t("Entrar")}</a>}
-          <a {...ctaLink()} className="inline-flex items-center gap-1.5 rounded-xl bg-text px-4 py-2 text-sm font-semibold text-bg transition-all hover:-translate-y-px hover:opacity-90">{authEnabled ? t("Criar conta") : t("Acessar")}{" "}<Icon name="arrow_outward" size={16} />
+          {authEnabled && auth.status === "out" && <a {...link("/login")} className="rounded-full px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:text-text">{t("Entrar")}</a>}
+          <a {...ctaLink()} className="inline-flex items-center gap-1.5 rounded-full bg-text px-4 py-2 text-sm font-semibold text-bg transition-all hover:-translate-y-px hover:opacity-90">{authEnabled ? t("Criar conta") : t("Acessar")}{" "}<Icon name="arrow_outward" size={16} />
           </a>
         </div>
         <motion.span style={{ scaleX: bar }} className="pointer-events-none absolute inset-x-4 -bottom-px h-px origin-left bg-accent" />

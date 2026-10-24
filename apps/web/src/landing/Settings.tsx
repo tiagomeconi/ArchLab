@@ -155,8 +155,8 @@ export function Settings() {
         <p className="mt-1 text-sm text-text-2">{t("Ganhe um endereço para mostrar seus pontos, avaliações e conquistas. O perfil público permite participar dos rankings.")}</p>
         <form onSubmit={savePublic} className="mt-5 grid gap-4" noValidate>
           <div className="grid gap-1.5 text-sm font-medium"><label htmlFor="handle">{t("Seu @usuário")}</label>
-            <div className="flex items-center rounded-xl border border-line bg-surface focus-within:border-accent">
-              <span className="select-none pl-3.5 text-sm text-text-2" aria-hidden>{location.host}/u/</span>
+            <div className="flex items-center rounded-full border border-line bg-surface focus-within:border-accent">
+              <span className="select-none pl-4 text-sm text-text-2" aria-hidden>{location.host}/u/</span>
               <input id="handle" className="min-w-0 flex-1 py-2.5 pr-3.5 pl-0.5 text-sm outline-none" style={{ border: 0, background: "transparent", boxShadow: "none", borderRadius: 0 }} value={handle} maxLength={20} autoComplete="off" spellCheck={false} placeholder="seu_usuario" onChange={(e) => { setHandle(sanitizeHandle(e.target.value)); setPubMsg(null); }} />
             </div>
             <span className="text-xs font-normal text-text-2">{t("De 3 a 20 letras minúsculas, números ou _.")}</span>

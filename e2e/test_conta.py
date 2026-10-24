@@ -75,18 +75,25 @@ def conta(browser, auth_url):
                 rows=[{**row,"country":"BR","companies":row["cases"],"worldRank":i+1,"countryRank":i+1} for i,row in enumerate(BOARD)]
                 return body([row for row in rows if not args.get("p_country") or row["country"]==args["p_country"]])
             if "/assessment_seasons" in u: return body([{"id":v["season"]} for v in competition["seasons"]])
-            if "rpc/" in u and any(op in u for op in ["start_assessment","get_assessment_attempt","save_assessment_draft","abandon_assessment","publish_assessment"]):
+            if "rpc/" in u and any(op in u for op in ["start_assessment","get_assessment_attempt","save_assessment_draft","abandon_assessment","publish_assessment","cancel_assessment_correction"]):
                 op=u.split("rpc/")[1].split("?")[0]; args=json.loads(r.request.post_data or "{}")
                 calls.append(("assessment",op,args))
                 if op=="start_assessment":
-                    existing=next((a for a in attempt_store.values() if a["case_id"]==args["p_case"] and a["status"]=="active"),None)
+                    existing=next((a for a in attempt_store.values() if a["case_id"]==args["p_case"] and a["status"] in ("active","submitted")),None)
+                    if existing and existing["status"]=="submitted": return r.fulfill(status=400,content_type="application/json",body=json.dumps({"message":"Você já fez esta avaliação. Agora só dá para corrigir a sua entrega."}))
                     if existing: return body(existing)
                     aid=str(uuid.uuid4()); a={"id":aid,"user_id":USER_ID,"case_id":args["p_case"],"case_version":"assessment-v1:"+args["p_case"],"rules_version":"assessment-v1","country":args["p_country"],"status":"active","started_at":"2026-10-21T12:00:00Z","draft":None,"points":0,"passed":False,"published":False}; attempt_store[aid]=a; return body(a)
                 a=attempt_store.get(args.get("p_id"))
                 if op=="get_assessment_attempt": return body(a)
                 if op=="save_assessment_draft":
-                    if a and a["status"]=="active": a["draft"]=args["p_snap"]; return body(True)
+                    if a and (a["status"]=="active" or (a["status"]=="submitted" and a.get("draft"))): a["draft"]=args["p_snap"]; return body(True)
                     return body(False)
+                if op=="start_assessment_correction":
+                    if not a or a["status"]!="submitted": return r.fulfill(status=400,content_type="application/json",body='{"message":"Entrega não encontrada."}')
+                    a["draft"]=a.get("draft") or a["snap"]; return body(a)
+                if op=="cancel_assessment_correction":
+                    if a: a["draft"]=None
+                    return body(bool(a))
                 if op=="abandon_assessment":
                     if a: a["status"]="abandoned"
                     return body(bool(a))
@@ -116,7 +123,7 @@ def conta(browser, auth_url):
             if submit_error and submit_count[0]==1: return r.fulfill(status=503,content_type="application/json",body='{"message":"Servidor indisponível. Tente novamente."}')
             a=attempt_store.get(args.get("attemptId"))
             if not a: return r.fulfill(status=404,content_type="application/json",body='{"message":"not found"}')
-            if a["status"]=="active": a.update({"status":"submitted","submitted_at":"2026-10-21T12:30:00Z","season":"2026-Q4","score":84,"points":84,"passed":True,"snap":args["snap"],"draft":None,"report":{"rating":{"overall":84,"tier":"gold","attrs":[]},"checks":[{"id":"spof","label":"Sem ponto único de falha","detail":"Todo componente do fluxo tem 2 ou mais réplicas.","status":"meets"}]}})
+            if a["status"]=="active" or (a["status"]=="submitted" and a.get("draft")): a.update({"revision":a.get("revision",0)+1 if a["status"]=="submitted" else 0,"status":"submitted","submitted_at":"2026-10-21T12:30:00Z","season":"2026-Q4","score":84,"points":84,"passed":True,"snap":args["snap"],"draft":None,"report":{"rating":{"overall":84,"tier":"gold","attrs":[]},"checks":[{"id":"spof","label":"Sem ponto único de falha","detail":"Todo componente do fluxo tem 2 ou mais réplicas.","status":"meets"}]}})
             return r.fulfill(status=200,content_type="application/json",body=json.dumps(a))
         pg.route("**/functions/v1/assessment",assessment_function)
         pg.route("**/auth/v1/**", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(user)))

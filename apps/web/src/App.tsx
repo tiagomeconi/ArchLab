@@ -259,9 +259,9 @@ function profileIdFor(type: string, providerId: string | undefined, original?: s
   return DEFAULT_PROFILE_BY_TYPE[type] ?? "unresolved";
 }
 
-interface AppProps { assessment?: AssessmentAttempt; onAssessmentSubmit?: (snap: unknown) => void }
+interface AppProps { assessment?: AssessmentAttempt; onAssessmentSubmit?: (snap: unknown) => void; /** só em correção: descarta o rascunho e volta ao resultado */ onAssessmentCancel?: () => void }
 
-function Lab({ assessment, onAssessmentSubmit }: AppProps) {
+function Lab({ assessment, onAssessmentSubmit, onAssessmentCancel }: AppProps) {
   const lang = useLang();
   const original = fixture as any;
   // ?blank=1 abre o laboratório com o canvas vazio (usado para demonstrações e para começar do zero)
@@ -1141,7 +1141,7 @@ function Lab({ assessment, onAssessmentSubmit }: AppProps) {
           <a className="icon-btn back" href="/start" aria-label={t("Voltar ao início")} onClick={(e) => { e.preventDefault(); go("/start"); }}><Icon name="arrow_back" size={24} /></a>
           {blank ? <DesignName value={designName} editable={freeEditable} onCommit={setDesignTitle} status={sharedMode ? null : save} /> : <b className="cb-title">{original.metadata.title ?? t("Links curtos")}</b>}
           <span className="spacer" />
-          {assessment ? <button type="button" className="chip primary assessment-submit" aria-label={t("Entregar avaliação")} disabled={!nodes.length} onClick={() => onAssessmentSubmit?.(JSON.parse(key))}><Icon name="task_alt" size={18} /><span>{t("Entregar")}</span></button> : <RatingChip rating={rating} title={blank ? designName : (session?.title ?? t("Encurtador de links"))} />}
+          {assessment ? <>{onAssessmentCancel && <button type="button" className="chip assessment-cancel" onClick={onAssessmentCancel}><Icon name="close" size={18} /><span>{t("Cancelar correção")}</span></button>}<button type="button" className="chip primary assessment-submit" aria-label={t("Entregar avaliação")} disabled={!nodes.length} onClick={() => onAssessmentSubmit?.(JSON.parse(key))}><Icon name="task_alt" size={18} /><span>{t("Entregar")}</span></button></> : <RatingChip rating={rating} title={blank ? designName : (session?.title ?? t("Encurtador de links"))} />}
           {running ? (
             <button className="simbtn stop" onClick={() => setRun((r) => ({ ...r, status: "stopped" }))} aria-label={t("Parar")}><Icon name="stop" size={22} /><span className="lbl-sim">{t("Parar")}</span></button>
           ) : (
@@ -1183,7 +1183,7 @@ function Lab({ assessment, onAssessmentSubmit }: AppProps) {
           </button>
         )}
         <span className="spacer" />
-        {assessment ? <button type="button" className="chip primary assessment-submit" aria-label={t("Entregar avaliação")} disabled={!nodes.length} onClick={() => onAssessmentSubmit?.(JSON.parse(key))}><Icon name="task_alt" size={18} /><span>{t("Entregar")}</span></button> : <RatingChip rating={rating} title={blank ? designName : (session?.title ?? t("Encurtador de links"))} />}
+        {assessment ? <>{onAssessmentCancel && <button type="button" className="chip assessment-cancel" onClick={onAssessmentCancel}><Icon name="close" size={18} /><span>{t("Cancelar correção")}</span></button>}<button type="button" className="chip primary assessment-submit" aria-label={t("Entregar avaliação")} disabled={!nodes.length} onClick={() => onAssessmentSubmit?.(JSON.parse(key))}><Icon name="task_alt" size={18} /><span>{t("Entregar")}</span></button></> : <RatingChip rating={rating} title={blank ? designName : (session?.title ?? t("Encurtador de links"))} />}
         {!assessment && <ExportMenu onLink={copyLink} onJson={exportDesign} onMermaid={exportMermaid} onDoc={exportDoc} onReport={exportReport} onCard={exportCard} onImport={() => fileRef.current?.click()} busy={reporting} />}
         <LangToggle />
         <ThemeToggle className="theme-btn" />

@@ -29,7 +29,7 @@ export function AppLayout({ path, children }: { path: string; children: ReactNod
       <a href="#conteudo" className="sr-only z-50 rounded-full bg-accent px-4 py-2 font-semibold text-on-accent focus:not-sr-only focus:fixed focus:left-4 focus:top-4">{t("Pular para o conteúdo")}</a>
 
       <aside aria-label={t("Menu lateral")} className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-line bg-surface/60 px-3 py-5 backdrop-blur-xl lg:flex">
-        <a {...link("/start")} className="mb-6 flex items-center gap-2.5 rounded-xl px-3 py-1.5 font-semibold tracking-tight"><Logo size={32} />{t("ArchLab")}</a>
+        <a {...link("/start")} className="mb-6 flex items-center gap-2.5 rounded-full px-3 py-1.5 font-semibold tracking-tight"><Logo size={32} />{t("ArchLab")}</a>
         <nav aria-label={t("Navegação principal")} className="grid gap-1">
           {ITEMS.map((i) => {
             const on = i.on(path);

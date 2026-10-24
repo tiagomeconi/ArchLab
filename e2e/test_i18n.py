@@ -89,7 +89,7 @@ def test_menu_de_idiomas_tem_bandeiras_e_troca_por_clique(make_page):
     pg.reload()
     pg.wait_for_selector("h1")
     assert pg.evaluate("document.documentElement.lang") == "es"
-    assert "ES" in pg.get_by_role("button", name=re.compile("^Language .+ Idioma")).first.inner_text()
+    assert "Español" in pg.get_by_role("button", name=re.compile("^Language .+ Idioma")).first.get_attribute("aria-label")  # o botão mostra só a bandeira; o idioma fica no nome acessível
 
 
 def test_menu_de_idiomas_teclado(make_page):

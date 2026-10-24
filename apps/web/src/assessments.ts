@@ -6,7 +6,7 @@ export { seasonOf } from "./assessmentRules";
 export interface AssessmentAttempt {
   id: string; case_id: string; case_version: string; rules_version: string; country: string;
   status: "active" | "submitted" | "abandoned"; started_at: string; submitted_at?: string; season?: string;
-  draft_updated_at?: string; draft?: SolutionSnap; snap?: SolutionSnap; score?: number; points: number; passed: boolean; published: boolean;
+  draft_updated_at?: string; revision?: number; first_submitted_at?: string; draft?: SolutionSnap; snap?: SolutionSnap; score?: number; points: number; passed: boolean; published: boolean;
   report?: { rating: Rating; checks: Check[]; rulesVersion: string; caseVersion: string };
 }
 export interface AssessmentRecord { id: string; caseId: string; score: number; points: number; passed: boolean; season: string; country: string; submittedAt: string; rulesVersion: string; caseVersion: string; published: boolean; snap: SolutionSnap | null }
@@ -18,7 +18,15 @@ async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise
   if (error) throw new Error(error.message);
   return data as T;
 }
+/** Nota mínima para marcar um caso como resolvido na lista de casos. */
+export const MASTERED_SCORE = 80;
+/** caso -> melhor nota aprovada, só dos casos com nota ≥ MASTERED_SCORE. */
+export const masteredScores = (p: AssessmentProfile | null): Map<string, number> =>
+  new Map((p?.best ?? []).filter((r) => r.passed && r.score >= MASTERED_SCORE).map((r) => [r.caseId, r.score]));
 export const startAssessment = (caseId: string, country: string) => rpc<AssessmentAttempt>("start_assessment", { p_case: caseId, p_country: country });
+/** Abre a correção da entrega (o rascunho nasce da versão entregue). Chamar de novo retoma a correção aberta. */
+export const startAssessmentCorrection = (id: string) => rpc<AssessmentAttempt>("start_assessment_correction", { p_id: id });
+export const cancelAssessmentCorrection = (id: string) => rpc<boolean>("cancel_assessment_correction", { p_id: id });
 export const getAssessmentAttempt = (id: string) => rpc<AssessmentAttempt | null>("get_assessment_attempt", { p_id: id });
 export const saveAssessmentDraft = (id: string, snap: unknown) => rpc<boolean>("save_assessment_draft", { p_id: id, p_snap: snap });
 export const abandonAssessment = (id: string) => rpc<boolean>("abandon_assessment", { p_id: id });

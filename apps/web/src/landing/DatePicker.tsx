@@ -75,14 +75,14 @@ export function DatePicker({ id, value, onChange, min = "1900-01-01", max, autoC
   const lead = new Date(cur[0], cur[1], 1).getDay();
   const cells = Array.from({ length: 42 }, (_, i) => { const dt = new Date(cur[0], cur[1], 1 - lead + i); return [dt.getFullYear(), dt.getMonth(), dt.getDate()] as [number, number, number]; });
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  const nav = "grid size-8 place-items-center rounded-lg text-text-2 transition-colors hover:bg-track hover:text-text disabled:opacity-35 disabled:hover:bg-transparent";
+  const nav = "grid size-8 place-items-center rounded-full text-text-2 transition-colors hover:bg-track hover:text-text disabled:opacity-35 disabled:hover:bg-transparent";
   const focusIn = focus;
   const hasFocusCell = cells.some((c) => c[0] === focusIn[0] && c[1] === focusIn[1] && c[2] === focusIn[2]) && focusIn[1] === cur[1];
 
   return (
     <div ref={box} className="relative">
       <input id={id} type="text" inputMode="numeric" autoComplete={autoComplete} required maxLength={10} placeholder={en ? "MM/DD/YYYY" : "DD/MM/AAAA"} value={text} aria-invalid={invalid || undefined}
-        aria-haspopup="dialog" aria-expanded={open} className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 pr-11 text-sm outline-none transition-colors placeholder:text-text-2/60 focus:border-accent"
+        aria-haspopup="dialog" aria-expanded={open} className="w-full rounded-full border border-line bg-surface px-4 py-2.5 pr-11 text-sm outline-none transition-colors placeholder:text-text-2/60 focus:border-accent"
         onChange={(e) => type(e.target.value)} onKeyDown={(e) => { if (e.key === "ArrowDown" && !open) { e.preventDefault(); openPicker(); } if (e.key === "Escape" && open) { e.stopPropagation(); setOpen(false); } }} />
       <button type="button" onClick={() => (open ? setOpen(false) : openPicker())} aria-label={t("Abrir calendário")}
         className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-text-2 transition-colors hover:text-text"><Icon name="calendar_month" size={18} /></button>
@@ -130,8 +130,8 @@ export function DatePicker({ id, value, onChange, min = "1900-01-01", max, autoC
             </div>
           )}
           <div className="mt-2 flex justify-between border-t border-line pt-2 text-sm">
-            <button type="button" className="rounded-lg px-2 py-1 text-text-2 transition-colors hover:text-text" onClick={() => { onChange(""); setText(""); setOpen(false); }}>{t("Limpar")}</button>
-            {inRange(today) && <button type="button" className="rounded-lg px-2 py-1 font-semibold text-accent transition-opacity hover:opacity-80" onClick={() => { const p = parse(today)!; pick(p[0], p[1], p[2]); }}>{t("Hoje")}</button>}
+            <button type="button" className="rounded-full px-3 py-1 text-text-2 transition-colors hover:text-text" onClick={() => { onChange(""); setText(""); setOpen(false); }}>{t("Limpar")}</button>
+            {inRange(today) && <button type="button" className="rounded-full px-3 py-1 font-semibold text-accent transition-opacity hover:opacity-80" onClick={() => { const p = parse(today)!; pick(p[0], p[1], p[2]); }}>{t("Hoje")}</button>}
           </div>
         </div>
       )}

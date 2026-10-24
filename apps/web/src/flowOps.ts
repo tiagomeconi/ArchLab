@@ -94,6 +94,15 @@ export interface AutoFlow { flow: Flow; workload: any; name: string; weight: num
 
 export const SOURCE_TYPES = new Set(["client", "web-app", "mobile-app", "iot-device", "external-system"]);
 /** componentes de apoio (telemetria, segredos, descoberta, DNS): ficam fora dos fluxos de requisição. O DNS é uma consulta lateral do cliente, feita no início da sessão e guardada em cache; tratá-lo como ramo dividiria a carga entre ele e o destino real. */
+/*
+ * Quem recebe barra de carga (req/s) e quem não recebe:
+ *  - origem (SOURCE_TYPES): gera a carga; mostra o "req/s" mas não tem utilização.
+ *  - no caminho da requisição (todo o resto: LB, gateway, WAF, rate limiter, CDN, backend, bancos, cache, busca, fila…):
+ *    recebe carga, entra na nota (utilização, latência, custo, réplicas) e nas verificações. Um WAF/CDN ligado "em linha"
+ *    (cliente → WAF → LB) é tráfego real; ligado fora do caminho aparece "sem fluxo".
+ *  - apoio (SIDE_TYPES): plano de controle, sem barra e fora dos fluxos e da nota de carga; só contam como "item presente" na
+ *    arquitetura. DNS (consulta lateral, em cache), observabilidade (telemetria), segredos (lidos na subida) e descoberta de serviços.
+ */
 export const SIDE_TYPES = new Set(["observability", "secrets-manager", "service-discovery", "dns"]);
 const DB_TYPES = new Set(["sql-database", "nosql-database", "database", "timeseries-db", "graph-db", "vector-db", "data-warehouse"]);
 const MSG_TYPES = new Set(["kafka", "queue", "mqtt-broker", "event-bus"]);

@@ -9,6 +9,7 @@ import { BrandMark, Icon } from "../ui";
 import { localeOf, t, useLang } from "../i18n";
 import { cn } from "./lib/utils";
 import { DesignThumb } from "./DesignThumb";
+import { AssessmentDeliveries, useDeliveries } from "./AssessmentDeliveries";
 import { DESIGN_PREFIX as PREFIX, useMyDesigns, type DesignItem as Item } from "./useMyDesigns";
 
 /** Abre o desenho no laboratório: grava a cópia local que o laboratório já sabe restaurar e entra no caso certo. */
@@ -27,6 +28,10 @@ export function Designs() {
   const [confirm, setConfirm] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null); const [draft, setDraft] = useState("");
   const progress = useMemo(loadProgress, []);
+  const deliveries = useDeliveries();
+  const [tab, setTabState] = useState<"designs" | "assessments">(() => (location.hash === "#avaliacoes" ? "assessments" : "designs"));
+  const setTab = (v: "designs" | "assessments") => { setTabState(v); history.replaceState(null, "", v === "assessments" ? "#avaliacoes" : location.pathname + location.search); };
+  const assessments = deliveries.on && tab === "assessments";
   const rtf = useMemo(() => new Intl.RelativeTimeFormat(localeOf(lang), { numeric: "auto" }), [lang]);
 
   const ago = (ts: number) => {
@@ -60,7 +65,17 @@ export function Designs() {
       </div>
       <p className="mt-2 max-w-2xl text-lg leading-snug text-text-2">{authEnabled ? t("Tudo o que você salvou, sincronizado na sua conta. Abra para continuar de onde parou.") : t("Os desenhos guardados neste navegador. Abra para continuar de onde parou.")}</p>
 
-      {items === null ? (
+      {deliveries.on && (
+        <div role="tablist" aria-label={t("Meus desenhos")} className="mt-6 flex flex-wrap gap-2">
+          {([["designs", t("Desenhos"), items?.length], ["assessments", t("Avaliações entregues"), deliveries.rows?.length]] as const).map(([id, label, n]) => (
+            <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
+              className={cn("inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors", tab === id ? "border-accent/40 bg-accent-soft text-accent" : "border-line text-text-2 hover:bg-track hover:text-text")}>
+              {label}{n !== undefined && <span className="rounded-full bg-track px-2 py-0.5 text-xs tabular-nums text-text-2">{n}</span>}
+            </button>))}
+        </div>
+      )}
+
+      {assessments ? <AssessmentDeliveries rows={deliveries.rows} failed={deliveries.failed} /> : items === null ? (
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true">{[0, 1, 2].map((i) => <div key={i} className="h-64 animate-pulse rounded-3xl border border-line bg-surface" />)}</div>
       ) : items.length === 0 ? (
         <div className="mt-10 grid place-items-center rounded-3xl border border-dashed border-line px-6 py-16 text-center">

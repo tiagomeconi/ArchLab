@@ -105,12 +105,13 @@
 
 /* Reset mínimo escopado à landing (não há preflight do Tailwind). Na camada base para que utilitários vençam. */
 @layer base {
-  .lp a { color: inherit; text-decoration: none; }
-  .lp button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-  .lp h1, .lp h2, .lp h3, .lp p, .lp ul, .lp ol, .lp li, .lp figure { margin: 0; padding: 0; }
-  .lp h1, .lp h2, .lp h3 { font-size: inherit; font-weight: inherit; }
-  .lp ul, .lp ol { list-style: none; }
-  .lp img { display: block; max-width: 100%; height: auto; }
+  /* o diálogo nativo abre no topo do documento, fora do .lp: recebe o mesmo reset */
+  :is(.lp, .profile-dialog) a { color: inherit; text-decoration: none; }
+  :is(.lp, .profile-dialog) button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  :is(.lp, .profile-dialog) :is(h1, h2, h3, h4, p, ul, ol, li, figure) { margin: 0; padding: 0; }
+  :is(.lp, .profile-dialog) :is(h1, h2, h3) { font-size: inherit; font-weight: inherit; }
+  :is(.lp, .profile-dialog) :is(ul, ol) { list-style: none; }
+  :is(.lp, .profile-dialog) img { display: block; max-width: 100%; height: auto; }
   .lp { --foreground: var(--text); }
 }
 

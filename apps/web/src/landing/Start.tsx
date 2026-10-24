@@ -9,8 +9,10 @@ import { cn } from "./lib/utils";
 import { t, useLang } from "../i18n";
 import { levelLocked } from "../plan";
 import { useAuth } from "../auth";
+import { MASTERED_SCORE } from "../assessments";
+import { useDeliveries, type Delivery } from "./AssessmentDeliveries";
 
-const field = "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-text-2/60 focus:border-accent";
+const field = "w-full rounded-full border border-line bg-surface px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-text-2/60 focus:border-accent";
 
 /** Cabeçalho de página dentro do sistema (o menu, o topo e a animação de entrada vêm do AppLayout). */
 function Shell({ title, sub, children }: { title: string; sub: string; children: ReactNode }) {
@@ -85,7 +87,7 @@ function LockMark({ level }: { level: StudyCase["level"] }) {
   return <span className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-full bg-text px-2.5 py-1 text-xs font-semibold text-bg" title={t("Disponível na assinatura")}><Icon name="lock" size={13} />{t("Pro")}</span>;
 }
 
-function CompanyCard({ c, p }: { c: StudyCase; p?: CaseProgress }) {
+function CompanyCard({ c, p, delivery }: { c: StudyCase; p?: CaseProgress; delivery?: Delivery }) {
   const co = c.company!;
   return (
     <article style={{ "--brand": co.brand } as React.CSSProperties}
@@ -106,7 +108,11 @@ function CompanyCard({ c, p }: { c: StudyCase; p?: CaseProgress }) {
         <button type="button" onClick={() => openCase(c)}><Cta>{t("Ver requisitos")}</Cta></button>
         <Level level={c.level} />
       </div>
-      <a {...link(`/avaliacao/${c.id}`)} className="relative mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-line px-3 text-sm font-semibold text-accent transition-colors hover:border-accent hover:bg-accent-soft"><Icon name="verified" size={17} />{t("Fazer avaliação sem dicas")}</a>
+      {delivery
+        ? delivery.passed && delivery.score >= MASTERED_SCORE
+          ? <a {...link(`/avaliacao/tentativa/${delivery.id}`)} title={t("Você já foi aprovado(a) neste caso. Abra para ver o resultado ou corrigir a entrega.")} className="relative mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-[var(--ok)] bg-[var(--ok-bg)] px-3 text-sm font-semibold text-[var(--ok)] transition-colors hover:brightness-110"><Icon name="check_circle" size={17} />{t("Avaliação concluída · {n}", { n: delivery.score })}</a>
+          : <a {...link(`/avaliacao/tentativa/${delivery.id}`)} title={t("Você já fez esta avaliação. Abra para ver o diagnóstico e corrigir a entrega.")} className="relative mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-accent/50 bg-accent-soft px-3 text-sm font-semibold text-accent transition-colors hover:border-accent"><Icon name="edit" size={17} />{t("Corrigir entrega · {n}", { n: delivery.score })}</a>
+        : <a {...link(`/avaliacao/${c.id}`)} className="relative mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-line px-3 text-sm font-semibold text-accent transition-colors hover:border-accent hover:bg-accent-soft"><Icon name="verified" size={17} />{t("Fazer avaliação sem dicas")}</a>}
     </article>
   );
 }
@@ -135,6 +141,8 @@ function Study() {
   const [q, setQ] = useState("");
   const [group, setGroup] = useState<CaseGroup | "Todos">("Todos");
   const progress = useMemo(loadProgress, []);
+  const deliveries = useDeliveries();
+  const delivered = useMemo(() => new Map((deliveries.rows ?? []).map((d) => [d.caseId, d])), [deliveries.rows]);
   const all = useMemo(() => [...COMPANY_CASES, ...CASES], []);
   const groups = useMemo(() => ["Todos", ...Array.from(new Set(all.map((c) => c.group)))] as (CaseGroup | "Todos")[], [all]);
   const list = all.filter((c) => (group === "Todos" || c.group === group)
@@ -158,7 +166,7 @@ function Study() {
         <section className="mt-10">
           <h2 className="text-xl font-semibold tracking-tight">{t("Como as grandes empresas resolvem")}</h2>
           <p className="mt-1 text-sm text-text-2">{t("Cada caso traz as regras difíceis do sistema real: o que a entrevista espera que você discuta.")}</p>
-          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{companies.map((c) => <CompanyCard key={c.id} c={c} p={progress[c.id]} />)}</div>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{companies.map((c) => <CompanyCard key={c.id} c={c} p={progress[c.id]} delivery={delivered.get(c.id)} />)}</div>
         </section>
       )}
 
@@ -202,7 +210,7 @@ function ListEditor({ label, hint, items, onChange, placeholder }: { label: stri
       <div className="flex gap-2">
         <input className={field} value={draft} placeholder={placeholder} aria-label={label} onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
-        <button onClick={add} className="shrink-0 rounded-xl bg-accent px-4 text-sm font-semibold text-on-accent disabled:opacity-40" disabled={!draft.trim()}>{t("Adicionar")}</button>
+        <button onClick={add} className="shrink-0 rounded-full bg-accent px-5 text-sm font-semibold text-on-accent disabled:opacity-40" disabled={!draft.trim()}>{t("Adicionar")}</button>
       </div>
       <ul className="mt-3 space-y-2">
         {items.map((it, i) => (
